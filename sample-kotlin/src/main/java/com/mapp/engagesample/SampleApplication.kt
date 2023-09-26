@@ -1,0 +1,34 @@
+package com.mapp.engagesample
+
+import android.app.Application
+import com.appoxee.Appoxee
+import com.appoxee.AppoxeeOptions
+import com.appoxee.push.NotificationMode
+
+class SampleApplication : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        val options: AppoxeeOptions = AppoxeeOptions(
+            server = AppoxeeOptions.Server.L3,
+            sdkKey = "183408d0cd3632.83592719",
+            tenantId = "206974",
+            appId = "5963",
+        ).also {
+            it.logType = AppoxeeOptions.LogLevel.DEBUG
+            it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
+        }
+
+        Appoxee.engage(this, options, object : Appoxee.OnInitCompleteListener {
+            override fun onInitCompleted(successful: Boolean, failReason: Exception?) {
+                println("Init is $successful; Fail reason: ${if (failReason != null) failReason.message else ""}")
+            }
+        })
+
+//        Appoxee.instance().addInitListener(onInitListener = object : Appoxee.OnInitCompleteListener {
+//                override fun onInitCompleted(successful: Boolean, failReason: Exception?) {
+//                    print("Init is $successful; Fail reason: ${if (failReason != null) failReason.message else ""}")
+//                }
+//            })
+    }
+}
