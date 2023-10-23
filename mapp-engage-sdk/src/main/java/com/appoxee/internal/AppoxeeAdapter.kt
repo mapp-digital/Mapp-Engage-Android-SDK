@@ -1,55 +1,55 @@
 package com.appoxee.internal
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.provider.Settings
-import android.provider.Settings.Secure.ANDROID_ID
-import com.appoxee.AppoxeeOptions
-import com.appoxee.internal.model.request.BaseBodyModel
-import com.appoxee.internal.model.request.RegisterModel
-import com.appoxee.internal.model.response.RegisterResponse
-import com.appoxee.internal.model.response.Response
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.response.DefaultResponse
+import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.RegisterPayload
+import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.NetworkClientImpl
-import java.util.UUID
+import com.appoxee.internal.provider.DeviceProvider
 
+@SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
-    private val context: Context,
+    context: Context,
+    private val deviceProvider: DeviceProvider,
     options: AppoxeeOptions
 ) {
     private val client = NetworkClientImpl(options)
 
-    private val engageApi: EngageApi = EngageApiImpl(client, options)
+    private val engageApi: EngageApi = EngageApiImpl(client, deviceProvider, options)
 
-    internal suspend fun register(): Response<RegisterResponse> {
-        val register = RegisterModel(
-            osName = "Android",
+    internal suspend fun register(): ResponseData<RegisterPayload> {
+        val device = RegisterDeviceModel(
+            osName = deviceProvider.getOSName(),
             pushToken = "",
-            appVersion = "1.0.0",
-            clientVersion = "7.0.0",
-            locale = "en-US",
-            timeZone = "America/Bogota",
-            hardwareType = "Samsung s22+",
-            density = "326",
-            vendorID = UUID.randomUUID().toString(),
-            osNumber = "13",
-            resolution = "1080x1920"
+            appVersion = deviceProvider.getAppVersion(),
+            clientVersion = deviceProvider.getClientVersion(),
+            locale = deviceProvider.getLocale(),
+            timeZone = deviceProvider.getTimeZone(),
+            hardwareType = deviceProvider.getHardwareType(),
+            density = deviceProvider.getDensity(),
+            vendorID = deviceProvider.getVendorId(),
+            osNumber = deviceProvider.getOSNumber(),
+            resolution = deviceProvider.getResolution()
         )
 
-        val device =
-            BaseBodyModel(
-                key = Settings.Secure.getString(context.contentResolver, ANDROID_ID),
-                actions = register
-            )
-
-        return engageApi.register(device)
+        return engageApi.registerDevice(device)
     }
 
-    suspend fun setAlias(alias: String): Boolean {
-        return true
+    suspend fun setAlias(alias: String): ResponseData<DefaultResponse> {
+        return engageApi.setAlias(alias, "")
     }
 
-    suspend fun getAlias(): String? {
+    suspend fun getDevice(): ResponseData<DevicePayload> {
+        return engageApi.getDevice()
+    }
+
+    suspend fun getAlias(): String {
         return ""
     }
 }

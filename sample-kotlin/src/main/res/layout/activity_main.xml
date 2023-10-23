@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    tools:ignore="UseSwitchCompatOrMaterialXml">
 
+    <Switch
+        android:id="@+id/switchReady"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Is Ready" />
+
+    <TextView
+        android:id="@+id/tvDevice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 </LinearLayout>

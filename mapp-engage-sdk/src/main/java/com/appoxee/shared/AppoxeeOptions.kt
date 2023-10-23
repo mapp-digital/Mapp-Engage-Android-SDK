@@ -1,4 +1,4 @@
-package com.appoxee
+package com.appoxee.shared
 
 import com.appoxee.push.NotificationMode
 

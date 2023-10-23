@@ -1,9 +1,8 @@
 package com.mapp.engagesample
 
 import android.app.Application
-import android.util.Log
 import com.appoxee.Appoxee
-import com.appoxee.AppoxeeOptions
+import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.push.NotificationMode
 
 class SampleApplication : Application() {
@@ -20,16 +19,6 @@ class SampleApplication : Application() {
             it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
         }
 
-        Appoxee.engage(this, options, object : Appoxee.OnInitCompleteListener {
-            override fun onInitCompleted(successful: Boolean, failReason: Exception?) {
-                Log.w(this::class.simpleName,"Init is $successful; Fail reason: ${if (failReason != null) failReason.message else ""}")
-            }
-        })
-
-//        Appoxee.instance().addInitListener(onInitListener = object : Appoxee.OnInitCompleteListener {
-//                override fun onInitCompleted(successful: Boolean, failReason: Exception?) {
-//                    print("Init is $successful; Fail reason: ${if (failReason != null) failReason.message else ""}")
-//                }
-//            })
+        Appoxee.engage(this, options)
     }
 }

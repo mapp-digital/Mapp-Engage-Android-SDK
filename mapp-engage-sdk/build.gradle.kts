@@ -1,7 +1,11 @@
+import com.google.common.collect.ImmutableList
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
+
+val sdkVersion = project.properties["VERSION"]
 
 android {
     namespace = "com.appoxee"
@@ -12,6 +16,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        buildConfigField(type = "String", name = "VERSION_NAME", "\"${sdkVersion}\"")
     }
 
     buildTypes {
@@ -31,17 +37,23 @@ android {
         jvmTarget = "11"
     }
 
-    packagingOptions {
-        exclude("META-INF/LICENSE.md")
-        exclude("META-INF/LICENSE-notice.md")
+    packaging {
+        resources.excludes.addAll(
+            ImmutableList.of(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md"
+            )
+        )
     }
+
+    android.buildFeatures.buildConfig = true
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.10.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

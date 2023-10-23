@@ -3,7 +3,7 @@ package com.appoxee.internal.model.request
 import com.appoxee.internal.network.NetworkData
 import org.json.JSONObject
 
-internal data class RegisterModel(
+internal data class RegisterDeviceModel(
     val osName: String? = "N/A",
     val pushToken: String? = "N/A",
     val appVersion: String? = "N/A",
@@ -18,17 +18,19 @@ internal data class RegisterModel(
 ) : NetworkData {
 
     override fun asJson(): JSONObject {
-        val registerJSON = JSONObject().put("osName", osName)
-            .put("pushToken", pushToken)
-            .put("appVersion", appVersion)
-            .put("clientVersion", clientVersion)
-            .put("locale", locale)
-            .put("timeZone", timeZone)
-            .put("hardwareType", hardwareType)
-            .put("density", density)
-            .put("vendorID", vendorID)
-            .put("osNumber", osNumber)
-            .put("resolution", resolution)
+        val registerJSON = JSONObject().apply {
+            put("osName", osName)
+            put("pushToken", pushToken)
+            put("appVersion", appVersion)
+            put("clientVersion", clientVersion)
+            put("locale", locale)
+            put("timeZone", timeZone)
+            put("hardwareType", hardwareType)
+            put("density", density)
+            put("vendorID", vendorID)
+            put("osNumber", osNumber)
+            put("resolution", resolution)
+        }
 
         val register = JSONObject().apply {
             put("register", registerJSON)

@@ -1,15 +1,14 @@
 package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
-import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class SetAliasModel(val alias: String, val pushToken: String?) : NetworkData {
+internal class OptOutModel(private val pushTokenBk: String) : NetworkData {
     override fun asJson(): JSONObject {
         val json = JSONObject().apply {
             put("set", JSONObject().apply {
-                put("alias", alias)
-                put("pushToken", pushToken ?: "")
+                put("pushToken", "")
+                put("pushToken_bk", pushTokenBk)
             })
         }
         return json

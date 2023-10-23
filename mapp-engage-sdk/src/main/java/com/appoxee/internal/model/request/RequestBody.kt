@@ -3,7 +3,7 @@ package com.appoxee.internal.model.request
 import com.appoxee.internal.network.NetworkData
 import org.json.JSONObject
 
-internal data class BaseBodyModel(
+internal data class RequestBody(
     private val key: String,
     private val actions: NetworkData
 ) :

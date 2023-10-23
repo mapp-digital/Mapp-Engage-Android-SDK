@@ -1,4 +1,4 @@
-package com.appoxee
+package com.appoxee.shared
 
 abstract class MappResult<T>(
     private val data: T? = null,
