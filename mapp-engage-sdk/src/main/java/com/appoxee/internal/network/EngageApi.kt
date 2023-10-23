@@ -1,6 +1,5 @@
 package com.appoxee.internal.network
 
-import com.appoxee.internal.model.request.DeviceModel
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DeviceResponse
 import com.appoxee.internal.model.response.RegisterResponse
@@ -8,7 +7,7 @@ import com.appoxee.internal.model.response.Response
 
 internal interface EngageApi {
     suspend fun register(
-        deviceModel: DeviceModel,
+        deviceModel: NetworkData,
     ): Response<RegisterResponse>
 
     suspend fun getDevice(deviceId: String): Response<DeviceResponse>

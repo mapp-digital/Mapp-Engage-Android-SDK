@@ -1,8 +1,7 @@
 package com.appoxee.internal.network
 
 import com.appoxee.AppoxeeOptions
-import com.appoxee.internal.model.request.ActionModel
-import com.appoxee.internal.model.request.DeviceModel
+import com.appoxee.internal.model.request.BaseBodyModel
 import com.appoxee.internal.model.request.RegisterModel
 import com.appoxee.push.NotificationMode
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +22,7 @@ class NetworkClientImplTest {
         it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
     }
     val coroutineScope = CoroutineScope(Dispatchers.IO)
-    val client = NetworkClientImpl(options, coroutineScope)
+    val client = NetworkClientImpl(options)
 
     @Test
     fun execute() = runBlocking {
@@ -35,12 +34,12 @@ class NetworkClientImplTest {
             osNumber = "13"
         )
         val device =
-            DeviceModel(
+            BaseBodyModel(
                 key = UUID.randomUUID().toString(),
-                actions = ActionModel(register = register)
+                actions = RegisterModel()
             )
         val request = Request.Put(path = "api/v3/device", requestBody = device).apply {
-            headers?.put("X_KEY", "183408d0cd3632.83592719")
+            headers["X_KEY"] = "183408d0cd3632.83592719"
         }
         client.execute(request)
     }
