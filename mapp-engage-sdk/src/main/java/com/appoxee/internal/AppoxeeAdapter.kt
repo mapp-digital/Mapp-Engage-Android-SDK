@@ -4,9 +4,7 @@ import android.content.Context
 import android.provider.Settings
 import android.provider.Settings.Secure.ANDROID_ID
 import com.appoxee.AppoxeeOptions
-import com.appoxee.internal.model.request.Actions
-import com.appoxee.internal.model.request.DeviceModel
-import com.appoxee.internal.model.request.RegisterActions
+import com.appoxee.internal.model.request.BaseBodyModel
 import com.appoxee.internal.model.request.RegisterModel
 import com.appoxee.internal.model.response.RegisterResponse
 import com.appoxee.internal.model.response.Response
@@ -37,12 +35,11 @@ internal class AppoxeeAdapter(
             osNumber = "13",
             resolution = "1080x1920"
         )
-        val registerAction = RegisterActions(register = register)
 
         val device =
-            DeviceModel(
+            BaseBodyModel(
                 key = Settings.Secure.getString(context.contentResolver, ANDROID_ID),
-                actions = registerAction as Actions<RegisterActions>
+                actions = register
             )
 
         return engageApi.register(device)

@@ -1,6 +1,7 @@
 package com.appoxee.internal
 
 import android.content.Context
+import android.util.Log
 import com.appoxee.Appoxee
 import com.appoxee.AppoxeeOptions
 import com.appoxee.MappCallback
@@ -17,12 +18,14 @@ internal class AppoxeeImpl(
     private var onInitCompleteListener: Appoxee.OnInitCompleteListener? = null
 ) : Appoxee {
 
+    private val TAG = AppoxeeImpl::class.java.name
+
     private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
-        println("EXCEPTION IN COROUTINE: $throwable")
+        Log.e(TAG, "EXCEPTION IN COROUTINE: $throwable")
     }
     private val appoxeeAdapter: AppoxeeAdapter
     private val coroutineScope =
-        CoroutineScope(Dispatchers.IO)
+        CoroutineScope(Dispatchers.IO + exceptionHandler)
 
 
     private var mIsReady = AtomicBoolean(false)
@@ -42,16 +45,16 @@ internal class AppoxeeImpl(
 
     private fun register() =
         coroutineScope.launch {
-            try {
-                val registerResponse = appoxeeAdapter.register()
-                println(registerResponse)
-                mIsReady.set(true)
-                onInitCompleteListener?.onInitCompleted(true)
-            } catch (e: Throwable) {
-                println(e)
-            } catch (e: Exception) {
-                println(e)
-            }
+//            try {
+            val registerResponse = appoxeeAdapter.register()
+            println(registerResponse)
+            mIsReady.set(true)
+            onInitCompleteListener?.onInitCompleted(true)
+//            } catch (e: Throwable) {
+//                println("ERROR IN CATCH THROWABLE: $e")
+//            } catch (e: Exception) {
+//                println("ERROR IN CATCH EXCEPTION: $e")
+//            }
         }
 
     @Deprecated(message = "Only for backward compatibility. Attach init listener on [engage()] method.")

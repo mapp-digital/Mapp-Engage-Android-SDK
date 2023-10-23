@@ -18,7 +18,7 @@ internal data class RegisterModel(
 ) : NetworkData {
 
     override fun asJson(): JSONObject {
-        return JSONObject().put("osName", osName)
+        val registerJSON = JSONObject().put("osName", osName)
             .put("pushToken", pushToken)
             .put("appVersion", appVersion)
             .put("clientVersion", clientVersion)
@@ -29,6 +29,11 @@ internal data class RegisterModel(
             .put("vendorID", vendorID)
             .put("osNumber", osNumber)
             .put("resolution", resolution)
+
+        val register = JSONObject().apply {
+            put("register", registerJSON)
+        }
+        return register
     }
 
     override fun asString(): String {

@@ -1,7 +1,6 @@
 package com.appoxee.internal.network
 
 import com.appoxee.AppoxeeOptions
-import com.appoxee.internal.model.request.DeviceModel
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DeviceAttributes
 import com.appoxee.internal.model.response.DeviceResponse
@@ -20,7 +19,7 @@ internal class EngageApiImpl(
     private val header = mapOf("X_KEY" to options.sdkKey)
 
     override suspend fun register(
-        deviceModel: DeviceModel
+        deviceModel: NetworkData
     ): Response<RegisterResponse> {
         val request = Request.Put(path = devicePathV3, requestBody = deviceModel)
             .also {
@@ -52,6 +51,7 @@ internal class EngageApiImpl(
         val metadata = Metadata(false, 200)
         val deviceAttributes = DeviceAttributes()
         val deviceResponse = DeviceResponse(deviceAttributes)
+        val request = Request.Put(path = devicePathV3)
         val payload = Payload(deviceResponse)
         return Response(metadata = metadata, payload = payload)
     }

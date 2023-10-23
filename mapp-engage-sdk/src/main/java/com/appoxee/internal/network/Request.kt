@@ -10,6 +10,10 @@ abstract class Request(
         "Accept" to "application/json"
     )
 ) {
+
+    var doInput: Boolean = true
+    var doOutput: Boolean = true
+
     class Get(path: String, queryParams: Map<String, Any>? = null) :
         Request(path = path, method = Method.GET, queryParams = queryParams) {
     }
