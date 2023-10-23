@@ -23,7 +23,7 @@ internal class AppoxeeAdapter(
 
     private val engageApi: EngageApi = EngageApiImpl(client, options)
 
-    internal suspend fun register(): Response<RegisterResponse>? {
+    internal suspend fun register(): Response<RegisterResponse> {
         val register = RegisterModel(
             osName = "Android",
             pushToken = "",

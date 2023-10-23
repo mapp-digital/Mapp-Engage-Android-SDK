@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         val isMappSdkReady = Appoxee.instance().isReady()
 
         if (isMappSdkReady) {
-            Appoxee.instance().setAlias("")
+            Appoxee.instance().setAlias("map@test.com")
         }
     }
 }
