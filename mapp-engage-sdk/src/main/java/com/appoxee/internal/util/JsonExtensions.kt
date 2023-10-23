@@ -22,7 +22,9 @@ fun InputStream?.convertToString(): String {
             try {
                 do {
                     line = readLine()
-                    sb.append(line)
+                    if (!line.isNullOrEmpty()) {
+                        sb.append(line)
+                    }
                 } while (line != null)
             } catch (ignored: Exception) {
             }

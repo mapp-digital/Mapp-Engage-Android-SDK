@@ -1,39 +1,49 @@
+@file:Suppress("PrivatePropertyName")
+
 package com.appoxee.internal
 
 import android.content.Context
 import android.util.Log
 import com.appoxee.Appoxee
-import com.appoxee.AppoxeeOptions
-import com.appoxee.MappCallback
-import com.appoxee.MappResult
+import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.provider.DeviceProvider
+import com.appoxee.internal.provider.DeviceProviderImpl
+import com.appoxee.shared.AppoxeeObserver
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.MappCallback
+import com.appoxee.shared.MappResult
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
     context: Context,
-    private val options: AppoxeeOptions,
-    private var onInitCompleteListener: Appoxee.OnInitCompleteListener? = null
-) : Appoxee {
+    options: AppoxeeOptions,
+) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
+
+    private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 
     private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         Log.e(TAG, "EXCEPTION IN COROUTINE: $throwable")
     }
+
+
     private val appoxeeAdapter: AppoxeeAdapter
-    private val coroutineScope =
-        CoroutineScope(Dispatchers.IO + exceptionHandler)
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + exceptionHandler)
+    private val deviceProvider: DeviceProvider = DeviceProviderImpl(context)
 
 
-    private var mIsReady = AtomicBoolean(false)
+    private val mIsReady = AtomicBoolean(false)
 
     init {
         println("OPTIONS: $options")
         saveConfiguration(options)
-        appoxeeAdapter = AppoxeeAdapter(context, options)
+        appoxeeAdapter = AppoxeeAdapter(context, deviceProvider, options)
         register()
     }
 
@@ -45,31 +55,35 @@ internal class AppoxeeImpl(
 
     private fun register() =
         coroutineScope.launch {
-//            try {
-            val registerResponse = appoxeeAdapter.register()
-            println(registerResponse)
-            mIsReady.set(true)
-            onInitCompleteListener?.onInitCompleted(true)
-//            } catch (e: Throwable) {
-//                println("ERROR IN CATCH THROWABLE: $e")
-//            } catch (e: Exception) {
-//                println("ERROR IN CATCH EXCEPTION: $e")
-//            }
+            val result = safeCall {
+                appoxeeAdapter.register()
+            }
+
+            if (result.isSuccess()) {
+                mIsReady.set(true)
+                withContext(Dispatchers.Main) {
+                    updateReadyStatus(true)
+                }
+            }
         }
 
-    @Deprecated(message = "Only for backward compatibility. Attach init listener on [engage()] method.")
-    fun addInitListener(onInitListener: Appoxee.OnInitCompleteListener) {
-        onInitCompleteListener = onInitListener
+    override fun subscribeOnReadyChanged(event: (Boolean) -> Unit) {
+
     }
 
     override fun isReady(): Boolean {
         return mIsReady.get()
     }
 
-    override fun setAlias(alias: String, callback: MappCallback<Boolean>?) {
+    override fun setAlias(alias: String, callback: MappCallback<String>?) {
         coroutineScope.launch {
-            val success = appoxeeAdapter.setAlias(alias)
-            callback?.onResult(MappResult.Success(success))
+            val result = safeCall {
+                val data = appoxeeAdapter.setAlias(alias)
+                data.payload?.dmcUserId ?: ""
+            }
+            withContext(Dispatchers.Main) {
+                callback?.onResult(result)
+            }
         }
     }
 
@@ -78,5 +92,43 @@ internal class AppoxeeImpl(
             val alias = appoxeeAdapter.getAlias()
             callback?.onResult(MappResult.Success(alias))
         }
+    }
+
+    override fun getDevice(callback: MappCallback<DevicePayload>?) {
+        coroutineScope.launch {
+            val result = safeCall {
+                val data = appoxeeAdapter.getDevice()
+                data.payload
+            }
+            withContext(Dispatchers.Main) {
+                callback?.onResult(result)
+            }
+        }
+    }
+
+    private inline fun <T> safeCall(
+        call: () -> T?
+    ): MappResult<T> {
+        return try {
+            val data = call.invoke()
+            MappResult.Success(data)
+        } catch (e: Exception) {
+            MappResult.Error(e)
+        }
+    }
+
+    override fun updateReadyStatus(status: Boolean) {
+        observers.forEach {
+            it.onReadyStatusChanged(status)
+        }
+    }
+
+    override fun subscribe(observer: AppoxeeObserver) {
+        observer.onReadyStatusChanged(isReady())
+        observers.add(observer)
+    }
+
+    override fun unsubscribe(observer: AppoxeeObserver) {
+        observers.remove(observer)
     }
 }

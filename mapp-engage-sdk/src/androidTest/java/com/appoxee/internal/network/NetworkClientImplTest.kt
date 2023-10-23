@@ -1,8 +1,8 @@
 package com.appoxee.internal.network
 
-import com.appoxee.AppoxeeOptions
-import com.appoxee.internal.model.request.BaseBodyModel
-import com.appoxee.internal.model.request.RegisterModel
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.internal.model.request.RequestBody
+import com.appoxee.internal.model.request.RegisterDeviceModel
 import com.appoxee.push.NotificationMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +26,7 @@ class NetworkClientImplTest {
 
     @Test
     fun execute() = runBlocking {
-        val register = RegisterModel(
+        val register = RegisterDeviceModel(
             osName = "Android",
             pushToken = "",
             appVersion = "1.0.0",
@@ -34,9 +34,9 @@ class NetworkClientImplTest {
             osNumber = "13"
         )
         val device =
-            BaseBodyModel(
+            RequestBody(
                 key = UUID.randomUUID().toString(),
-                actions = RegisterModel()
+                actions = RegisterDeviceModel()
             )
         val request = Request.Put(path = "api/v3/device", requestBody = device).apply {
             headers["X_KEY"] = "183408d0cd3632.83592719"

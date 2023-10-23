@@ -3,7 +3,7 @@
 package com.appoxee.internal.network
 
 import android.util.Log
-import com.appoxee.AppoxeeOptions
+import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.RedirectException
 import com.appoxee.internal.network.exceptions.ServerException
@@ -14,7 +14,7 @@ import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class NetworkClientImpl(
+internal class NetworkClientImpl(
     private val appoxeeOptions: AppoxeeOptions,
     private val readTime: Int = 10_000,
     private val connectionTime: Int = 10_000,
@@ -25,78 +25,90 @@ class NetworkClientImpl(
     override suspend fun execute(request: Request): JSONObject? {
         var json: JSONObject? = null
         val urlPath = buildUrl(request)
-        Log.w(TAG, "URL PATH: $urlPath")
         val url = URL(urlPath)
 
         (url.openConnection() as HttpURLConnection).run {
-            readTimeout = readTime
-            connectTimeout = connectionTime
-            requestMethod = request.method.toString()
-            doInput = request.doInput
-            doOutput = request.doOutput
+            try {
+                readTimeout = readTime
+                connectTimeout = connectionTime
+                requestMethod = request.method.toString()
+                doInput = request.doInput
+                doOutput = request.doOutput
 
-            request.headers.entries.forEach {
-                setRequestProperty(it.key, it.value)
+                request.headers.entries.forEach {
+                    setRequestProperty(it.key, it.value)
+                }
+
+                // write request body if exists
+                val data = request.requestBody?.asJson().toString()
+                if (data.isNotEmpty()) {
+                    DataOutputStream(outputStream).run {
+                        write(data.toByteArray(Charsets.UTF_8))
+                        flush()
+                        close()
+                    }
+                }
+
+                Log.w(
+                    TAG,
+                    "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data \nHeaders: ${
+                        request.headers.map { "\"${it.key}\":\"${it.value}\"" }
+                            .joinToString(separator = "\n")
+                    }"
+                )
+                // retrieve request result
+                val statusCode = responseCode
+                val result = inputStream.convertToString()
+                val error = errorStream.convertToString()
+                val responseUrl = this.url
+
+                Log.i(TAG, "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result")
+
+                when (statusCode) {
+                    in 200..299 -> {
+                        // success
+                        json = JSONObject(result)
+                    }
+
+                    in 300..399 -> {
+                        // redirect
+                        throw RedirectException(
+                            code = statusCode,
+                            message = "Redirect exception",
+                            cause = Throwable(error)
+                        )
+                    }
+
+                    in 400..499 -> {
+                        // request error
+                        throw ClientException(
+                            code = statusCode,
+                            message = "Client network request error",
+                            cause = Throwable(error)
+                        )
+                    }
+
+                    in 500..599 -> {
+                        // server error
+                        throw ServerException(
+                            code = statusCode,
+                            message = "Server network error",
+                            cause = Throwable(error)
+                        )
+                    }
+
+                    else -> {
+                        // unknown error
+                        throw UnknownNetworkException(
+                            message = "Unknown network error",
+                            cause = Throwable(error)
+                        )
+                    }
+                }
+            } finally {
+                this.disconnect()
             }
 
-            // write request body if exists
-            DataOutputStream(outputStream).run {
-                if (request.requestBody != null) {
-                    val data = request.requestBody.asJson().toString()
-                    write(data.toByteArray(Charsets.UTF_8))
-                    flush()
-                    close()
-                }
-            }
-
-            // retrieve request result
-            val statusCode = responseCode
-            val result = responseMessage
-            val error = errorStream.convertToString()
-
-            Log.w(TAG, "RESPONSE: $result")
-
-            when (statusCode) {
-                in 200..299 -> {
-                    // success
-                    json = JSONObject(inputStream.convertToString())
-                }
-
-                in 300..399 -> {
-                    // redirect
-                    throw RedirectException(
-                        code = statusCode,
-                        message = "Redirect exception",
-                        cause = Throwable(error)
-                    )
-                }
-
-                in 400..499 -> {
-                    // request error
-                    throw ClientException(
-                        code = statusCode,
-                        message = "Client network request error",
-                        cause = Throwable(error)
-                    )
-                }
-
-                in 500..599 -> {
-                    // server error
-                    throw ServerException(
-                        code = statusCode,
-                        message = "Server network error",
-                        cause = Throwable(error)
-                    )
-                }
-
-                else -> {
-                    // unknown error
-                    throw UnknownNetworkException(
-                        message = "Unknown network error",
-                        cause = Throwable(error)
-                    )
-                }
-            }
         }
         return json
     }

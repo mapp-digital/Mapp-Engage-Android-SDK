@@ -1,13 +1,11 @@
 package com.appoxee
 
 import android.content.Context
-import com.appoxee.internal.AppoxeeAdapter
 import com.appoxee.internal.AppoxeeImpl
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
+import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.shared.AppoxeeObserver
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.MappCallback
 
 interface Appoxee {
     companion object {
@@ -17,9 +15,8 @@ interface Appoxee {
         fun engage(
             context: Context,
             options: AppoxeeOptions,
-            onInitCompleteListener: OnInitCompleteListener? = null
         ) {
-            mInstance = AppoxeeImpl(context.applicationContext, options, onInitCompleteListener)
+            mInstance = AppoxeeImpl(context.applicationContext, options)
         }
 
         @JvmStatic
@@ -31,13 +28,17 @@ interface Appoxee {
         }
     }
 
-    interface OnInitCompleteListener {
-        fun onInitCompleted(successful: Boolean, failReason: Exception? = null)
-    }
-
     fun isReady(): Boolean
 
-    fun setAlias(alias: String, callback: MappCallback<Boolean>? = null)
+    fun subscribeOnReadyChanged(event: (Boolean) -> Unit)
+
+    fun getDevice(callback: MappCallback<DevicePayload>?)
+
+    fun setAlias(alias: String, callback: MappCallback<String>? = null)
 
     fun getAlias(callback: MappCallback<String>? = null)
+
+    fun subscribe(observer: AppoxeeObserver)
+
+    fun unsubscribe(observer: AppoxeeObserver)
 }

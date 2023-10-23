@@ -4,13 +4,18 @@ import com.appoxee.internal.network.NetworkData
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class SetAliasModel(val alias: String, val pushToken: String?) : NetworkData {
+internal class GetDeviceModel : NetworkData {
+    private val attributes: List<String> = listOf(
+        "alias",
+        "dmcUserId",
+        "pushToken",
+        "pushToken_bk",
+        "UDIDHashed"
+    )
+
     override fun asJson(): JSONObject {
         val json = JSONObject().apply {
-            put("set", JSONObject().apply {
-                put("alias", alias)
-                put("pushToken", pushToken ?: "")
-            })
+            put("get", JSONArray(attributes))
         }
         return json
     }
