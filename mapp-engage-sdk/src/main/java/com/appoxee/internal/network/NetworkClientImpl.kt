@@ -16,8 +16,8 @@ import java.net.URL
 
 internal class NetworkClientImpl(
     private val appoxeeOptions: AppoxeeOptions,
-    private val readTime: Int = 10_000,
-    private val connectionTime: Int = 10_000,
+    private var readTime: Int = 10_000,
+    private var connectionTime: Int = 10_000,
 ) : NetworkClient {
 
     private val TAG = NetworkClientImpl::class.java.name

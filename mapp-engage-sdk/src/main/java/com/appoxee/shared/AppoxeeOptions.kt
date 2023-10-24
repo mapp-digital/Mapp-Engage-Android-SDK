@@ -1,7 +1,5 @@
 package com.appoxee.shared
 
-import com.appoxee.push.NotificationMode
-
 class AppoxeeOptions(
     val server: Server,
     val sdkKey: String,

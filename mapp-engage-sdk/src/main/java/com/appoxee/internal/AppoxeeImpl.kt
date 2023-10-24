@@ -2,10 +2,14 @@
 
 package com.appoxee.internal
 
+import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.network.EngageApi
+import com.appoxee.internal.network.EngageApiImpl
+import com.appoxee.internal.network.NetworkClientImpl
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.shared.AppoxeeObserver
@@ -28,22 +32,20 @@ internal class AppoxeeImpl(
 
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 
-    private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
-        Log.e(TAG, "EXCEPTION IN COROUTINE: $throwable")
-    }
+    /*    private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+            Log.e(TAG, "EXCEPTION IN COROUTINE: $throwable")
+        }*/
 
+    private val appoxeeContainer =
+        AppoxeeContainer(context.applicationContext as Application, options)
 
-    private val appoxeeAdapter: AppoxeeAdapter
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + exceptionHandler)
-    private val deviceProvider: DeviceProvider = DeviceProviderImpl(context)
-
+    private val coroutineScope = CoroutineScope(Dispatchers.IO /* + exceptionHandler*/)
 
     private val mIsReady = AtomicBoolean(false)
 
     init {
         println("OPTIONS: $options")
         saveConfiguration(options)
-        appoxeeAdapter = AppoxeeAdapter(context, deviceProvider, options)
         register()
     }
 
@@ -56,7 +58,7 @@ internal class AppoxeeImpl(
     private fun register() =
         coroutineScope.launch {
             val result = safeCall {
-                appoxeeAdapter.register()
+                appoxeeContainer.appoxeeAdapter.register()
             }
 
             if (result.isSuccess()) {
@@ -78,7 +80,7 @@ internal class AppoxeeImpl(
     override fun setAlias(alias: String, callback: MappCallback<String>?) {
         coroutineScope.launch {
             val result = safeCall {
-                val data = appoxeeAdapter.setAlias(alias)
+                val data = appoxeeContainer.appoxeeAdapter.setAlias(alias)
                 data.payload?.dmcUserId ?: ""
             }
             withContext(Dispatchers.Main) {
@@ -89,7 +91,7 @@ internal class AppoxeeImpl(
 
     override fun getAlias(callback: MappCallback<String>?) {
         coroutineScope.launch {
-            val alias = appoxeeAdapter.getAlias()
+            val alias = appoxeeContainer.appoxeeAdapter.getAlias()
             callback?.onResult(MappResult.Success(alias))
         }
     }
@@ -97,7 +99,7 @@ internal class AppoxeeImpl(
     override fun getDevice(callback: MappCallback<DevicePayload>?) {
         coroutineScope.launch {
             val result = safeCall {
-                val data = appoxeeAdapter.getDevice()
+                val data = appoxeeContainer.appoxeeAdapter.getDevice()
                 data.payload
             }
             withContext(Dispatchers.Main) {
