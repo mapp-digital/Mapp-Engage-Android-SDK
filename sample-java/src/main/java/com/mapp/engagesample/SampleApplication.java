@@ -4,7 +4,7 @@ import android.app.Application;
 
 import com.appoxee.Appoxee;
 import com.appoxee.shared.AppoxeeOptions;
-import com.appoxee.push.NotificationMode;
+import com.appoxee.shared.NotificationMode;
 
 public class SampleApplication extends Application {
 

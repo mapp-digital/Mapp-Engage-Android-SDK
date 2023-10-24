@@ -3,7 +3,7 @@ package com.appoxee.internal.network
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.internal.model.request.RequestBody
 import com.appoxee.internal.model.request.RegisterDeviceModel
-import com.appoxee.push.NotificationMode
+import com.appoxee.shared.NotificationMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

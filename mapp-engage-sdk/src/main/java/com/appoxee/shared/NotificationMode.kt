@@ -1,4 +1,4 @@
-package com.appoxee.push
+package com.appoxee.shared
 
 enum class NotificationMode {
     BACKGROUND_ONLY,

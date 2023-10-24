@@ -15,14 +15,9 @@ import com.appoxee.internal.provider.DeviceProvider
 
 @SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
-    context: Context,
     private val deviceProvider: DeviceProvider,
-    options: AppoxeeOptions
+    private val engageApi: EngageApi,
 ) {
-    private val client = NetworkClientImpl(options)
-
-    private val engageApi: EngageApi = EngageApiImpl(client, deviceProvider, options)
-
     internal suspend fun register(): ResponseData<RegisterPayload> {
         val device = RegisterDeviceModel(
             osName = deviceProvider.getOSName(),
@@ -41,15 +36,15 @@ internal class AppoxeeAdapter(
         return engageApi.registerDevice(device)
     }
 
-    suspend fun setAlias(alias: String): ResponseData<DefaultResponse> {
+    internal suspend fun setAlias(alias: String): ResponseData<DefaultResponse> {
         return engageApi.setAlias(alias, "")
     }
 
-    suspend fun getDevice(): ResponseData<DevicePayload> {
-        return engageApi.getDevice()
+    internal suspend fun getAlias(): String {
+        return ""
     }
 
-    suspend fun getAlias(): String {
-        return ""
+    internal suspend fun getDevice(): ResponseData<DevicePayload> {
+        return engageApi.getDevice()
     }
 }
