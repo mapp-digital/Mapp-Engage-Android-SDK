@@ -1,10 +1,9 @@
 package com.appoxee.internal.model.response
 
+import com.appoxee.internal.util.getNonNullString
 import org.json.JSONObject
 
-public data class DevicePayload(
-    private val json: JSONObject
-) {
+class DevicePayload() {
     var dmcUserId: String? = null /* Unique user id */
         private set
     var udidHashed: String? = null /* UDIDHashed */
@@ -16,21 +15,31 @@ public data class DevicePayload(
     var alias: String? = null /* User Alias */
         private set
 
-    init {
-        if (json.has("dmcUserId")) {
-            dmcUserId = json.getString("dmsUserId")
-        }
-        if (json.has("UDIDHashed")) {
-            udidHashed = json.getString("UDIDHashed")
-        }
-        if (json.has("pushToken")) {
-            pushToken = json.getString("pushToken")
-        }
-        if (json.has("pushToken_bk")) {
-            pushTokenBk = json.getString("pushToken_bk")
-        }
-        if (json.has("alias")) {
-            alias = json.getString("alias")
+    fun toJSON(): JSONObject {
+        return JSONObject().apply {
+            put("dmcUserId", dmcUserId)
+            put("UDIDHashed", udidHashed)
+            put("pushToken", pushToken)
+            put("pushToken_bk", pushTokenBk)
+            put("alias", alias)
         }
     }
+
+    companion object {
+        fun fromJSON(json: JSONObject): DevicePayload {
+            return DevicePayload().apply {
+                dmcUserId = json.getNonNullString("dmcUserId")
+                udidHashed = json.getNonNullString("UDIDHashed")
+                pushToken = json.getNonNullString("pushToken")
+                pushTokenBk = json.getNonNullString("pushToken_bk")
+                alias = json.getNonNullString("alias")
+            }
+        }
+    }
+
+    override fun toString(): String {
+        return "DevicePayload(dmcUserId=$dmcUserId, udidHashed=$udidHashed, pushTokenBk=$pushTokenBk, pushToken=$pushToken, alias=$alias)"
+    }
+
+
 }

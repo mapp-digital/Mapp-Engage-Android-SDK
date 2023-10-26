@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package com.appoxee.internal
 
 import android.app.Application
@@ -7,15 +9,22 @@ import com.appoxee.internal.network.NetworkClient
 import com.appoxee.internal.network.NetworkClientImpl
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
+import com.appoxee.internal.storage.PrefsStorageImpl
+import com.appoxee.internal.storage.Storage
 import com.appoxee.shared.AppoxeeOptions
 
-internal class AppoxeeContainer(application: Application, options: AppoxeeOptions) {
+internal class AppoxeeContainer(
+    private val application: Application,
+    private val options: AppoxeeOptions
+) {
 
-    private val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
+    internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
 
-    private val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = application) }
+    internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = application) }
 
-    private val engageApi: EngageApi by lazy {
+    internal val storage: Storage by lazy { PrefsStorageImpl(application) }
+
+    internal val engageApi: EngageApi by lazy {
         EngageApiImpl(
             networkClient = networkClient,
             deviceProvider = deviceProvider,
@@ -23,9 +32,8 @@ internal class AppoxeeContainer(application: Application, options: AppoxeeOption
         )
     }
 
-    val appoxeeAdapter: AppoxeeAdapter by lazy {
+    internal val appoxeeAdapter: AppoxeeAdapter by lazy {
         AppoxeeAdapter(
-            deviceProvider = deviceProvider,
             engageApi = engageApi
         )
     }

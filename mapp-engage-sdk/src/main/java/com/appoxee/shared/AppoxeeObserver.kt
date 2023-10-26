@@ -1,5 +1,7 @@
 package com.appoxee.shared
 
+import com.appoxee.internal.model.response.DevicePayload
+
 interface AppoxeeObserver {
-    fun onReadyStatusChanged(status: Boolean)
+    fun onReadyStatusChanged(status: Boolean, devicePayload: DevicePayload?)
 }

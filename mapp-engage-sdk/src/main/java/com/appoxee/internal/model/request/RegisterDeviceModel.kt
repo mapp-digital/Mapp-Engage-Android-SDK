@@ -1,6 +1,7 @@
 package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
+import com.appoxee.internal.util.getNonNullString
 import org.json.JSONObject
 
 internal data class RegisterDeviceModel(
@@ -16,6 +17,25 @@ internal data class RegisterDeviceModel(
     val osNumber: String? = "N/A",
     val resolution: String? = "N/A",
 ) : NetworkData {
+
+    companion object {
+        fun fromJSON(json: JSONObject): RegisterDeviceModel {
+            return RegisterDeviceModel(
+                osName = json.getNonNullString("osName"),
+                pushToken = json.getNonNullString("pushToken"),
+                appVersion = json.getNonNullString("appVersion"),
+                clientVersion = json.getNonNullString("clientVersion"),
+                locale = json.getNonNullString("locale"),
+                timeZone = json.getNonNullString("timeZone"),
+                hardwareType = json.getNonNullString("hardwareType"),
+                density = json.getNonNullString("density"),
+                vendorID = json.getNonNullString("vendorID"),
+                osNumber = json.getNonNullString("osNumber"),
+                resolution = json.getNonNullString("resolution"),
+            )
+
+        }
+    }
 
     override fun asJson(): JSONObject {
         val registerJSON = JSONObject().apply {

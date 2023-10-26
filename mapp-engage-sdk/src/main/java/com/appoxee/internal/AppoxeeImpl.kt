@@ -7,19 +7,15 @@ import android.content.Context
 import android.util.Log
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.network.EngageApi
-import com.appoxee.internal.network.EngageApiImpl
-import com.appoxee.internal.network.NetworkClientImpl
-import com.appoxee.internal.provider.DeviceProvider
-import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
-import kotlinx.coroutines.CoroutineExceptionHandler
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -32,45 +28,82 @@ internal class AppoxeeImpl(
 
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 
-    /*    private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
-            Log.e(TAG, "EXCEPTION IN COROUTINE: $throwable")
-        }*/
-
     private val appoxeeContainer =
         AppoxeeContainer(context.applicationContext as Application, options)
 
-    private val coroutineScope = CoroutineScope(Dispatchers.IO /* + exceptionHandler*/)
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     private val mIsReady = AtomicBoolean(false)
+
+    private val registerCallback = object : MappCallback<DevicePayload> {
+        override fun onResult(mappResult: MappResult<DevicePayload>) {
+            if (mappResult.isSuccess()) {
+                mIsReady.set(true)
+                updateReadyStatus(true, mappResult.getData())
+            }
+        }
+    }
 
     init {
         println("OPTIONS: $options")
         saveConfiguration(options)
-        register()
+        validateDeviceRegistration()
     }
 
+    private fun validateDeviceRegistration() {
+        safeCall(registerCallback) {
+            var modified = false
 
-    private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {
-        // TODO Save configuration
-    }
+            // get FCM token
+            val pushToken = FirebaseMessaging.getInstance().token.await()
 
+            val registrationDevice =
+                appoxeeContainer.deviceProvider.generateRegistrationDevice(pushToken)
 
-    private fun register() =
-        coroutineScope.launch {
-            val result = safeCall {
-                appoxeeContainer.appoxeeAdapter.register()
+            val savedRegistrationDevice = appoxeeContainer.storage.getRegistrationDevice()
+
+            // check & get data device if already registered
+            var devicePayload = appoxeeContainer.storage.getDevicePayload()
+
+            if (registrationDevice.equals(savedRegistrationDevice)) {
+                return@safeCall devicePayload
             }
 
-            if (result.isSuccess()) {
-                mIsReady.set(true)
-                withContext(Dispatchers.Main) {
-                    updateReadyStatus(true)
-                }
+            devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+
+            if (devicePayload?.udidHashed == null) {
+                // if device not registered already, register device
+                Log.i(TAG, "PUSH TOKEN FROM LIB: $pushToken")
+                appoxeeContainer.appoxeeAdapter.register(registrationDevice)
+                appoxeeContainer.storage.saveRegistrationDevice(registrationDevice)
+                modified = true
             }
+
+            // if device opted Out and optOut token is expired, update optOut token
+            if (devicePayload?.pushTokenBk?.isNotEmpty() == true
+                && pushToken != devicePayload.pushTokenBk
+            ) {
+                appoxeeContainer.appoxeeAdapter.optOut(pushToken)
+                modified = true
+            }
+
+            // if device opted In and optIn token is expired, update optIn token
+            if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
+                appoxeeContainer.appoxeeAdapter.optIn(pushToken)
+                modified = true
+            }
+
+            if (modified) {
+                // get fresh device data from server
+                devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+            }
+
+            // save to local storage
+            appoxeeContainer.storage.saveDevicePayload(devicePayload)
+            appoxeeContainer.storage.saveRegistrationDevice(registrationDevice)
+
+            devicePayload
         }
-
-    override fun subscribeOnReadyChanged(event: (Boolean) -> Unit) {
-
     }
 
     override fun isReady(): Boolean {
@@ -78,59 +111,71 @@ internal class AppoxeeImpl(
     }
 
     override fun setAlias(alias: String, callback: MappCallback<String>?) {
-        coroutineScope.launch {
-            val result = safeCall {
-                val data = appoxeeContainer.appoxeeAdapter.setAlias(alias)
-                data.payload?.dmcUserId ?: ""
-            }
-            withContext(Dispatchers.Main) {
-                callback?.onResult(result)
-            }
+        safeCall(callback) {
+            appoxeeContainer.appoxeeAdapter.setAlias(alias)
         }
     }
 
     override fun getAlias(callback: MappCallback<String>?) {
-        coroutineScope.launch {
-            val alias = appoxeeContainer.appoxeeAdapter.getAlias()
-            callback?.onResult(MappResult.Success(alias))
+        safeCall(callback) {
+            appoxeeContainer.appoxeeAdapter.getAlias()
+        }
+    }
+
+    override fun optIn(token: String, callback: MappCallback<Boolean>?) {
+        safeCall(callback) {
+            appoxeeContainer.appoxeeAdapter.optIn(pushToken = token)
+        }
+    }
+
+    override fun optOut(token: String, callback: MappCallback<Boolean>?) {
+        safeCall(callback) {
+            appoxeeContainer.appoxeeAdapter.optOut(token)
         }
     }
 
     override fun getDevice(callback: MappCallback<DevicePayload>?) {
-        coroutineScope.launch {
-            val result = safeCall {
-                val data = appoxeeContainer.appoxeeAdapter.getDevice()
-                data.payload
-            }
-            withContext(Dispatchers.Main) {
-                callback?.onResult(result)
-            }
+        safeCall(callback) {
+            appoxeeContainer.appoxeeAdapter.getDevice()
         }
     }
 
-    private inline fun <T> safeCall(
-        call: () -> T?
-    ): MappResult<T> {
-        return try {
-            val data = call.invoke()
-            MappResult.Success(data)
-        } catch (e: Exception) {
-            MappResult.Error(e)
-        }
-    }
 
-    override fun updateReadyStatus(status: Boolean) {
+    override fun updateReadyStatus(status: Boolean, devicePayload: DevicePayload?) {
         observers.forEach {
-            it.onReadyStatusChanged(status)
+            it.onReadyStatusChanged(status, devicePayload)
         }
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
-        observer.onReadyStatusChanged(isReady())
+        coroutineScope.launch {
+            observer.onReadyStatusChanged(isReady(), appoxeeContainer.storage.getDevicePayload())
+        }
         observers.add(observer)
     }
 
     override fun unsubscribe(observer: AppoxeeObserver) {
         observers.remove(observer)
+    }
+
+    private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {
+        // TODO Save configuration
+    }
+
+    private fun <T> safeCall(
+        callback: MappCallback<T>?,
+        call: suspend () -> T?
+    ) = coroutineScope.launch {
+        try {
+            val data = call.invoke()
+            withContext(Dispatchers.Main) {
+                callback?.onResult(MappResult.Success(data))
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Log.e(TAG, e.toString())
+                callback?.onResult(MappResult.Error(e))
+            }
+        }
     }
 }
