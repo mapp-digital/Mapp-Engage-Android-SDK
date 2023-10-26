@@ -5,6 +5,7 @@ import android.app.Application;
 import com.appoxee.Appoxee;
 import com.appoxee.shared.AppoxeeOptions;
 import com.appoxee.shared.NotificationMode;
+import com.google.firebase.FirebaseApp;
 
 public class SampleApplication extends Application {
 

@@ -1,6 +1,7 @@
 package com.appoxee.internal.util
 
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -31,4 +32,12 @@ fun InputStream?.convertToString(): String {
         }
     }
     return sb.toString()
+}
+
+fun JSONObject.getNonNullString(name: String): String? {
+    if (!this.has(name)) return null
+
+    if ("null".equals(this.getString(name), true)) return null
+
+    return this.getString(name)
 }

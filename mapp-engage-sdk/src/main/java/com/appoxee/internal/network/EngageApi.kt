@@ -15,11 +15,12 @@ internal interface EngageApi {
     suspend fun activate(timeSpent: Long): ResponseData<DefaultResponse>
     suspend fun setAlias(
         alias: String,
-        pushToken: String?
     ): ResponseData<DefaultResponse>
 
-    suspend fun optIn(pushToken: String): ResponseData<DefaultResponse>
+    suspend fun getAlias(): ResponseData<DevicePayload>
+
+    suspend fun optIn(pushToken: String): ResponseData<Boolean>
     suspend fun optOut(
         pushTokenBk: String,
-    ): ResponseData<DefaultResponse>
+    ): ResponseData<Boolean>
 }

@@ -30,13 +30,15 @@ interface Appoxee {
 
     fun isReady(): Boolean
 
-    fun subscribeOnReadyChanged(event: (Boolean) -> Unit)
-
     fun getDevice(callback: MappCallback<DevicePayload>?)
 
     fun setAlias(alias: String, callback: MappCallback<String>? = null)
 
     fun getAlias(callback: MappCallback<String>? = null)
+
+    fun optIn(token: String, callback: MappCallback<Boolean>?)
+
+    fun optOut(token: String, callback: MappCallback<Boolean>?)
 
     fun subscribe(observer: AppoxeeObserver)
 

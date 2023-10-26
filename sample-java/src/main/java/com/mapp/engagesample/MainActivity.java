@@ -6,47 +6,89 @@ import android.util.Log;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.appoxee.Appoxee;
+import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.shared.AppoxeeObserver;
+import com.google.firebase.messaging.FirebaseMessaging;
+
 @SuppressLint("UseSwitchCompatOrMaterialCode")
 public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
     private static final String TAG = MainActivity.class.getName();
 
+    private final String alias = "abc1@maptest.com";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
         Appoxee.instance().subscribe(this);
     }
 
     @Override
-    public void onReadyStatusChanged(boolean status) {
-        Switch switchReady = findViewById(R.id.switchReady);
-        switchReady.setEnabled(false);
-        switchReady.setChecked(status);
+    public void onReadyStatusChanged(boolean status, @Nullable DevicePayload devicePayload) {
+        updateUI(status, devicePayload);
+    }
 
-        if (status) {
-            Appoxee.instance().getDevice(mappResult -> {
-                if (mappResult.isSuccess()) {
-                    Log.d(TAG, "SUCCESS IN MAIN ACTIVITY: " + mappResult.getData());
-                    if (mappResult.getData() != null) {
-                        TextView tvDevice = findViewById(R.id.tvDevice);
-                        tvDevice.setText(mappResult.getData().toString());
-                    }
-                } else {
-                    Log.e(TAG, "ERROR IN MAIN ACTIVITY: " + mappResult.getError());
-                }
-            });
+    private void updateUI(boolean status, DevicePayload payload) {
+        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY: " + payload);
+        Switch switchReady = findViewById(R.id.switchReady);
+        TextView tvDevice = findViewById(R.id.tvDevice);
+        StringBuilder sb = new StringBuilder();
+        if (payload != null) {
+            sb.append("UDIDHashed: ").append("\n").append(payload.getUdidHashed()).append("\n\n")
+                .append("DmcUserId: ").append("\n").append(payload.getDmcUserId()).append("\n\n")
+                .append("OptIn token: ").append("\n").append(payload.getPushToken()).append("\n\n")
+                .append("OptOut token: ").append("\n").append(payload.getPushTokenBk()).append("\n\n")
+                .append("Alias: ").append("\n").append(payload.getAlias()).append("\n\n");
         }
+        getWindow().getDecorView().post(() -> {
+            switchReady.setEnabled(false);
+            switchReady.setChecked(status);
+            tvDevice.setText(sb.toString());
+        });
+    }
+
+    private void setAlias() {
+        Appoxee.instance().setAlias(alias, result -> {
+            getDevice();
+        });
+    }
+
+    private void optIn() {
+        FirebaseMessaging.getInstance().getToken()
+            .addOnCompleteListener(task -> {
+                String token = task.getResult();
+                Log.i(TAG, "PUSH TOKEN FROM APP: " + token);
+                Appoxee.instance().optIn(token, result -> {
+                    getDevice();
+                });
+            });
+    }
+
+    private void getDevice() {
+        Appoxee.instance().getDevice(mappResult -> {
+            if (mappResult.isSuccess()) {
+                DevicePayload payload = mappResult.getData();
+                boolean ready = Appoxee.instance().isReady();
+                updateUI(ready, payload);
+            } else {
+                Log.e(TAG, "ERROR IN MAIN ACTIVITY: " + mappResult.getError());
+            }
+        });
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onPause() {
+        super.onPause();
         Appoxee.instance().unsubscribe(this);
-        super.onDestroy();
     }
 }

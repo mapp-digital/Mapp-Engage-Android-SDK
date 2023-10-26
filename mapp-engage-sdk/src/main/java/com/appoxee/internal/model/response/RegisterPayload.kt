@@ -1,5 +1,6 @@
 package com.appoxee.internal.model.response
 
+import com.appoxee.internal.util.getNonNullString
 import com.appoxee.internal.util.toList
 import org.json.JSONObject
 
@@ -12,10 +13,7 @@ internal data class RegisterPayload(
         private set
 
     init {
-        if (json.has("dmcUserId")) {
-            dmcUserId = json.getString("dmcUserId")
-        }
-
+        dmcUserId = json.getNonNullString("dmcUserId") ?: ""
         if (json.has("register")) {
             val register = json.getJSONArray("register").toList().filter { it != dmcUserId }
             alias = register.firstOrNull() ?: ""

@@ -1,5 +1,6 @@
 package com.appoxee.internal.model.response
 
+import com.appoxee.internal.util.getNonNullString
 import com.appoxee.internal.util.toList
 import org.json.JSONObject
 
@@ -13,10 +14,7 @@ internal data class DefaultResponse(
         private set
 
     init {
-        if (json.has("dmcUserId")) {
-            dmcUserId = json.getString("dmcUserId")
-        }
-
+        dmcUserId = json.getNonNullString("dmcUserId") ?: ""
         if (json.has("set")) {
             set = json.getJSONArray("set").toList()
         }
