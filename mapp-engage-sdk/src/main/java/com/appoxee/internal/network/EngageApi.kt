@@ -1,6 +1,7 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
@@ -23,4 +24,6 @@ internal interface EngageApi {
     suspend fun optOut(
         pushTokenBk: String,
     ): ResponseData<Boolean>
+
+    suspend fun getAppConfig(): ResponseData<AppConfigPayload>
 }

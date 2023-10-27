@@ -18,7 +18,7 @@ internal class AppoxeeContainer(
     private val options: AppoxeeOptions
 ) {
 
-    internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
+    internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options, 5000, 5000) }
 
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = application) }
 

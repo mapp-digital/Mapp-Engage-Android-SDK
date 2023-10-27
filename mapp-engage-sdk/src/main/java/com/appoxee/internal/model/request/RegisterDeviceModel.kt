@@ -1,7 +1,7 @@
 package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
-import com.appoxee.internal.util.getNonNullString
+import com.appoxee.internal.util.getNullableString
 import org.json.JSONObject
 
 internal data class RegisterDeviceModel(
@@ -18,44 +18,47 @@ internal data class RegisterDeviceModel(
     val resolution: String? = "N/A",
 ) : NetworkData {
 
+    private lateinit var json: JSONObject
+
     companion object {
         fun fromJSON(json: JSONObject): RegisterDeviceModel {
             return RegisterDeviceModel(
-                osName = json.getNonNullString("osName"),
-                pushToken = json.getNonNullString("pushToken"),
-                appVersion = json.getNonNullString("appVersion"),
-                clientVersion = json.getNonNullString("clientVersion"),
-                locale = json.getNonNullString("locale"),
-                timeZone = json.getNonNullString("timeZone"),
-                hardwareType = json.getNonNullString("hardwareType"),
-                density = json.getNonNullString("density"),
-                vendorID = json.getNonNullString("vendorID"),
-                osNumber = json.getNonNullString("osNumber"),
-                resolution = json.getNonNullString("resolution"),
+                osName = json.getNullableString("osName"),
+                pushToken = json.getNullableString("pushToken"),
+                appVersion = json.getNullableString("appVersion"),
+                clientVersion = json.getNullableString("clientVersion"),
+                locale = json.getNullableString("locale"),
+                timeZone = json.getNullableString("timeZone"),
+                hardwareType = json.getNullableString("hardwareType"),
+                density = json.getNullableString("density"),
+                vendorID = json.getNullableString("vendorID"),
+                osNumber = json.getNullableString("osNumber"),
+                resolution = json.getNullableString("resolution"),
             )
-
         }
     }
 
     override fun asJson(): JSONObject {
-        val registerJSON = JSONObject().apply {
-            put("osName", osName)
-            put("pushToken", pushToken)
-            put("appVersion", appVersion)
-            put("clientVersion", clientVersion)
-            put("locale", locale)
-            put("timeZone", timeZone)
-            put("hardwareType", hardwareType)
-            put("density", density)
-            put("vendorID", vendorID)
-            put("osNumber", osNumber)
-            put("resolution", resolution)
-        }
+        if (!::json.isInitialized) {
+            val registerJSON = JSONObject().apply {
+                put("osName", osName)
+                put("pushToken", pushToken)
+                put("appVersion", appVersion)
+                put("clientVersion", clientVersion)
+                put("locale", locale)
+                put("timeZone", timeZone)
+                put("hardwareType", hardwareType)
+                put("density", density)
+                put("vendorID", vendorID)
+                put("osNumber", osNumber)
+                put("resolution", resolution)
+            }
 
-        val register = JSONObject().apply {
-            put("register", registerJSON)
+            json = JSONObject().apply {
+                put("register", registerJSON)
+            }
         }
-        return register
+        return json
     }
 
     override fun asString(): String {

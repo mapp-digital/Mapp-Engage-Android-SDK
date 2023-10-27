@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.appoxee.Appoxee
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -65,7 +66,7 @@ internal class AppoxeeImpl(
             // check & get data device if already registered
             var devicePayload = appoxeeContainer.storage.getDevicePayload()
 
-            if (registrationDevice.equals(savedRegistrationDevice)) {
+            if (registrationDevice == savedRegistrationDevice && devicePayload != null) {
                 return@safeCall devicePayload
             }
 
@@ -103,6 +104,8 @@ internal class AppoxeeImpl(
             appoxeeContainer.storage.saveRegistrationDevice(registrationDevice)
 
             devicePayload
+        }.invokeOnCompletion {
+            getAppConfig()
         }
     }
 
@@ -160,6 +163,20 @@ internal class AppoxeeImpl(
 
     private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {
         // TODO Save configuration
+    }
+
+    private fun getAppConfig() {
+        safeCall(object : MappCallback<AppConfigPayload> {
+            override fun onResult(mappResult: MappResult<AppConfigPayload>) {
+                if (mappResult.isSuccess()) {
+                    Log.d(TAG, "APP CONFIG: ${mappResult.getData()?.toString()}")
+                } else {
+                    Log.e(TAG, mappResult.getError()?.toString() ?: "Error")
+                }
+            }
+        }) {
+            appoxeeContainer.appoxeeAdapter.getAppConfig()
+        }
     }
 
     private fun <T> safeCall(

@@ -1,6 +1,6 @@
 package com.appoxee.internal.model.response
 
-import com.appoxee.internal.util.getNonNullString
+import com.appoxee.internal.util.getNullableString
 import org.json.JSONObject
 
 class DevicePayload() {
@@ -28,11 +28,11 @@ class DevicePayload() {
     companion object {
         fun fromJSON(json: JSONObject): DevicePayload {
             return DevicePayload().apply {
-                dmcUserId = json.getNonNullString("dmcUserId")
-                udidHashed = json.getNonNullString("UDIDHashed")
-                pushToken = json.getNonNullString("pushToken")
-                pushTokenBk = json.getNonNullString("pushToken_bk")
-                alias = json.getNonNullString("alias")
+                dmcUserId = json.getNullableString("dmcUserId")
+                udidHashed = json.getNullableString("UDIDHashed")
+                pushToken = json.getNullableString("pushToken")
+                pushTokenBk = json.getNullableString("pushToken_bk")
+                alias = json.getNullableString("alias")
             }
         }
     }
