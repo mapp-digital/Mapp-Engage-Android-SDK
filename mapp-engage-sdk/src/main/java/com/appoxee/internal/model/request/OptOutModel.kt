@@ -4,12 +4,15 @@ import com.appoxee.internal.network.NetworkData
 import org.json.JSONObject
 
 internal class OptOutModel(private val pushTokenBk: String) : NetworkData {
+    private lateinit var json: JSONObject
     override fun asJson(): JSONObject {
-        val json = JSONObject().apply {
-            put("set", JSONObject().apply {
-                put("pushToken", "")
-                put("pushToken_bk", pushTokenBk)
-            })
+        if (!::json.isInitialized) {
+            json = JSONObject().apply {
+                put("set", JSONObject().apply {
+                    put("pushToken", "")
+                    put("pushToken_bk", pushTokenBk)
+                })
+            }
         }
         return json
     }

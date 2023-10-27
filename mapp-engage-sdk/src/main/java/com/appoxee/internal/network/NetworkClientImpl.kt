@@ -3,12 +3,14 @@
 package com.appoxee.internal.network
 
 import android.util.Log
-import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.RedirectException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.exceptions.UnknownNetworkException
+import com.appoxee.internal.network.response.Response
+import com.appoxee.internal.network.response.ResponseAdapter
 import com.appoxee.internal.util.convertToString
+import com.appoxee.shared.AppoxeeOptions
 import org.json.JSONObject
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
@@ -22,10 +24,15 @@ internal class NetworkClientImpl(
 
     private val TAG = NetworkClientImpl::class.java.name
 
-    override suspend fun execute(request: Request): JSONObject? {
+    override suspend fun <T> execute(
+        request: Request,
+        responseAdapter: ResponseAdapter
+    ): Response<T> {
         var json: JSONObject? = null
         val urlPath = buildUrl(request)
         val url = URL(urlPath)
+
+        var response: Response<T> = responseAdapter.createResponse(0, null, null)
 
         (url.openConnection() as HttpURLConnection).run {
             try {
@@ -68,49 +75,55 @@ internal class NetworkClientImpl(
                     in 200..299 -> {
                         // success
                         json = JSONObject(result)
+                        response = responseAdapter.createResponse(statusCode, json, null)
                     }
 
                     in 300..399 -> {
                         // redirect
-                        throw RedirectException(
+                        val throwable = RedirectException(
                             code = statusCode,
                             message = "Redirect exception",
                             cause = Throwable(error)
                         )
+                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     in 400..499 -> {
                         // request error
-                        throw ClientException(
+                        val throwable = ClientException(
                             code = statusCode,
                             message = "Client network request error",
                             cause = Throwable(error)
                         )
+                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     in 500..599 -> {
                         // server error
-                        throw ServerException(
+                        val throwable = ServerException(
                             code = statusCode,
                             message = "Server network error",
                             cause = Throwable(error)
                         )
+                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     else -> {
                         // unknown error
-                        throw UnknownNetworkException(
+                        val throwable = UnknownNetworkException(
                             message = "Unknown network error",
                             cause = Throwable(error)
                         )
+                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
                 }
+            } catch (e: Exception) {
+                response = responseAdapter.createResponse(-1, null, e)
             } finally {
                 this.disconnect()
             }
-
         }
-        return json
+        return response
     }
 
     private fun buildUrl(request: Request): String {

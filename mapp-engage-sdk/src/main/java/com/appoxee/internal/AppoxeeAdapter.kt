@@ -1,17 +1,11 @@
 package com.appoxee.internal
 
 import android.annotation.SuppressLint
-import android.content.Context
-import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.internal.model.request.RegisterDeviceModel
-import com.appoxee.internal.model.response.DefaultResponse
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
-import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.network.EngageApi
-import com.appoxee.internal.network.EngageApiImpl
-import com.appoxee.internal.network.NetworkClientImpl
-import com.appoxee.internal.provider.DeviceProvider
 
 @SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
@@ -41,5 +35,9 @@ internal class AppoxeeAdapter(
 
     internal suspend fun optOut(pushToken: String): Boolean {
         return engageApi.optOut(pushTokenBk = pushToken).payload ?: false
+    }
+
+    internal suspend fun getAppConfig(): AppConfigPayload? {
+        return engageApi.getAppConfig().payload
     }
 }

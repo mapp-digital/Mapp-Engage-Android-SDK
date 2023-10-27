@@ -34,10 +34,36 @@ fun InputStream?.convertToString(): String {
     return sb.toString()
 }
 
-fun JSONObject.getNonNullString(name: String): String? {
+fun JSONObject.getNullableString(name: String): String? {
     if (!this.has(name)) return null
 
     if ("null".equals(this.getString(name), true)) return null
 
     return this.getString(name)
+}
+
+fun JSONObject.getStringOrEmpty(name: String): String {
+    return this.getNullableString(name) ?: ""
+}
+
+fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
+    if (!this.has(name)) return default
+    return this.getLong(name)
+}
+
+fun <Value> JSONObject.toMap(): Map<String, Value> {
+    val map = mutableMapOf<String, Value>()
+    this.keys().forEach {
+        map.put(it, this[it] as Value)
+    }
+    return map
+}
+
+inline fun <T> JSONArray.toList(parser: (JSONObject) -> T): List<T> {
+    val list = mutableListOf<T>()
+    for (i in 0 until this.length()) {
+        val item = parser(this.getJSONObject(i))
+        list.add(item)
+    }
+    return list
 }

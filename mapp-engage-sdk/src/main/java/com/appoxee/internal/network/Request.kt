@@ -1,6 +1,6 @@
 package com.appoxee.internal.network
 
-abstract class Request(
+internal abstract class Request(
     val path: String,
     val method: Method,
     val queryParams: Map<String, Any>? = null,
@@ -14,13 +14,17 @@ abstract class Request(
     var doInput: Boolean = true
     var doOutput: Boolean = true
 
+    fun addHeader(header: Map<String, String>): Request {
+        headers.putAll(header)
+        return this
+    }
+
     class Get(path: String, queryParams: Map<String, Any>? = null) :
         Request(path = path, method = Method.GET, queryParams = queryParams) {
     }
 
     class Put(path: String, requestBody: NetworkData? = null) :
         Request(path = path, method = Method.PUT, requestBody = requestBody) {
-
     }
 
     class Post(path: String, queryParams: Map<String, Any>?, requestBody: NetworkData?) : Request(

@@ -1,7 +1,8 @@
 package com.appoxee.internal.network
 
-import org.json.JSONObject
+import com.appoxee.internal.network.response.Response
+import com.appoxee.internal.network.response.ResponseAdapter
 
 internal interface NetworkClient {
-    suspend fun execute(request: Request): JSONObject?
+    suspend fun <T> execute(request: Request, responseAdapter: ResponseAdapter): Response<T>
 }

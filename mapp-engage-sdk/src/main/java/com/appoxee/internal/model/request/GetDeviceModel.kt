@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 internal class GetDeviceModel : NetworkData {
+
     private val attributes: List<String> = listOf(
         "alias",
         "dmcUserId",
@@ -13,9 +14,13 @@ internal class GetDeviceModel : NetworkData {
         "UDIDHashed"
     )
 
+    private lateinit var json: JSONObject
+
     override fun asJson(): JSONObject {
-        val json = JSONObject().apply {
-            put("get", JSONArray(attributes))
+        if (!::json.isInitialized) {
+            json = JSONObject().apply {
+                put("get", JSONArray(attributes))
+            }
         }
         return json
     }

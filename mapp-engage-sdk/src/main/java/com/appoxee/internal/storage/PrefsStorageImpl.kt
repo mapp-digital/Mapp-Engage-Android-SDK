@@ -27,7 +27,16 @@ internal class PrefsStorageImpl(private val application: Application) : Storage 
 
     override suspend fun getDevicePayload(): DevicePayload? {
         val json = application.dataStore.data.first()[devicePayloadKey]
-        return json?.let { DevicePayload.fromJSON(JSONObject(it)) }
+        return try {
+            json?.let {
+                DevicePayload.fromJSON(JSONObject(it))
+            }
+        } catch (e: Exception) {
+            application.dataStore.edit {
+                it.remove(devicePayloadKey)
+            }
+            null
+        }
     }
 
     override suspend fun saveRegistrationDevice(registerDeviceModel: RegisterDeviceModel?) {
@@ -38,7 +47,14 @@ internal class PrefsStorageImpl(private val application: Application) : Storage 
     }
 
     override suspend fun getRegistrationDevice(): RegisterDeviceModel? {
-        val json = application.dataStore.data.first()[registerDeviceKey]
-        return json?.let { RegisterDeviceModel.fromJSON(JSONObject(it)) }
+        return try {
+            val json = application.dataStore.data.first()[registerDeviceKey]
+            json?.let { RegisterDeviceModel.fromJSON(JSONObject(it)) }
+        } catch (e: Exception) {
+            application.dataStore.edit {
+                it.remove(registerDeviceKey)
+            }
+            null
+        }
     }
 }
