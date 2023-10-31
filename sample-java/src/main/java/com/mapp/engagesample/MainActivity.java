@@ -12,8 +12,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.appoxee.Appoxee;
 import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.shared.AppoxeeObserver;
+import com.appoxee.shared.MappResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+/**
+ * @noinspection ConstantValue
+ */
 @SuppressLint("UseSwitchCompatOrMaterialCode")
 public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
@@ -21,10 +25,14 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
     private final String alias = "abc1@maptest.com";
 
+    private Switch switchReady;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        switchReady = findViewById(R.id.switchReady);
+        switchReady.setEnabled(false);
     }
 
     @Override
@@ -34,13 +42,16 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
     }
 
     @Override
-    public void onReadyStatusChanged(boolean status, @Nullable DevicePayload devicePayload) {
-        updateUI(status, devicePayload);
+    public void onReadyStatusChanged(boolean status, MappResult<DevicePayload> mappResult) {
+        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
+        if (status) {
+            updateUI(status, mappResult.getData());
+        }
     }
 
-    private void updateUI(boolean status, DevicePayload payload) {
-        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY: " + payload);
-        Switch switchReady = findViewById(R.id.switchReady);
+    private void updateUI(boolean status, @Nullable DevicePayload payload) {
+        Log.d(TAG, "UI Updating - Is Ready: " + status + "; Payload: " + payload);
+
         TextView tvDevice = findViewById(R.id.tvDevice);
         StringBuilder sb = new StringBuilder();
         if (payload != null) {
@@ -51,7 +62,6 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
                 .append("Alias: ").append("\n").append(payload.getAlias()).append("\n\n");
         }
         getWindow().getDecorView().post(() -> {
-            switchReady.setEnabled(false);
             switchReady.setChecked(status);
             tvDevice.setText(sb.toString());
         });

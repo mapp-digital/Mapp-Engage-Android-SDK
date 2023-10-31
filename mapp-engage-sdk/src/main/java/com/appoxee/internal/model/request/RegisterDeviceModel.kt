@@ -6,7 +6,6 @@ import org.json.JSONObject
 
 internal data class RegisterDeviceModel(
     val osName: String? = "N/A",
-    val pushToken: String? = "N/A",
     val appVersion: String? = "N/A",
     val clientVersion: String? = "N/A",
     val locale: String? = "N/A",
@@ -24,7 +23,6 @@ internal data class RegisterDeviceModel(
         fun fromJSON(json: JSONObject): RegisterDeviceModel {
             return RegisterDeviceModel(
                 osName = json.getNullableString("osName"),
-                pushToken = json.getNullableString("pushToken"),
                 appVersion = json.getNullableString("appVersion"),
                 clientVersion = json.getNullableString("clientVersion"),
                 locale = json.getNullableString("locale"),
@@ -42,7 +40,6 @@ internal data class RegisterDeviceModel(
         if (!::json.isInitialized) {
             val registerJSON = JSONObject().apply {
                 put("osName", osName)
-                put("pushToken", pushToken)
                 put("appVersion", appVersion)
                 put("clientVersion", clientVersion)
                 put("locale", locale)

@@ -3,7 +3,7 @@ package com.appoxee.internal.model.response
 import com.appoxee.internal.util.getNullableString
 import org.json.JSONObject
 
-class DevicePayload() {
+class DevicePayload {
     var dmcUserId: String? = null /* Unique user id */
         private set
     var udidHashed: String? = null /* UDIDHashed */

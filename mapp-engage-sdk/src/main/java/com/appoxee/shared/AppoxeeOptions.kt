@@ -1,29 +1,80 @@
 package com.appoxee.shared
 
+import androidx.annotation.IntRange
+
 class AppoxeeOptions(
+    /**
+     * Server enum value from the [Server] enums
+     */
     val server: Server,
+    /**
+     * SDK Key is from a defined channel on Mapp Engage system
+     */
     val sdkKey: String,
+    /**
+     * AppId is from defined channel on Mapp Engage system
+     */
     val appId: String,
+    /**
+     * TenantId represents clients unique numeric key send as String
+     */
     val tenantId: String,
 ) {
-    private var mCepUrl: String? = null
-    var cepUrl: String?
-        get() {
-            return if (mCepUrl.isNullOrEmpty()) server.internalCepUrl else mCepUrl
-        }
+
+    /**
+     * Sets connection timeout in milliseconds
+     */
+    @IntRange(from = 5_000, to = 60_000)
+    var connectionTimeout: Int = 10_000
         set(value) {
-            mCepUrl = value
+            if (value in 10_000..60_000) {
+                field = value
+            }
         }
 
-    var forceResend: Boolean = false
-    var onStartRemoveNotification: Boolean = false
+    /**
+     * Sets connection read timeout in milliseconds
+     */
+    @IntRange(from = 5_000, to = 60_000)
+    var readTimeout: Int = 10_000
+        set(value) {
+            if (value in 10_000..60_000) {
+                field = value
+            }
+        }
+    private var cepUrl: String? = null
+        get() {
+            return if (field.isNullOrEmpty()) server.internalCepUrl else field
+        }
+
+    /**
+     * Whether to force sending requests on failures or not
+     */
+    private var forceResend: Boolean = false
+
+    /**
+     * Clears notifications when library is initialized
+     */
+    private var onStartRemoveNotification: Boolean = false
+
+    /**
+     * Defines the level for outputting logs
+     */
     var logType: LogLevel = LogLevel.RELEASE
+
+    /**
+     * Defines notification mode; It can be one of the following values:
+     * [NotificationMode.BACKGROUND_ONLY] or [NotificationMode.SILENT_ONLY] and [NotificationMode.BACKGROUND_AND_FOREGROUND]
+     */
     var notificationMode: NotificationMode = NotificationMode.BACKGROUND_ONLY
     /*val plugins:List<Class<? extends AppoxeePlugin>>,
     * val customNotificationCreator:NotificationCreator,
     * */
 
 
+    /**
+     * Supported servers for Mapp Engage
+     */
     enum class Server(val value: String, internal val internalCepUrl: String) {
         L3(
             value = "https://jamie.g.shortest-route.com/charon",
@@ -58,11 +109,17 @@ class AppoxeeOptions(
             internalCepUrl = "https://jamie-test.shortest-route.com"
         );
 
+        /**
+         * Returns the Server enum value for the given server's name value
+         */
         fun get(name: String): Server {
             return valueOf(name)
         }
     }
 
+    /**
+     * Defines supported levels for Logging
+     */
     enum class LogLevel(value: String) {
         DEBUG("debug"),
         RELEASE("release");

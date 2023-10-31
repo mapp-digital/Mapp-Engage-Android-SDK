@@ -4,7 +4,7 @@ import com.appoxee.internal.model.request.RegisterDeviceModel
 
 internal interface DeviceProvider {
 
-    fun generateRegistrationDevice(token: String): RegisterDeviceModel
+    fun generateRegistrationDevice(): RegisterDeviceModel
 
     fun getUniqueDeviceId(): String
 

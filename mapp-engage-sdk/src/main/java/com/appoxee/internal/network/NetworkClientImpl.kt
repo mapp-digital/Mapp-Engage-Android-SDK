@@ -2,13 +2,13 @@
 
 package com.appoxee.internal.network
 
-import android.util.Log
 import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.RedirectException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.exceptions.UnknownNetworkException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.network.response.ResponseAdapter
+import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.shared.AppoxeeOptions
 import org.json.JSONObject
@@ -18,8 +18,6 @@ import java.net.URL
 
 internal class NetworkClientImpl(
     private val appoxeeOptions: AppoxeeOptions,
-    private var readTime: Int = 10_000,
-    private var connectionTime: Int = 10_000,
 ) : NetworkClient {
 
     private val TAG = NetworkClientImpl::class.java.name
@@ -32,12 +30,12 @@ internal class NetworkClientImpl(
         val urlPath = buildUrl(request)
         val url = URL(urlPath)
 
-        var response: Response<T> = responseAdapter.createResponse(0, null, null)
+        var response: Response<T>
 
         (url.openConnection() as HttpURLConnection).run {
             try {
-                readTimeout = readTime
-                connectTimeout = connectionTime
+                readTimeout = appoxeeOptions.readTimeout
+                connectTimeout = appoxeeOptions.connectionTimeout
                 requestMethod = request.method.toString()
                 doInput = request.doInput
                 doOutput = request.doOutput
@@ -56,7 +54,7 @@ internal class NetworkClientImpl(
                     }
                 }
 
-                Log.w(
+                Logger.w(
                     TAG,
                     "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data \nHeaders: ${
                         request.headers.map { "\"${it.key}\":\"${it.value}\"" }
@@ -69,7 +67,10 @@ internal class NetworkClientImpl(
                 val error = errorStream.convertToString()
                 val responseUrl = this.url
 
-                Log.i(TAG, "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result")
+                Logger.i(
+                    TAG,
+                    "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result"
+                )
 
                 when (statusCode) {
                     in 200..299 -> {
@@ -80,45 +81,39 @@ internal class NetworkClientImpl(
 
                     in 300..399 -> {
                         // redirect
-                        val throwable = RedirectException(
+                        throw RedirectException(
                             code = statusCode,
                             message = "Redirect exception",
                             cause = Throwable(error)
                         )
-                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     in 400..499 -> {
                         // request error
-                        val throwable = ClientException(
+                        throw ClientException(
                             code = statusCode,
                             message = "Client network request error",
                             cause = Throwable(error)
                         )
-                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     in 500..599 -> {
                         // server error
-                        val throwable = ServerException(
+                        throw ServerException(
                             code = statusCode,
                             message = "Server network error",
                             cause = Throwable(error)
                         )
-                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
 
                     else -> {
                         // unknown error
-                        val throwable = UnknownNetworkException(
+                        throw UnknownNetworkException(
                             message = "Unknown network error",
                             cause = Throwable(error)
                         )
-                        response = responseAdapter.createResponse(statusCode, null, throwable)
                     }
                 }
-            } catch (e: Exception) {
-                response = responseAdapter.createResponse(-1, null, e)
             } finally {
                 this.disconnect()
             }

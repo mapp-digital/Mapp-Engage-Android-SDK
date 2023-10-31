@@ -122,6 +122,6 @@ internal class EngageApiImpl(
 
         val response = networkClient.execute<AppConfigPayload>(request, BaseResponseAdapter())
 
-        return response.parse { AppConfigPayload.fromJson(it) }
+        return response.parse { AppConfigPayload.fromJson(it.getJSONObject("app_conf")) }
     }
 }

@@ -12,10 +12,9 @@ import java.util.Locale
 import java.util.TimeZone
 
 internal class DeviceProviderImpl(private val context: Context) : DeviceProvider {
-    override fun generateRegistrationDevice(token: String): RegisterDeviceModel {
+    override fun generateRegistrationDevice(): RegisterDeviceModel {
         return RegisterDeviceModel(
             osName = getOSName(),
-            pushToken = token,
             appVersion = getAppVersion(),
             clientVersion = getClientVersion(),
             locale = getLocale(),

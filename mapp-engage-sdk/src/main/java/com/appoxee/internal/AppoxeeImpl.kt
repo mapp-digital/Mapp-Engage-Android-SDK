@@ -4,10 +4,11 @@ package com.appoxee.internal
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import com.appoxee.Appoxee
+import com.appoxee.internal.model.request.RegisterDeviceModel
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappCallback
@@ -39,27 +40,65 @@ internal class AppoxeeImpl(
     private val registerCallback = object : MappCallback<DevicePayload> {
         override fun onResult(mappResult: MappResult<DevicePayload>) {
             if (mappResult.isSuccess()) {
-                mIsReady.set(true)
-                updateReadyStatus(true, mappResult.getData())
+                updateReadyStatus(true, mappResult)
+            } else {
+                updateReadyStatus(false, mappResult)
             }
         }
     }
 
     init {
+        Logger.init(context.applicationContext as Application)
         println("OPTIONS: $options")
         saveConfiguration(options)
-        validateDeviceRegistration()
+        //validateDeviceRegistration()
+        validateRegistration()
     }
 
     private fun validateDeviceRegistration() {
         safeCall(registerCallback) {
             var modified = false
 
+
+            /*
+            TODO
+
+            val devicePayload = getLocalDevicePayload()
+            var savedRegisterPayload = getSavedRegisterPayload()
+            val newRegisterPayload=generateRegisterPayload()
+
+            if(devicePayload !=null) {
+                if(savedRegisterPayload != newRegisterPayload){
+                    // update device
+                    // get device payload from server
+                    // save device payload
+                    // save register payload; savedRegisterPayload=newRegisterPayload
+                }
+            }else{
+                val serverDevicePayload = getDevicePayloadFromServer()
+                if(serverDevicePayload==null){
+                     // register new device
+                     // get device payload from server
+                     // save device payload
+                     // save register payload
+                } else {
+                     // update device
+                     // get device payload from server
+                     // save device payload
+                     // save register payload
+                }
+            }
+
+            // device is registered
+            // set isReady = true
+            // notify observers
+
+             */
             // get FCM token
             val pushToken = FirebaseMessaging.getInstance().token.await()
 
             val registrationDevice =
-                appoxeeContainer.deviceProvider.generateRegistrationDevice(pushToken)
+                appoxeeContainer.deviceProvider.generateRegistrationDevice()
 
             val savedRegistrationDevice = appoxeeContainer.storage.getRegistrationDevice()
 
@@ -74,7 +113,7 @@ internal class AppoxeeImpl(
 
             if (devicePayload?.udidHashed == null) {
                 // if device not registered already, register device
-                Log.i(TAG, "PUSH TOKEN FROM LIB: $pushToken")
+                Logger.i(TAG, "PUSH TOKEN FROM LIB: $pushToken")
                 appoxeeContainer.appoxeeAdapter.register(registrationDevice)
                 appoxeeContainer.storage.saveRegistrationDevice(registrationDevice)
                 modified = true
@@ -106,6 +145,62 @@ internal class AppoxeeImpl(
             devicePayload
         }.invokeOnCompletion {
             getAppConfig()
+        }
+    }
+
+    private fun validateRegistration() {
+        safeCall(registerCallback) {
+            var devicePayload: DevicePayload? = appoxeeContainer.storage.getDevicePayload()
+            val savedRegisterPayload = appoxeeContainer.storage.getRegistrationDevice()
+            val newRegisterPayload = appoxeeContainer.deviceProvider.generateRegistrationDevice()
+            if (devicePayload?.udidHashed != null /* && not expired */) {
+                if (savedRegisterPayload != newRegisterPayload) {
+                    appoxeeContainer.appoxeeAdapter.register(newRegisterPayload)
+                    devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                }
+            } else {
+                devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                if (devicePayload?.udidHashed == null) {
+                    appoxeeContainer.appoxeeAdapter.register(newRegisterPayload)
+                    devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                }
+            }
+            appoxeeContainer.storage.saveRegistrationDevice(newRegisterPayload)
+            appoxeeContainer.storage.saveDevicePayload(devicePayload)
+            devicePayload
+        }.invokeOnCompletion {
+            updateOptStatus()
+            getAppConfig()
+        }
+    }
+
+    private fun updateOptStatus() {
+        safeCall(null) {
+            Logger.d(TAG, "updateOptStatus()")
+            var devicePayload = appoxeeContainer.storage.getDevicePayload()
+            val pushToken = FirebaseMessaging.getInstance().token.await()
+            var modified: Boolean = false
+            // if device opted Out and optOut token is expired, update optOut token
+            if (devicePayload?.pushTokenBk?.isNotEmpty() == true
+                && pushToken != devicePayload.pushTokenBk
+            ) {
+                appoxeeContainer.appoxeeAdapter.optOut(pushToken)
+                modified = true
+            }
+
+            // if device opted In and optIn token is expired, update optIn token
+            if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
+                appoxeeContainer.appoxeeAdapter.optIn(pushToken)
+                modified = true
+            }
+
+            if (modified) {
+                // get fresh device data from server
+                devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                appoxeeContainer.storage.saveDevicePayload(devicePayload)
+            }
+
+            Logger.d(TAG, "updateOptStatus() - Finished")
         }
     }
 
@@ -144,15 +239,22 @@ internal class AppoxeeImpl(
     }
 
 
-    override fun updateReadyStatus(status: Boolean, devicePayload: DevicePayload?) {
+    override fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
+        mIsReady.set(status)
         observers.forEach {
-            it.onReadyStatusChanged(status, devicePayload)
+            it.onReadyStatusChanged(status, mappResult)
         }
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
         coroutineScope.launch {
-            observer.onReadyStatusChanged(isReady(), appoxeeContainer.storage.getDevicePayload())
+            val payload = appoxeeContainer.storage.getDevicePayload()
+            payload?.let {
+                observer.onReadyStatusChanged(
+                    isReady(),
+                    MappResult.Success(data = it)
+                )
+            }
         }
         observers.add(observer)
     }
@@ -169,9 +271,9 @@ internal class AppoxeeImpl(
         safeCall(object : MappCallback<AppConfigPayload> {
             override fun onResult(mappResult: MappResult<AppConfigPayload>) {
                 if (mappResult.isSuccess()) {
-                    Log.d(TAG, "APP CONFIG: ${mappResult.getData()?.toString()}")
+                    Logger.d(TAG, "APP CONFIG: ${mappResult.getData()?.toString()}")
                 } else {
-                    Log.e(TAG, mappResult.getError()?.toString() ?: "Error")
+                    Logger.e(TAG, mappResult.getError()?.toString() ?: "Error")
                 }
             }
         }) {
@@ -190,7 +292,7 @@ internal class AppoxeeImpl(
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                Log.e(TAG, e.toString())
+                Logger.e(TAG, "Appoxee call $call error: $e")
                 callback?.onResult(MappResult.Error(e))
             }
         }

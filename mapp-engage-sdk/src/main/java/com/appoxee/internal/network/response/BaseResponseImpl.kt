@@ -16,8 +16,11 @@ internal class BaseResponseImpl<T>(
             Metadata(it)
         }
 
-        val payload = data?.getJSONObject("payload")?.let {
-            parser(it)
+        var payload: T? = null
+        if (metadata?.error == false && metadata.statusCode == 200) {
+            payload = data?.getJSONObject("payload")?.let {
+                parser(it)
+            }
         }
 
         return ResponseData(metadata, payload)
