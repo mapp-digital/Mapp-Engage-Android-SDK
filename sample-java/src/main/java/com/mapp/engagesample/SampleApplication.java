@@ -15,6 +15,8 @@ public class SampleApplication extends Application {
     public void onCreate() {
         super.onCreate();
         AppoxeeOptions options = new AppoxeeOptions(AppoxeeOptions.Server.L3, "183408d0cd3632.83592719", "206974", "5963");
+        //options.setConnectionTimeout(5000);
+        //options.setReadTimeout(5000);
         //options.setCepUrl("https://jamie.m.shortest-route.com");
         options.setNotificationMode(NotificationMode.BACKGROUND_AND_FOREGROUND);
         Appoxee.engage(this, options);
