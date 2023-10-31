@@ -78,23 +78,23 @@ class AppoxeeOptions(
     enum class Server(val value: String, internal val internalCepUrl: String) {
         L3(
             value = "https://jamie.g.shortest-route.com/charon",
-            internalCepUrl = "https://jamie.m.shortest-route.com/charon"
+            internalCepUrl = "https://jamie.g.shortest-route.com"
         ),
         L3_US(
             value = "https://jamie.a.shortest-route.com/charon",
-            internalCepUrl = "https://jamie.m.shortest-route.com/charon"
+            internalCepUrl = "https://jamie.a.shortest-route.com"
         ),
         EMC(
             value = "https://jamie.h.shortest-route.com/charon",
-            internalCepUrl = "https://jamie.m.shortest-route.com/charon"
+            internalCepUrl = "https://jamie.h.shortest-route.com"
         ),
         EMC_US(
             value = "https://jamie.c.shortest-route.com/charon",
-            internalCepUrl = "https://jamie.m.shortest-route.com/charon"
+            internalCepUrl = "https://jamie.c.shortest-route.com"
         ),
         CROC(
             value = "https://jamie.m.shortest-route.com/charon",
-            internalCepUrl = "https://jamie.m.shortest-route.com/charon"
+            internalCepUrl = "https://jamie.m.shortest-route.com"
         ),
         TEST(
             value = "https://charon-test.shortest-route.com",
