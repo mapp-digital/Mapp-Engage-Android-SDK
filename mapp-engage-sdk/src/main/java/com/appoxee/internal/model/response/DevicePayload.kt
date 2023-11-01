@@ -3,37 +3,37 @@ package com.appoxee.internal.model.response
 import com.appoxee.internal.util.getNullableString
 import org.json.JSONObject
 
-class DevicePayload {
-    var dmcUserId: String? = null /* Unique user id */
-        private set
-    var udidHashed: String? = null /* UDIDHashed */
-        private set
-    var pushTokenBk: String? = null /* OptOut Token */
-        private set
-    var pushToken: String? = null /* Opt In Token*/
-        private set
-    var alias: String? = null /* User Alias */
-        private set
+class DevicePayload(
+    val dmcUserId: String? = null, /* Unique user id */
+    val udidHashed: String? = null, /* UDIDHashed */
+    val pushTokenBk: String? = null, /* OptOut Token */
+    val pushToken: String? = null, /* Opt In Token*/
+    val alias: String? = null, /* User Alias */
+) {
 
+    private lateinit var json: JSONObject
     fun toJSON(): JSONObject {
-        return JSONObject().apply {
-            put("dmcUserId", dmcUserId)
-            put("UDIDHashed", udidHashed)
-            put("pushToken", pushToken)
-            put("pushToken_bk", pushTokenBk)
-            put("alias", alias)
+        if (!::json.isInitialized) {
+            json = JSONObject().apply {
+                put("dmcUserId", dmcUserId)
+                put("UDIDHashed", udidHashed)
+                put("pushToken", pushToken)
+                put("pushToken_bk", pushTokenBk)
+                put("alias", alias)
+            }
         }
+        return json
     }
 
     companion object {
         fun fromJSON(json: JSONObject): DevicePayload {
-            return DevicePayload().apply {
-                dmcUserId = json.getNullableString("dmcUserId")
-                udidHashed = json.getNullableString("UDIDHashed")
-                pushToken = json.getNullableString("pushToken")
-                pushTokenBk = json.getNullableString("pushToken_bk")
+            return DevicePayload(
+                dmcUserId = json.getNullableString("dmcUserId"),
+                udidHashed = json.getNullableString("UDIDHashed"),
+                pushToken = json.getNullableString("pushToken"),
+                pushTokenBk = json.getNullableString("pushToken_bk"),
                 alias = json.getNullableString("alias")
-            }
+            )
         }
     }
 

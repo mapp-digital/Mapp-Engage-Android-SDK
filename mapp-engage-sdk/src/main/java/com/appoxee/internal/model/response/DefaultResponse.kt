@@ -1,22 +1,19 @@
 package com.appoxee.internal.model.response
 
-import com.appoxee.internal.util.getNullableString
-import com.appoxee.internal.util.toList
+import com.appoxee.internal.util.arrayToList
+import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
 internal data class DefaultResponse(
-    private val json: JSONObject
+    val dmcUserId: String,
+    val set: List<String>
 ) {
-    var dmcUserId: String = ""
-        private set
-
-    var set: List<String> = emptyList()
-        private set
-
-    init {
-        dmcUserId = json.getNullableString("dmcUserId") ?: ""
-        if (json.has("set")) {
-            set = json.getJSONArray("set").toList()
+    companion object {
+        fun fromJSON(json: JSONObject): DefaultResponse {
+            return DefaultResponse(
+                dmcUserId = json.getStringOrEmpty("dmcUserId"),
+                set = json.arrayToList("set") { it.toString() }
+            )
         }
     }
 }

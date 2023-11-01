@@ -48,7 +48,20 @@ fun JSONObject.getStringOrEmpty(name: String): String {
 
 fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
     if (!this.has(name)) return default
-    return this.getLong(name)
+    return try {
+        this.getLong(name)
+    } catch (e: Exception) {
+        default
+    }
+}
+
+fun JSONObject.getNullableLong(name: String): Long? {
+    if (!this.has(name)) return null
+    return try {
+        this.getLong(name)
+    } catch (e: Exception) {
+        null
+    }
 }
 
 fun <Value> JSONObject.toMap(): Map<String, Value> {
@@ -59,11 +72,31 @@ fun <Value> JSONObject.toMap(): Map<String, Value> {
     return map
 }
 
-inline fun <T> JSONArray.toList(parser: (JSONObject) -> T): List<T> {
+inline fun <T> JSONObject.arrayToList(name: String, parser: (JSONObject) -> T): List<T> {
+    val array = if (this.has(name)) this.optJSONArray(name) else JSONArray()
     val list = mutableListOf<T>()
-    for (i in 0 until this.length()) {
-        val item = parser(this.getJSONObject(i))
-        list.add(item)
+    for (i in 0 until array.length()) {
+        list.add(parser.invoke(array.getJSONObject(i)))
     }
     return list
+}
+
+inline fun <reified T> JSONObject.arrayToMap(
+    name: String,
+    parser: (JSONObject) -> T
+): Map<String, T> {
+    val jsonArr = this.optJSONArray(name) ?: JSONArray()
+    val map = mutableMapOf<String, T>()
+    for (i in 0 until jsonArr.length()) {
+        val item = jsonArr.getJSONObject(i)
+        item.keys().forEach {
+            if (T::class == String::class) {
+                map[it] = item.getString(it) as T
+            } else {
+                val value = parser.invoke(item.getJSONObject(it))
+                map[it] = value
+            }
+        }
+    }
+    return map
 }

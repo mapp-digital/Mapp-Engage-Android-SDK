@@ -12,8 +12,8 @@ class SampleApplication : Application() {
         val options: AppoxeeOptions = AppoxeeOptions(
             server = AppoxeeOptions.Server.L3,
             sdkKey = "183408d0cd3632.83592719",
-            tenantId = "206974",
-            appId = "5963",
+            tenantId = "5963",
+            appId = "206974",
         ).also {
             it.logType = AppoxeeOptions.LogLevel.DEBUG
             it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND

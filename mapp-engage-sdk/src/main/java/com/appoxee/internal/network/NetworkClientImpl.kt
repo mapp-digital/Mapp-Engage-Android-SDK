@@ -24,9 +24,8 @@ internal class NetworkClientImpl(
 
     override suspend fun <T> execute(
         request: Request,
-        responseAdapter: ResponseAdapter
+        adapter: ResponseAdapter<T>
     ): Response<T> {
-        var json: JSONObject? = null
         val urlPath = buildUrl(request)
         val url = URL(urlPath)
 
@@ -75,8 +74,8 @@ internal class NetworkClientImpl(
                 when (statusCode) {
                     in 200..299 -> {
                         // success
-                        json = JSONObject(result)
-                        response = responseAdapter.createResponse(statusCode, json, null)
+                        val json = JSONObject(result)
+                        response = adapter.createResponse(statusCode, json, null)
                     }
 
                     in 300..399 -> {
@@ -123,12 +122,19 @@ internal class NetworkClientImpl(
 
     private fun buildUrl(request: Request): String {
         val queryPath = buildQueryPath(request)
-        return StringBuilder()
-            .append(appoxeeOptions.server.value)
-            .append("/")
+        val sb = StringBuilder()
+
+        if (request.pathType == Request.PathType.CEP) {
+            sb.append(appoxeeOptions.server.internalCepUrl)
+        } else {
+            sb.append(appoxeeOptions.server.value)
+        }
+
+        sb.append("/")
             .append(request.path)
             .append(queryPath)
-            .toString()
+
+        return sb.toString()
     }
 
     private fun buildQueryPath(request: Request): String {
