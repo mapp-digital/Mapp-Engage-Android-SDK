@@ -6,24 +6,31 @@ import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.inapp.InappResponse
+import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
+import com.appoxee.internal.network.response.Response
 
 internal interface EngageApi {
     suspend fun registerDevice(
         register: RegisterDeviceModel,
-    ): ResponseData<RegisterPayload>
+    ): Response<ResponseData<RegisterPayload>>
 
-    suspend fun getDevice(): ResponseData<DevicePayload>
-    suspend fun activate(timeSpent: Long): ResponseData<DefaultResponse>
+    suspend fun getDevice(): Response<ResponseData<DevicePayload>>
+    suspend fun activate(timeSpent: Long): Response<ResponseData<DefaultResponse>>
     suspend fun setAlias(
         alias: String,
-    ): ResponseData<DefaultResponse>
+    ): Response<ResponseData<DefaultResponse>>
 
-    suspend fun getAlias(): ResponseData<DevicePayload>
+    suspend fun getAlias(): Response<ResponseData<DevicePayload>>
 
-    suspend fun optIn(pushToken: String): ResponseData<Boolean>
+    suspend fun optIn(pushToken: String): Response<ResponseData<DefaultResponse>>
     suspend fun optOut(
         pushTokenBk: String,
-    ): ResponseData<Boolean>
+    ): Response<ResponseData<DefaultResponse>>
 
-    suspend fun getAppConfig(): ResponseData<AppConfigPayload>
+    suspend fun getAppConfig(): Response<ResponseData<AppConfigPayload>>
+
+    suspend fun fetchInboxMessages(eventName: String): Response<InboxMessagesResponse>
+
+    suspend fun fetchInApp(eventName: String): Response<InappResponse>
 }

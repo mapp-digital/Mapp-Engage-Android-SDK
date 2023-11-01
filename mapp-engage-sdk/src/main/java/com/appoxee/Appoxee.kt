@@ -3,9 +3,11 @@ package com.appoxee
 import android.content.Context
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.inapp.InappResponse
+import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
+import com.appoxee.internal.network.Call
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
-import com.appoxee.shared.MappCallback
 
 interface Appoxee {
     companion object {
@@ -30,17 +32,27 @@ interface Appoxee {
 
     fun isReady(): Boolean
 
-    fun getDevice(callback: MappCallback<DevicePayload>?)
+    fun getDevice(): Call<DevicePayload?>
 
-    fun setAlias(alias: String, callback: MappCallback<String>? = null)
+    fun setAlias(alias: String): Call<String?>
 
-    fun getAlias(callback: MappCallback<String>? = null)
+    fun getAlias(): Call<String?>
 
-    fun optIn(token: String, callback: MappCallback<Boolean>?)
+    fun fetchInboxMessages(
+        eventName: String,
+    ): Call<InboxMessagesResponse?>
 
-    fun optOut(token: String, callback: MappCallback<Boolean>?)
+    fun fetchInappMessages(
+        eventName: String,
+    ): Call<InappResponse?>
+
+    fun optIn(token: String): Call<Boolean>
+
+    fun optOut(token: String): Call<Boolean>
 
     fun subscribe(observer: AppoxeeObserver)
 
     fun unsubscribe(observer: AppoxeeObserver)
+
+    fun testCall(): Call<String>
 }

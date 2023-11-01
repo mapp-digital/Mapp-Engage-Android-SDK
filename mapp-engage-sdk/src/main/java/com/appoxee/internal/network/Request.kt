@@ -5,29 +5,40 @@ internal abstract class Request(
     val method: Method,
     val queryParams: Map<String, Any>? = null,
     val requestBody: NetworkData? = null,
-    var headers: MutableMap<String, String> = mutableMapOf(
+    val headers: MutableMap<String, String> = mutableMapOf(
         "Content-Type" to "application/json; utf-8",
         "Accept" to "application/json"
-    )
-) {
+    ),
 
-    var doInput: Boolean = true
-    var doOutput: Boolean = true
+    ) {
+    internal var doInput: Boolean = true
+    internal var doOutput: Boolean = true
 
-    fun addHeader(header: Map<String, String>): Request {
+    internal var pathType: PathType = PathType.BASE
+
+    internal fun addHeader(header: Map<String, String>): Request {
         headers.putAll(header)
         return this
     }
 
-    class Get(path: String, queryParams: Map<String, Any>? = null) :
+    internal fun setPathType(pathType: PathType): Request {
+        this.pathType = pathType
+        return this
+    }
+
+    internal class Get(path: String, queryParams: Map<String, Any>? = null) :
         Request(path = path, method = Method.GET, queryParams = queryParams) {
     }
 
-    class Put(path: String, requestBody: NetworkData? = null) :
+    internal class Put(path: String, requestBody: NetworkData? = null) :
         Request(path = path, method = Method.PUT, requestBody = requestBody) {
     }
 
-    class Post(path: String, queryParams: Map<String, Any>?, requestBody: NetworkData?) : Request(
+    internal class Post(
+        path: String,
+        queryParams: Map<String, Any>? = emptyMap(),
+        requestBody: NetworkData? = null
+    ) : Request(
         path = path,
         method = Method.POST,
         queryParams = queryParams,
@@ -36,11 +47,16 @@ internal abstract class Request(
 
     }
 
-    enum class Method(private val value: String) {
+    internal enum class Method(private val value: String) {
         GET("GET"),
         POST("POST"),
         PUT("PUT"),
         PATCH("PATCH"),
         DELETE("DELETE")
+    }
+
+    internal enum class PathType(private val value: String) {
+        BASE("BASE"),
+        CEP("CEP")
     }
 }

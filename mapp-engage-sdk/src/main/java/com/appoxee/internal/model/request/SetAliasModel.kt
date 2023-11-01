@@ -1,7 +1,6 @@
 package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
-import org.json.JSONArray
 import org.json.JSONObject
 
 internal data class SetAliasModel(val alias: String) : NetworkData {

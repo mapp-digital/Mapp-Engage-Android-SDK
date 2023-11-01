@@ -17,3 +17,4 @@ rootProject.name = "EngageSample"
 include(":sample-kotlin")
 include(":mapp-engage-sdk")
 include(":sample-java")
+include(":shared-ui")

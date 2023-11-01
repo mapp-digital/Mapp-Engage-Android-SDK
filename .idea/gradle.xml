@@ -14,6 +14,7 @@
             <option value="$PROJECT_DIR$/mapp-engage-sdk" />
             <option value="$PROJECT_DIR$/sample-java" />
             <option value="$PROJECT_DIR$/sample-kotlin" />
+            <option value="$PROJECT_DIR$/shared-ui" />
           </set>
         </option>
       </GradleProjectSettings>

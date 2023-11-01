@@ -1,21 +1,16 @@
 package com.appoxee.internal.model.response
 
+import com.appoxee.internal.util.getLongOrDefault
 import org.json.JSONObject
 
-internal data class Metadata(private val json: JSONObject?) {
-    var error: Boolean = false
-        private set
-    var statusCode: Int = 200
-        private set
+internal data class Metadata(val error: Boolean, val statusCode: Int) {
 
-    init {
-        json?.let { js ->
-            if (js.has("error")) {
-                error = js.getBoolean("error")
-            }
-            if (js.has("statusCode")) {
-                statusCode = js.getInt("statusCode")
-            }
+    companion object {
+        fun fromJSON(json: JSONObject): Metadata {
+            return Metadata(
+                error = json.getBoolean("error"),
+                statusCode = json.getLongOrDefault("statusCode", 0).toInt()
+            )
         }
     }
 }

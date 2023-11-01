@@ -27,8 +27,9 @@ internal class AppoxeeContainer(
     internal val engageApi: EngageApi by lazy {
         EngageApiImpl(
             networkClient = networkClient,
+            storage = storage,
             deviceProvider = deviceProvider,
-            options = options
+            options = options,
         )
     }
 

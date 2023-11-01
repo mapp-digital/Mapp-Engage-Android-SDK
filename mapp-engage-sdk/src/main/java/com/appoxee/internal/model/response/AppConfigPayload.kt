@@ -1,8 +1,8 @@
 package com.appoxee.internal.model.response
 
+import com.appoxee.internal.util.arrayToList
 import com.appoxee.internal.util.getLongOrDefault
 import com.appoxee.internal.util.getStringOrEmpty
-import com.appoxee.internal.util.toList
 import com.appoxee.internal.util.toMap
 import org.json.JSONObject
 
@@ -42,7 +42,7 @@ data class AppConfigPayload constructor(
                 googlePid = json.getStringOrEmpty("google_pid"),
                 displayLast = json.getStringOrEmpty("display_last"),
                 hasFakeAlias = json.getStringOrEmpty("has_fake_alias"),
-                categories = json.getJSONArray("categories").toList { Category.fromJson(it) },
+                categories = json.arrayToList("categories") { Category.fromJson(it) },
             )
         }
     }
@@ -60,7 +60,7 @@ data class Category(
     companion object {
         fun fromJson(json: JSONObject): Category {
             return Category(
-                buttons = json.getJSONArray("buttons").toList { Button.fromJson(it) },
+                buttons = json.arrayToList("buttons") { Button.fromJson(it) },
                 categoryId = json.getLongOrDefault("categoryId", 0),
                 isContextMinimal = json.getBoolean("isContextMinimal"),
                 isCustomCategory = json.getBoolean("isCustomCategory"),
