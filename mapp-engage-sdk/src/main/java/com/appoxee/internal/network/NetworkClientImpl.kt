@@ -62,19 +62,28 @@ internal class NetworkClientImpl(
                 )
                 // retrieve request result
                 val statusCode = responseCode
-                val result = inputStream.convertToString()
-                val error = errorStream.convertToString()
                 val responseUrl = this.url
 
-                Logger.i(
-                    TAG,
-                    "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result"
-                )
+                var result: String? = null
+                var error: String? = null
+                if (statusCode in 200 until 300) {
+                    result = inputStream.convertToString()
+                    Logger.i(
+                        TAG,
+                        "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result"
+                    )
+                } else {
+                    error = errorStream.convertToString()
+                    Logger.e(
+                        TAG,
+                        "\nRESPONSE - ${requestMethod}: ${responseUrl}\nErrorBody: $error"
+                    )
+                }
 
                 when (statusCode) {
                     in 200..299 -> {
                         // success
-                        val json = JSONObject(result)
+                        val json = JSONObject(result ?: "")
                         response = adapter.createResponse(statusCode, json, null)
                     }
 

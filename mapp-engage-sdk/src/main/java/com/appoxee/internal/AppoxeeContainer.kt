@@ -15,14 +15,15 @@ import com.appoxee.shared.AppoxeeOptions
 
 internal class AppoxeeContainer(
     private val application: Application,
-    private val options: AppoxeeOptions
+    private val options: AppoxeeOptions,
+    private val cacheValidityMs: Long
 ) {
 
     internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
 
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = application) }
 
-    internal val storage: Storage by lazy { PrefsStorageImpl(application) }
+    internal val storage: Storage by lazy { PrefsStorageImpl(application, cacheValidityMs) }
 
     internal val engageApi: EngageApi by lazy {
         EngageApiImpl(
@@ -35,7 +36,8 @@ internal class AppoxeeContainer(
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {
         AppoxeeAdapter(
-            engageApi = engageApi
+            engageApi = engageApi,
+            storage = storage
         )
     }
 

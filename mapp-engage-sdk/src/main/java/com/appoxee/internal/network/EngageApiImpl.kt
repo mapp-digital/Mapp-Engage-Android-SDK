@@ -12,7 +12,6 @@ import com.appoxee.internal.model.request.SetAliasModel
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.Metadata
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.model.response.inapp.InappResponse
@@ -38,7 +37,7 @@ internal class EngageApiImpl(
     private val devicePathV3 = "api/v3/device"
     private val inboxPathV5 = "api/v5/device/inapp/inbox"
     private val inappPathV5 = "api/v5/device/nativeinapp"
-    private val header = mapOf("X_KEY" to options.sdkKey)
+    private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
 
     override suspend fun registerDevice(
@@ -48,7 +47,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = deviceModel)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             RegisterPayload.fromJSON(it)
@@ -61,7 +60,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, GetDeviceModel())
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             DevicePayload.fromJSON(it.getJSONObject("get"))
@@ -75,7 +74,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -91,7 +90,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -110,7 +109,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -126,7 +125,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -139,7 +138,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(header)
+            .addHeader(sdkKeyHeader)
 
         val response = networkClient.execute(request, BaseAdapter {
             AppConfigPayload.fromJson(it.getJSONObject("app_conf"))
@@ -165,9 +164,7 @@ internal class EngageApiImpl(
             .addHeader(mapOf("tenant_id" to options.tenantId))
             .addHeader(mapOf("app_id" to options.appId))
 
-        val response = networkClient.execute(request, InboxAdapter())
-
-        return response
+        return networkClient.execute(request, InboxAdapter())
     }
 
     override suspend fun fetchInApp(eventName: String): Response<InappResponse> {
@@ -188,8 +185,6 @@ internal class EngageApiImpl(
             .addHeader(mapOf("tenant_id" to options.tenantId))
             .addHeader(mapOf("app_id" to options.appId))
 
-        val response = networkClient.execute(request, InappAdapter())
-
-        return response
+        return networkClient.execute(request, InappAdapter())
     }
 }
