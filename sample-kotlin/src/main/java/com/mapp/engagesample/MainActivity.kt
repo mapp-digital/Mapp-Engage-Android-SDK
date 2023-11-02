@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
@@ -27,66 +26,89 @@ class MainActivity : ComponentActivity(), AppoxeeObserver {
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnSetAlias).setOnClickListener {
             lifecycleScope.launch {
-                val alias =
-                    findViewById<TextInputEditText>(eu.brrm.shared_ui.R.id.editTextAlias).text.toString()
-                if (alias.isNullOrBlank()) {
+                val etAlias = findViewById<TextInputEditText>(eu.brrm.shared_ui.R.id.editTextAlias)
+                val alias = etAlias.text.toString()
+                if (alias.isBlank()) {
                     Util.showDialog(this@MainActivity, "Set Alias", "Alias can't be empty!")
                     return@launch
                 }
                 val result = Appoxee.instance().setAlias(alias).asSuspend()
-                Util.showDialog(this@MainActivity, "DmcUserId", result.getData() ?: "")
+                if (result.isSuccess()) {
+                    etAlias.text?.clear()
+                }
+                Util.showDialog(
+                    this@MainActivity, "DmcUserId",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
             }
         }
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnGetAlias).setOnClickListener {
             lifecycleScope.launch {
                 val result = Appoxee.instance().getAlias().asSuspend()
-                Util.showDialog(this@MainActivity, "Alias", result.getData() ?: "")
+                Util.showDialog(
+                    this@MainActivity, "Alias",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
             }
         }
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnGetDevice).setOnClickListener {
             lifecycleScope.launch {
                 val result = Appoxee.instance().getDevice().asSuspend()
-                Util.showDialog(this@MainActivity, "Device", result.getData().toString())
+                Util.showDialog(
+                    this@MainActivity, "Device",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
             }
         }
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnFetchInboxMessages).setOnClickListener {
             lifecycleScope.launch {
                 val result = Appoxee.instance().fetchInboxMessages("app_inbox").asSuspend()
-                Util.showDialog(this@MainActivity, "Inbox Messages", result.getData().toString())
+                Util.showDialog(
+                    this@MainActivity,
+                    "Inbox Messages",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
             }
         }
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnFetchInappMessages).setOnClickListener {
-//            lifecycleScope.launch {
-//                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
-//                Util.showDialog(this@MainActivity, "Inapp Messages", result.getData().toString())
-//            }
-
-            Appoxee.instance().fetchInappMessages("app_open").enqueue(object : MappCallback<InappResponse?>{
-                override fun onResult(mappResult: MappResult<InappResponse?>) {
-                    Util.showDialog(this@MainActivity, "Inapp Messages", mappResult.getData().toString())
-                }
-            })
-
+            lifecycleScope.launch {
+                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
+                Util.showDialog(
+                    this@MainActivity,
+                    "Inapp Messages",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
+            }
         }
 
         findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnTestCallExecute).setOnClickListener {
             lifecycleScope.launch {
                 val result = Appoxee.instance().testCall().asSuspend()
-                Util.showDialog(this@MainActivity, "Test Call (execute)", result.getData() ?: "")
+                Util.showDialog(
+                    this@MainActivity, "Test Call (execute)",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
             }
         }
 
-        findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnTestCallExecute).setOnClickListener {
+        findViewById<MaterialButton>(eu.brrm.shared_ui.R.id.btnTestCallEnqueue).setOnClickListener {
             Appoxee.instance().testCall().enqueue(object : MappCallback<String> {
-                override fun onResult(mappResult: MappResult<String>) {
+                override fun onResult(result: MappResult<String>) {
                     Util.showDialog(
                         this@MainActivity,
                         "Test Call (enqueue)",
-                        mappResult.getData() ?: ""
+                        if (result.isSuccess()) result.getData().toString()
+                        else result.getError().toString()
                     )
                 }
             })

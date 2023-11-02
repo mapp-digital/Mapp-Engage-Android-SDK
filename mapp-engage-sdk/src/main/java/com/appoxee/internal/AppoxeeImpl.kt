@@ -10,6 +10,8 @@ import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
+import com.appoxee.internal.provider.DeviceProvider
+import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -22,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
@@ -33,19 +36,30 @@ internal class AppoxeeImpl(
 
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 
-    private val appoxeeContainer =
-        AppoxeeContainer(context.applicationContext as Application, options)
-
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
-
     private val mIsReady = AtomicBoolean(false)
 
+    private val appoxeeContainer by lazy {
+        AppoxeeContainer(
+            application = context.applicationContext as Application,
+            options = options,
+            cacheValidityMs = TimeUnit.DAYS.toMillis(1)
+        )
+    }
+
+    private val coroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
+    private val appoxeeAdapter: AppoxeeAdapter
+        get() = appoxeeContainer.appoxeeAdapter
+    private val storage: Storage
+        get() = appoxeeContainer.storage
+    private val deviceProvider: DeviceProvider
+        get() = appoxeeContainer.deviceProvider
+
     private val registerCallback = object : MappCallback<DevicePayload> {
-        override fun onResult(mappResult: MappResult<DevicePayload>) {
-            if (mappResult.isSuccess()) {
-                updateReadyStatus(true, mappResult)
+        override fun onResult(result: MappResult<DevicePayload>) {
+            if (result.isSuccess()) {
+                updateReadyStatus(true, result)
             } else {
-                updateReadyStatus(false, mappResult)
+                updateReadyStatus(false, result)
             }
         }
     }
@@ -60,44 +74,44 @@ internal class AppoxeeImpl(
     private fun validateRegistration() {
         safeCall(registerCallback) {
             // get saved device from local storage
-            var devicePayload: DevicePayload? = appoxeeContainer.storage.getDevicePayload()
+            var devicePayload: DevicePayload? = storage.getDevicePayload()
 
             // get registration data used to register device on server
-            val savedRegisterPayload = appoxeeContainer.storage.getRegistrationDevice()
+            val savedRegisterPayload = storage.getRegistrationDevice()
 
             // calculate current registration data of device
-            val newRegisterPayload = appoxeeContainer.deviceProvider.generateRegistrationDevice()
+            val newRegisterPayload = deviceProvider.generateRegistrationDevice()
 
             // if local device payload exist and data are not expired
             if (devicePayload?.udidHashed != null /* && not expired */) {
                 // check if saved registration data and currently calculated registration data differs
                 if (savedRegisterPayload != newRegisterPayload) {
                     // when registration data differs, register data again to update valus on server
-                    appoxeeContainer.appoxeeAdapter.register(newRegisterPayload)
+                    appoxeeAdapter.register(newRegisterPayload)
 
                     // get device payload from server after new registration
-                    devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                    devicePayload = appoxeeAdapter.getDevice()
                 }
             } else {
                 // device payload doesn't exist or expired
                 // get new device payload from server
-                devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                devicePayload = appoxeeAdapter.getDevice()
 
                 // check if device payload from server exist or not
                 if (devicePayload?.udidHashed == null) {
                     // if device payload doesn't exist on server, register device
-                    appoxeeContainer.appoxeeAdapter.register(newRegisterPayload)
+                    appoxeeAdapter.register(newRegisterPayload)
 
                     // get device payload from server after new registration
-                    devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
+                    devicePayload = appoxeeAdapter.getDevice()
                 }
             }
 
             // save device registration data (device fingerprint) to a local storage for later access
-            appoxeeContainer.storage.saveRegistrationDevice(newRegisterPayload)
+            storage.saveRegistrationDevice(newRegisterPayload)
 
             // save device payload from server for a registered device
-            appoxeeContainer.storage.saveDevicePayload(devicePayload)
+            storage.saveDevicePayload(devicePayload)
 
             // returns device payload
             devicePayload
@@ -116,27 +130,27 @@ internal class AppoxeeImpl(
     private fun updateOptStatus() {
         safeCall(null) {
             Logger.d(TAG, "updateOptStatus()")
-            var devicePayload = appoxeeContainer.storage.getDevicePayload()
+            var devicePayload = storage.getDevicePayload()
             val pushToken = FirebaseMessaging.getInstance().token.await()
             var modified: Boolean = false
             // if device opted Out and optOut token is expired, update optOut token
             if (devicePayload?.pushTokenBk?.isNotEmpty() == true
                 && pushToken != devicePayload.pushTokenBk
             ) {
-                appoxeeContainer.appoxeeAdapter.optOut(pushToken)
+                appoxeeAdapter.optOut(pushToken)
                 modified = true
             }
 
             // if device opted In and optIn token is expired, update optIn token
             if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
-                appoxeeContainer.appoxeeAdapter.optIn(pushToken)
+                appoxeeAdapter.optIn(pushToken)
                 modified = true
             }
 
             if (modified) {
                 // get fresh device data from server
-                devicePayload = appoxeeContainer.appoxeeAdapter.getDevice()
-                appoxeeContainer.storage.saveDevicePayload(devicePayload)
+                devicePayload = appoxeeAdapter.getDevice()
+                storage.saveDevicePayload(devicePayload)
             }
 
             Logger.d(TAG, "updateOptStatus() - Finished")
@@ -148,32 +162,32 @@ internal class AppoxeeImpl(
     }
 
     override fun setAlias(alias: String): Call<String?> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.setAlias(alias) ?: ""
+        appoxeeAdapter.setAlias(alias) ?: ""
     }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.getAlias()
+        appoxeeAdapter.getAlias()
     }
 
     override fun fetchInboxMessages(eventName: String): Call<InboxMessagesResponse?> =
         buildHttpCall {
-            appoxeeContainer.appoxeeAdapter.fetchInboxMessages(eventName)
+            appoxeeAdapter.fetchInboxMessages(eventName)
         }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.fetchInappMessages(eventName)
+        appoxeeAdapter.fetchInappMessages(eventName)
     }
 
     override fun optIn(token: String): Call<Boolean> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.optIn(pushToken = token)
+        appoxeeAdapter.optIn(pushToken = token)
     }
 
     override fun optOut(token: String): Call<Boolean> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.optOut(token)
+        appoxeeAdapter.optOut(token)
     }
 
     override fun getDevice(): Call<DevicePayload?> = buildHttpCall {
-        appoxeeContainer.appoxeeAdapter.getDevice()
+        appoxeeAdapter.getDevice()
     }
 
 
@@ -186,7 +200,7 @@ internal class AppoxeeImpl(
 
     override fun subscribe(observer: AppoxeeObserver) {
         coroutineScope.launch {
-            val payload = appoxeeContainer.storage.getDevicePayload()
+            val payload = storage.getDevicePayload()
             payload?.let {
                 observer.onReadyStatusChanged(
                     isReady(),
@@ -212,7 +226,7 @@ internal class AppoxeeImpl(
     }
 
     private suspend fun getAppConfig() {
-        val result = appoxeeContainer.appoxeeAdapter.getAppConfig()
+        val result = appoxeeAdapter.getAppConfig()
         if (result.isSuccess()) {
             Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
         } else {

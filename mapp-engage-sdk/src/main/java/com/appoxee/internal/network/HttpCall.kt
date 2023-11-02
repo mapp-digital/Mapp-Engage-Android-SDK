@@ -1,5 +1,6 @@
 package com.appoxee.internal.network
 
+import com.appoxee.internal.network.exceptions.CallConsumedException
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 import kotlinx.coroutines.CoroutineScope
@@ -14,12 +15,13 @@ internal class HttpCall<T>(
     private val coroutineScope: CoroutineScope,
     private inline val call: suspend () -> T,
 ) : Call<T> {
+
     private val mutex = Mutex()
 
     @Volatile
     private var executed: Boolean = false
 
-    override fun isExecuted(): Boolean {
+    private fun isExecuted(): Boolean {
         return runBlocking {
             mutex.withLock {
                 return@runBlocking executed
@@ -28,26 +30,35 @@ internal class HttpCall<T>(
     }
 
     override fun execute(): MappResult<T> = runBlocking {
-        executed = true
-        val result = call.invoke()
-        withContext(Dispatchers.Main) {
-            MappResult.Success(result)
-        }
+        if (isExecuted()) throw CallConsumedException()
+        return@runBlocking executeWithErrorHandling()
     }
 
     override suspend fun asSuspend(): MappResult<T> = withContext(Dispatchers.IO) {
-        executed = true
-        val result = call.invoke()
-        withContext(Dispatchers.Main) {
-            MappResult.Success(result)
-        }
+        if (isExecuted()) throw CallConsumedException()
+        return@withContext executeWithErrorHandling()
     }
 
     override fun enqueue(callback: MappCallback<T>) {
+        if (isExecuted()) throw CallConsumedException()
         coroutineScope.launch {
-            val response = call.invoke()
+            val result=executeWithErrorHandling()
+            withContext(Dispatchers.Main){
+                callback.onResult(result)
+            }
+        }
+    }
+
+    private suspend fun executeWithErrorHandling(): MappResult<T> {
+        return try {
+            executed = true
+            val result = call.invoke()
             withContext(Dispatchers.Main) {
-                callback.onResult(MappResult.Success(response))
+                MappResult.Success(result)
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                MappResult.Error(e)
             }
         }
     }

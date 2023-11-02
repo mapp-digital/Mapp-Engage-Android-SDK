@@ -2,6 +2,11 @@ package com.appoxee.shared
 
 import androidx.annotation.IntRange
 
+
+private const val MIN_TIMEOUT: Int = 5_000
+private const val MAX_TIMEOUT: Int = 60_000
+private const val DEFAULT_TIMEOUT: Int = 10_000
+
 class AppoxeeOptions(
     /**
      * Server enum value from the [Server] enums
@@ -24,10 +29,10 @@ class AppoxeeOptions(
     /**
      * Sets connection timeout in milliseconds
      */
-    @IntRange(from = 5_000, to = 60_000)
-    var connectionTimeout: Int = 10_000
+    @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
+    var connectionTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
-            if (value in 10_000..60_000) {
+            if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
                 field = value
             }
         }
@@ -35,10 +40,10 @@ class AppoxeeOptions(
     /**
      * Sets connection read timeout in milliseconds
      */
-    @IntRange(from = 5_000, to = 60_000)
-    var readTimeout: Int = 10_000
+    @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
+    var readTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
-            if (value in 10_000..60_000) {
+            if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
                 field = value
             }
         }
