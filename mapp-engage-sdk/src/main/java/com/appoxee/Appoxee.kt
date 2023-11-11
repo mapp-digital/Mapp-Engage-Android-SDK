@@ -50,9 +50,19 @@ interface Appoxee {
 
     fun optOut(token: String): Call<Boolean>
 
+    fun addTags(tags: List<String>): Call<Boolean>
+
+    fun removeTags(tags: List<String>): Call<Boolean>
+
+    fun addCustomAttributes(attributes: Map<String, Any?>): Call<Boolean>
+
+    fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>>
+
     fun subscribe(observer: AppoxeeObserver)
 
     fun unsubscribe(observer: AppoxeeObserver)
 
     fun testCall(): Call<String>
+
+    fun testInappEvent(): Call<Boolean>
 }

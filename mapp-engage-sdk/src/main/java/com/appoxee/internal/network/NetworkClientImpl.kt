@@ -83,7 +83,7 @@ internal class NetworkClientImpl(
                 when (statusCode) {
                     in 200..299 -> {
                         // success
-                        val json = JSONObject(result ?: "")
+                        val json = if(result.isNullOrEmpty()) JSONObject() else JSONObject(result)
                         response = adapter.createResponse(statusCode, json, null)
                     }
 

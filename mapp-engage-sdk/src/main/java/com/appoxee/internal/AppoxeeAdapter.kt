@@ -1,8 +1,10 @@
 package com.appoxee.internal
 
 import android.annotation.SuppressLint
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
+import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
@@ -27,7 +29,7 @@ internal class AppoxeeAdapter(
         }
     }
 
-    internal suspend fun register(deviceModel: RegisterDeviceModel): RegisterPayload? {
+    internal suspend fun register(deviceModel: RegisterDevice): RegisterPayload? {
         val response = engageApi.registerDevice(deviceModel)
         return if (response.isSuccess()) response.data?.payload else null
     }
@@ -88,5 +90,35 @@ internal class AppoxeeAdapter(
     internal suspend fun fetchInappMessages(event: String): InappResponse? {
         val response = engageApi.fetchInApp(eventName = event)
         return response.data
+    }
+
+    internal suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
+        return engageApi.addTags(tags)
+    }
+
+    internal suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
+        return engageApi.removeTags(tags)
+    }
+
+    internal suspend fun addCustomAttributes(attributes: Map<String, Any?>): Response<ResponseData<DefaultResponse>> {
+        return engageApi.addCustomAttributes(attributes)
+    }
+
+    internal suspend fun getCustomAttributes(attributes: List<String>): Response<ResponseData<Map<String, Any?>>> {
+        return engageApi.getCustomAttributes(attributes)
+    }
+
+    internal suspend fun inappEvent(
+        originalEventId: String,
+        templateId: Long,
+        trackingKey: TrackingKey,
+        trackingAttributes: Map<String, Any> = emptyMap()
+    ): Response<ResponseData<Boolean>> {
+        return engageApi.inappEvent(
+            originalEventId = originalEventId,
+            templateId = templateId,
+            trackingKey = trackingKey,
+            trackingAttributes = trackingAttributes
+        )
     }
 }

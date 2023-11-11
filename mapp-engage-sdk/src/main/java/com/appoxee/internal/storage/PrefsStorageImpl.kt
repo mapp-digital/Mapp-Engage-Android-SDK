@@ -7,12 +7,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import java.util.Date
-import java.util.concurrent.TimeUnit
 
 internal class PrefsStorageImpl(
     private val application: Application,
@@ -64,17 +63,17 @@ internal class PrefsStorageImpl(
         }
     }
 
-    override suspend fun saveRegistrationDevice(registerDeviceModel: RegisterDeviceModel?) {
+    override suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?) {
         application.dataStore.edit {
-            val json = registerDeviceModel?.asJson()?.getJSONObject("register")
+            val json = registerDevice?.asJson()?.getJSONObject("register")
             it[registerDeviceKey] = json.toString()
         }
     }
 
-    override suspend fun getRegistrationDevice(): RegisterDeviceModel? {
+    override suspend fun getRegistrationDevice(): RegisterDevice? {
         return try {
             val json = application.dataStore.data.first()[registerDeviceKey]
-            json?.let { RegisterDeviceModel.fromJSON(JSONObject(it)) }
+            json?.let { RegisterDevice.fromJSON(JSONObject(it)) }
         } catch (e: Exception) {
             application.dataStore.edit {
                 it.remove(registerDeviceKey)

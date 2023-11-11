@@ -1,5 +1,6 @@
 package com.appoxee.internal.util
 
+import org.jetbrains.annotations.Nullable
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -64,10 +65,13 @@ fun JSONObject.getNullableLong(name: String): Long? {
     }
 }
 
-fun <Value> JSONObject.toMap(): Map<String, Value> {
+fun <Value> JSONObject.toMap(excludeNulls: Boolean = false): Map<String, Value?> {
     val map = mutableMapOf<String, Value>()
     this.keys().forEach {
-        map.put(it, this[it] as Value)
+        val value = this[it] as Value?
+        if(!excludeNulls || value!=null) {
+            map[it] = value!!
+        }
     }
     return map
 }

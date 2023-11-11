@@ -1,6 +1,7 @@
 package com.appoxee.internal.network
 
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
@@ -12,7 +13,7 @@ import com.appoxee.internal.network.response.Response
 
 internal interface EngageApi {
     suspend fun registerDevice(
-        register: RegisterDeviceModel,
+        register: RegisterDevice,
     ): Response<ResponseData<RegisterPayload>>
 
     suspend fun getDevice(): Response<ResponseData<DevicePayload>>
@@ -33,4 +34,18 @@ internal interface EngageApi {
     suspend fun fetchInboxMessages(eventName: String): Response<InboxMessagesResponse>
 
     suspend fun fetchInApp(eventName: String): Response<InappResponse>
+
+    suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>>
+
+    suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>>
+
+    suspend fun addCustomAttributes(attributes: Map<String, Any?>): Response<ResponseData<DefaultResponse>>
+    suspend fun getCustomAttributes(attributes: List<String>): Response<ResponseData<Map<String, Any?>>>
+
+    suspend fun inappEvent(
+        originalEventId: String,
+        templateId: Long,
+        trackingKey: TrackingKey,
+        trackingAttributes: Map<String, Any> = emptyMap()
+    ): Response<ResponseData<Boolean>>
 }

@@ -1,10 +1,10 @@
 package com.appoxee.internal.provider
 
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
 
 internal interface DeviceProvider {
 
-    fun generateRegistrationDevice(): RegisterDeviceModel
+    fun generateRegistrationDevice(): RegisterDevice
 
     fun getUniqueDeviceId(): String
 

@@ -4,7 +4,7 @@ import com.appoxee.internal.network.NetworkData
 import com.appoxee.internal.util.getNullableString
 import org.json.JSONObject
 
-internal data class RegisterDeviceModel(
+internal data class RegisterDevice(
     val osName: String? = "N/A",
     val appVersion: String? = "N/A",
     val clientVersion: String? = "N/A",
@@ -20,8 +20,8 @@ internal data class RegisterDeviceModel(
     private lateinit var json: JSONObject
 
     companion object {
-        fun fromJSON(json: JSONObject): RegisterDeviceModel {
-            return RegisterDeviceModel(
+        fun fromJSON(json: JSONObject): RegisterDevice {
+            return RegisterDevice(
                 osName = json.getNullableString("osName"),
                 appVersion = json.getNullableString("appVersion"),
                 clientVersion = json.getNullableString("clientVersion"),

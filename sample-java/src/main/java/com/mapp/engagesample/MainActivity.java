@@ -6,8 +6,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.util.Log;
-import android.widget.Switch;
-import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,13 +16,15 @@ import com.appoxee.internal.model.response.inapp.InappResponse;
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import eu.brrm.shared_ui.Util;
+import eu.brrm.shared_ui.databinding.ActivityMainBinding;
 
 /**
  * @noinspection ConstantValue, FieldCanBeLocal, RedundantSuppression
@@ -36,21 +36,21 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
     private final String alias = "abc1@maptest.com";
 
-    private Switch switchReady;
-
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     private final Handler mainExecutor = new Handler(Looper.getMainLooper());
 
+    private ActivityMainBinding binding;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(eu.brrm.shared_ui.R.layout.activity_main);
-        switchReady = findViewById(eu.brrm.shared_ui.R.id.switchReady);
-        switchReady.setEnabled(false);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        binding.switchReady.setEnabled(false);
 
-        findViewById(eu.brrm.shared_ui.R.id.btnSetAlias).setOnClickListener(v -> {
-            Editable alias = ((TextInputEditText) findViewById(eu.brrm.shared_ui.R.id.editTextAlias)).getText();
+        binding.btnSetAlias.setOnClickListener(v -> {
+            Editable alias = binding.editTextAlias.getText();
             if (alias == null || alias.toString().isEmpty()) {
                 Util.showDialog(this, "Set alias", "Alias can not be empty!");
                 return;
@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnGetAlias).setOnClickListener(v -> {
+        binding.btnGetAlias.setOnClickListener(v -> {
             executor.execute(() -> {
                 MappResult<String> mappResult = Appoxee.instance().getAlias().execute();
                 String alias = mappResult.getData();
@@ -73,37 +73,63 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnGetDevice).setOnClickListener(v -> {
+        binding.btnGetDevice.setOnClickListener(v -> {
             Appoxee.instance().getDevice().enqueue(mappResult -> {
                 DevicePayload device = mappResult.getData();
                 Util.showDialog(this, "Device", device != null ? device.toString() : "null");
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnFetchInboxMessages).setOnClickListener(v -> {
+        binding.btnFetchInboxMessages.setOnClickListener(v -> {
             Appoxee.instance().fetchInboxMessages("app_inbox").enqueue(mappResult -> {
                 InboxMessagesResponse response = mappResult.getData();
                 Util.showDialog(this, "Inbox Messages", response != null ? response.toString() : "");
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnFetchInappMessages).setOnClickListener(v -> {
+        binding.btnFetchInappMessages.setOnClickListener(v -> {
             Appoxee.instance().fetchInappMessages("app_open").enqueue(mappResult -> {
                 InappResponse response = mappResult.getData();
                 Util.showDialog(this, "Inapp Messages", response != null ? response.toString() : "");
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnTestCallExecute).setOnClickListener(v -> {
+        binding.btnTestCallExecute.setOnClickListener(v -> {
             executor.execute(() -> {
                 MappResult<String> response = Appoxee.instance().testCall().execute();
                 mainExecutor.post(() -> Util.showDialog(this, "Response", response.getData()));
             });
         });
 
-        findViewById(eu.brrm.shared_ui.R.id.btnTestCallEnqueue).setOnClickListener(v -> {
+        binding.btnTestCallEnqueue.setOnClickListener(v -> {
             Appoxee.instance().testCall().enqueue(mappResult -> {
                 Util.showDialog(this, "Response", mappResult.getData());
+            });
+        });
+
+        binding.btnSetTags.setOnClickListener(v -> {
+            Appoxee.instance().addTags(List.of("female", "makeup", "fashion")).enqueue(result -> {
+                Util.showDialog(this, "Set Tags", String.valueOf(result.getData()));
+            });
+        });
+
+        binding.btnRemoveTags.setOnClickListener(v -> {
+            Appoxee.instance().removeTags(List.of("female", "makeup", "fashion")).enqueue(result -> Util.showDialog(this, "Remove Tags", String.valueOf(result.getData())));
+        });
+
+        binding.btnSetCustomAttributes.setOnClickListener(v -> {
+            Appoxee.instance().addCustomAttributes(Map.of("currency", "EUR", "phone", "+381991234567")).enqueue(result -> Util.showDialog(this, "Set custom attribute", String.valueOf(result.getData())));
+        });
+
+        binding.btnGetCustomAttributes.setOnClickListener(v -> {
+            Appoxee.instance().getCustomAttributes(List.of("currency", "phone")).enqueue(result -> {
+                Util.showDialog(this, "Set custom attribute", String.valueOf(result.getData()));
+            });
+        });
+
+        binding.btnTestInappEvent.setOnClickListener(v -> {
+            Appoxee.instance().testInappEvent().enqueue(result -> {
+                Util.showDialog(this, "Test Inapp Event", String.valueOf(result.getData()));
             });
         });
     }
@@ -125,14 +151,13 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
     private void updateUI(boolean status, @Nullable DevicePayload payload) {
         Log.d(TAG, "UI Updating - Is Ready: " + status + "; Payload: " + payload);
 
-        TextView tvDevice = findViewById(eu.brrm.shared_ui.R.id.tvDevice);
         StringBuilder sb = new StringBuilder();
         if (payload != null) {
             sb.append("UDIDHashed: ").append("\n").append(payload.getUdidHashed());
         }
         getWindow().getDecorView().post(() -> {
-            switchReady.setChecked(status);
-            tvDevice.setText(sb.toString());
+            binding.switchReady.setChecked(status);
+            binding.tvDevice.setText(sb.toString());
         });
     }
 
@@ -172,5 +197,11 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
     protected void onPause() {
         super.onPause();
         Appoxee.instance().unsubscribe(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        binding = null;
+        super.onDestroy();
     }
 }

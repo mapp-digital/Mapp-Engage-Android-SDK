@@ -1,6 +1,6 @@
 package com.appoxee.internal.storage
 
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
 
 internal interface Storage {
@@ -8,7 +8,7 @@ internal interface Storage {
 
     suspend fun getDevicePayload(): DevicePayload?
 
-    suspend fun saveRegistrationDevice(registerDeviceModel: RegisterDeviceModel?)
+    suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?)
 
-    suspend fun getRegistrationDevice(): RegisterDeviceModel?
+    suspend fun getRegistrationDevice(): RegisterDevice?
 }

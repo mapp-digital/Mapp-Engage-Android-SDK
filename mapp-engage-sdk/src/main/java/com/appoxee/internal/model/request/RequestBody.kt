@@ -5,9 +5,10 @@ import org.json.JSONObject
 import java.util.Date
 import java.util.UUID
 
-internal data class RequestBody(
+internal class RequestBody(
     private val key: String,
-    private val actions: NetworkData
+    private val actions: NetworkData,
+    private val alias: String? = null
 ) :
     NetworkData {
     private lateinit var json: JSONObject
@@ -15,12 +16,15 @@ internal data class RequestBody(
     private val requestId = UUID.randomUUID().toString()
     override fun asJson(): JSONObject {
         if (!::json.isInitialized) {
-            json = JSONObject()
-                .put("key", key)
-                .put("actions", actions.asJson().apply {
+            json = JSONObject().apply {
+                put("key", key)
+                alias?.let { put("alias", it) }
+                put("actions", actions.asJson().apply {
                     put("time", time)
                     put("requestId", requestId)
                 })
+            }
+
         }
         return json
     }
