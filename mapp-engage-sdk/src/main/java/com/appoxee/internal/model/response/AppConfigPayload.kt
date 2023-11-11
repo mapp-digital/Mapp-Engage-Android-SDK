@@ -92,7 +92,7 @@ data class Button(
                 isDestructive = json.getBoolean("isDestructive"),
                 isForeground = json.getBoolean("isForeground"),
                 title = json.getStringOrEmpty("title"),
-                localizedTitle = json.getJSONObject("localizedTitle").toMap()
+                localizedTitle = json.getJSONObject("localizedTitle").toMap<String>(excludeNulls = true).mapValues { it.value!! }
             )
         }
     }

@@ -92,6 +92,36 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Test call (enqueue)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Set Tags" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRemoveTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Remove Tags" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetCustomAttributes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Set custom attributes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetCustomAttributes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get custom attributes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestInappEvent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Inapp Event" />
         </LinearLayout>
     </ScrollView>
 

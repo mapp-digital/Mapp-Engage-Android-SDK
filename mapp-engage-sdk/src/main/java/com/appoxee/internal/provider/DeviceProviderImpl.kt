@@ -7,13 +7,13 @@ import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import com.appoxee.BuildConfig
-import com.appoxee.internal.model.request.RegisterDeviceModel
+import com.appoxee.internal.model.request.RegisterDevice
 import java.util.Locale
 import java.util.TimeZone
 
 internal class DeviceProviderImpl(private val context: Context) : DeviceProvider {
-    override fun generateRegistrationDevice(): RegisterDeviceModel {
-        return RegisterDeviceModel(
+    override fun generateRegistrationDevice(): RegisterDevice {
+        return RegisterDevice(
             osName = getOSName(),
             appVersion = getAppVersion(),
             clientVersion = getClientVersion(),

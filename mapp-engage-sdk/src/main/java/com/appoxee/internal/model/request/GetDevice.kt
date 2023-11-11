@@ -1,14 +1,25 @@
 package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
+import org.json.JSONArray
 import org.json.JSONObject
 
-class GetAppConfigModel : NetworkData {
+internal class GetDevice : NetworkData {
+
+    private val attributes: List<String> = listOf(
+        "alias",
+        "dmcUserId",
+        "pushToken",
+        "pushToken_bk",
+        "UDIDHashed"
+    )
+
     private lateinit var json: JSONObject
+
     override fun asJson(): JSONObject {
         if (!::json.isInitialized) {
             json = JSONObject().apply {
-                put("app_conf", JSONObject())
+                put("get", JSONArray(attributes))
             }
         }
         return json
