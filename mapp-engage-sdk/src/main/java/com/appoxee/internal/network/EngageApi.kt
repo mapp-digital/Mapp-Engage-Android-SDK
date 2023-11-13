@@ -1,6 +1,8 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.events.ClickActionType
+import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -47,5 +49,12 @@ internal interface EngageApi {
         templateId: Long,
         trackingKey: TrackingKey,
         trackingAttributes: Map<String, Any> = emptyMap()
+    ): Response<ResponseData<Boolean>>
+
+    suspend fun pushEvent(
+        messageId: Long,
+        sendoutId: Long,
+        clickActionType: ClickActionType,
+        eventType: PushEventType
     ): Response<ResponseData<Boolean>>
 }

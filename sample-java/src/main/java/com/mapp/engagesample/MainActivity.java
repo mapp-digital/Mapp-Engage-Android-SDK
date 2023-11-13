@@ -132,6 +132,12 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
                 Util.showDialog(this, "Test Inapp Event", String.valueOf(result.getData()));
             });
         });
+
+        binding.btnTestPushEvent.setOnClickListener(v -> {
+            Appoxee.instance().testPushEvent().enqueue(result -> {
+                Util.showDialog(this, "Test Push Event", String.valueOf(result.getData()));
+            });
+        });
     }
 
     @Override

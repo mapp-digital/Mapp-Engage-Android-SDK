@@ -2,6 +2,8 @@ package com.appoxee.internal
 
 import android.annotation.SuppressLint
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.events.ClickActionType
+import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -120,5 +122,14 @@ internal class AppoxeeAdapter(
             trackingKey = trackingKey,
             trackingAttributes = trackingAttributes
         )
+    }
+
+    internal suspend fun pushEvent(
+        messageId: Long,
+        sendoutId: Long,
+        clickActionType: ClickActionType,
+        eventType: PushEventType
+    ): Response<ResponseData<Boolean>> {
+        return engageApi.pushEvent(messageId, sendoutId, clickActionType, eventType)
     }
 }

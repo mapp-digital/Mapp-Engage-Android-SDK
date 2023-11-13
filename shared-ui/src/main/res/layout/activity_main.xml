@@ -122,6 +122,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Test Inapp Event" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestPushEvent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Push Event" />
         </LinearLayout>
     </ScrollView>
 
