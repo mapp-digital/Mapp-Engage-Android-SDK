@@ -10,6 +10,7 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.network.response.ResponseAdapter
 import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
+import com.appoxee.internal.util.parseAsJSON
 import com.appoxee.shared.AppoxeeOptions
 import org.json.JSONObject
 import java.io.DataOutputStream
@@ -83,7 +84,7 @@ internal class NetworkClientImpl(
                 when (statusCode) {
                     in 200..299 -> {
                         // success
-                        val json = if(result.isNullOrEmpty()) JSONObject() else JSONObject(result)
+                        val json = result.parseAsJSON()
                         response = adapter.createResponse(statusCode, json, null)
                     }
 

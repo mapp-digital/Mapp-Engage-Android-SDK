@@ -1,6 +1,5 @@
 package com.appoxee.internal.util
 
-import org.jetbrains.annotations.Nullable
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -69,7 +68,7 @@ fun <Value> JSONObject.toMap(excludeNulls: Boolean = false): Map<String, Value?>
     val map = mutableMapOf<String, Value>()
     this.keys().forEach {
         val value = this[it] as Value?
-        if(!excludeNulls || value!=null) {
+        if (!excludeNulls || value != null) {
             map[it] = value!!
         }
     }
@@ -103,4 +102,15 @@ inline fun <reified T> JSONObject.arrayToMap(
         }
     }
     return map
+}
+
+fun String?.parseAsJSON(): JSONObject {
+    if (this.isNullOrEmpty()) return JSONObject()
+    return try {
+        JSONObject(this)
+    } catch (e: Exception) {
+        JSONObject().apply {
+            put("data", this)
+        }
+    }
 }

@@ -65,4 +65,6 @@ interface Appoxee {
     fun testCall(): Call<String>
 
     fun testInappEvent(): Call<Boolean>
+
+    fun testPushEvent(): Call<Boolean>
 }

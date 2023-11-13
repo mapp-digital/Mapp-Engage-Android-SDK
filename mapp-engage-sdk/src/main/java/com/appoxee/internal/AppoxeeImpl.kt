@@ -5,6 +5,8 @@ package com.appoxee.internal
 import android.app.Application
 import android.content.Context
 import com.appoxee.Appoxee
+import com.appoxee.internal.model.request.events.ClickActionType
+import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inapp.InappResponse
@@ -231,11 +233,21 @@ internal class AppoxeeImpl(
 
     override fun testInappEvent(): Call<Boolean> = buildHttpCall {
         val response = appoxeeAdapter.inappEvent(
-                originalEventId = "b3852abb-e519-47fd-96da-babc8a3a7cd4",
-                templateId = 124640L,
-                trackingKey = TrackingKey.IA_MSG_DISPLAYED
-            )
-        return@buildHttpCall response.isSuccess()
+            originalEventId = "b3852abb-e519-47fd-96da-babc8a3a7cd4",
+            templateId = 124640L,
+            trackingKey = TrackingKey.IA_MSG_DISPLAYED
+        )
+        response.isSuccess()
+    }
+
+    override fun testPushEvent(): Call<Boolean> = buildHttpCall {
+        val response = appoxeeAdapter.pushEvent(
+            124852,
+            233861,
+            ClickActionType.DIAL_NUMBER,
+            PushEventType.CLICK
+        )
+        response.isSuccess()
     }
 
     private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {

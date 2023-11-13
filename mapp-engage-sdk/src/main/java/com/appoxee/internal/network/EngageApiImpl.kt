@@ -13,8 +13,11 @@ import com.appoxee.internal.model.request.RequestBody
 import com.appoxee.internal.model.request.SetAlias
 import com.appoxee.internal.model.request.Tags
 import com.appoxee.internal.model.request.TagsAction
+import com.appoxee.internal.model.request.events.ClickActionType
 import com.appoxee.internal.model.request.events.InappEvent
 import com.appoxee.internal.model.request.events.MessageContext
+import com.appoxee.internal.model.request.events.PushEvent
+import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.Tracking
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -48,6 +51,7 @@ internal class EngageApiImpl(
     private val inboxPathV5 = "api/v5/device/inapp/inbox"
     private val inappPathV5 = "api/v5/device/nativeinapp"
     private val inappEventsPathV5 = "api/v5/device/inapp/tracking"
+    private val pushEventsPath = "/api/push/event"
 
     private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
@@ -282,6 +286,32 @@ internal class EngageApiImpl(
             .setPathType(Request.PathType.CEP)
             .addHeader(mapOf("tenant_id" to options.tenantId))
             .addHeader(mapOf("app_id" to options.appId))
+
+        return networkClient.execute(request, StatusAdapter())
+    }
+
+    override suspend fun pushEvent(
+        messageId: Long,
+        sendoutId: Long,
+        clickActionType: ClickActionType,
+        eventType: PushEventType
+    ): Response<ResponseData<Boolean>> {
+        val dmcUserId =
+            storage.getDevicePayload()?.dmcUserId ?: return Response.error(
+                DeviceNotRegisteredException()
+            )
+        val pushEvent = PushEvent(
+            tenantId = options.tenantId,
+            messageId = messageId,
+            sendoutId = sendoutId,
+            dmcUserId = dmcUserId,
+            eventType = eventType,
+            clickType = clickActionType,
+        )
+
+        val request = Request.Post(path = pushEventsPath, requestBody = pushEvent)
+            .addHeader(sdkKeyHeader)
+            .setPathType(Request.PathType.BASE)
 
         return networkClient.execute(request, StatusAdapter())
     }
