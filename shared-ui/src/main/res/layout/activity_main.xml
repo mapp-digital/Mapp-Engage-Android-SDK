@@ -85,13 +85,13 @@
                 android:id="@+id/btnTestCallExecute"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Test call (execute)" />
+                android:text="Test call (execute - 5 seconds delay)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnTestCallEnqueue"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Test call (enqueue)" />
+                android:text="Test call (enqueue - 5 seconds delay)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSetTags"
@@ -128,6 +128,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Test Push Event" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Regions (Geofencing)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEventRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Trigger Enter Geolocation" />
         </LinearLayout>
     </ScrollView>
 

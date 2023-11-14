@@ -5,10 +5,15 @@ package com.appoxee.internal
 import android.app.Application
 import android.content.Context
 import com.appoxee.Appoxee
+import com.appoxee.internal.container.AppoxeeContainer
+import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickActionType
 import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
+import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
@@ -20,6 +25,8 @@ import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -30,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
     context: Context,
-    options: AppoxeeOptions,
+    options: AppoxeeOptions? = null,
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
@@ -39,27 +46,47 @@ internal class AppoxeeImpl(
 
     private val mIsReady = AtomicBoolean(false)
 
-    private val appoxeeContainer by lazy {
-        AppoxeeContainer(
-            application = context.applicationContext as Application,
-            options = options,
-            cacheValidityMs = TimeUnit.DAYS.toMillis(1)
+    private val storageContainer: StorageContainer by lazy {
+        StorageContainer(
+            context.applicationContext as Application,
+            TimeUnit.DAYS.toMillis(1)
         )
     }
 
+    private val appoxeeContainer by lazy {
+        AppoxeeContainer(
+            application = context.applicationContext as Application,
+            storage = storage
+        )
+    }
+
+    private val pushContainer: PushContainer by lazy { PushContainer(context) }
+
     private val coroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
+
+    private val internalCoroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
     private val appoxeeAdapter: AppoxeeAdapter
         get() = appoxeeContainer.appoxeeAdapter
     private val storage: Storage
-        get() = appoxeeContainer.storage
+        get() = storageContainer.storage
     private val deviceProvider: DeviceProvider
         get() = appoxeeContainer.deviceProvider
 
     init {
         Logger.init(context.applicationContext as Application)
         println("OPTIONS: $options")
-        saveConfiguration(options)
-        coroutineScope.launch {
+        coroutineScope.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
+            Logger.e(TAG, "exception in sdk init")
+        }) {
+            options?.let {
+                storage.saveInitOptions(it)
+            }
+
+            val mOptions: AppoxeeOptions = (options ?: storage.getInitOptions())
+                ?: throw IllegalArgumentException("AppoxeeOptions are not provided!")
+
+            appoxeeContainer.options = mOptions
+            pushContainer.options = mOptions
             // check device registration
             // update if exist or register new device
             validateRegistration()?.let {
@@ -225,6 +252,14 @@ internal class AppoxeeImpl(
         observers.remove(observer)
     }
 
+    override fun handlePushMessage(remoteMessage: RemoteMessage) {
+        pushContainer.pushManager.handlePushMessage(remoteMessage)
+    }
+
+    override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
+        return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
+    }
+
     override fun testCall(): Call<String> = buildHttpCall {
         val start = System.currentTimeMillis()
         delay(5000)
@@ -250,8 +285,30 @@ internal class AppoxeeImpl(
         response.isSuccess()
     }
 
+    override fun testGetRegions(
+        lat: Double,
+        lng: Double,
+        version: Int,
+        pageSize: Int
+    ): Call<RegionsResponse> = buildHttpCall {
+        appoxeeAdapter.getRegions(lat, lng, version, pageSize).data?.payload ?: RegionsResponse(
+            0,
+            emptyList()
+        )
+    }
+
+    override fun testRegionEvent(
+        geoEvent: GeoEvent,
+        latitude: Double,
+        longitude: Double,
+        regionId: Long,
+        version: Int
+    ): Call<Boolean> = buildHttpCall {
+        appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
+    }
+
     private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {
-        // TODO Save configuration
+        storage.saveInitOptions(options)
     }
 
     private suspend fun getAppConfig() {
@@ -266,7 +323,7 @@ internal class AppoxeeImpl(
     private fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope, call)
+        return HttpCall(coroutineScope = internalCoroutineScope, call)
     }
 
     private suspend fun <T> safeCall(

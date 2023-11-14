@@ -5,17 +5,20 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.request.events.ClickActionType
 import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
+import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
 import java.util.Objects
+import kotlin.math.ln
 
 @SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
@@ -131,5 +134,24 @@ internal class AppoxeeAdapter(
         eventType: PushEventType
     ): Response<ResponseData<Boolean>> {
         return engageApi.pushEvent(messageId, sendoutId, clickActionType, eventType)
+    }
+
+    internal suspend fun getRegions(
+        lat: Double,
+        lng: Double,
+        version: Int,
+        pageSize: Int
+    ): Response<ResponseData<RegionsResponse>> {
+        return engageApi.getRegions(lat, lng, version, pageSize)
+    }
+
+    internal suspend fun eventRegions(
+        geoEvent: GeoEvent,
+        latitude: Double,
+        longitude: Double,
+        regionId: Long,
+        version: Int
+    ): Response<ResponseData<DefaultResponse>> {
+        return engageApi.regionEvent(geoEvent, latitude, longitude, regionId, version)
     }
 }

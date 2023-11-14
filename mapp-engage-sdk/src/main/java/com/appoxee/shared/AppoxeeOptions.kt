@@ -1,6 +1,11 @@
 package com.appoxee.shared
 
 import androidx.annotation.IntRange
+import com.appoxee.internal.util.getIntOrDefault
+import com.appoxee.internal.util.getLongOrDefault
+import com.appoxee.internal.util.getNullableString
+import com.appoxee.internal.util.getStringOrEmpty
+import org.json.JSONObject
 
 
 private const val MIN_TIMEOUT: Int = 5_000
@@ -132,5 +137,42 @@ class AppoxeeOptions(
 
     override fun toString(): String {
         return "AppoxeeOptions(server=$server, sdkKey='$sdkKey', appId='$appId', tenantId='$tenantId', cepUrl=$cepUrl, forceResend=$forceResend, onStartRemoveNotification=$onStartRemoveNotification, logType=$logType, notificationMode=$notificationMode)"
+    }
+
+    internal fun toJSON(): JSONObject {
+        return JSONObject().apply {
+            put("server", server.ordinal)
+            put("sdkKey", sdkKey)
+            put("appId", appId)
+            put("tenantId", tenantId)
+            put("connectionTimeout", connectionTimeout)
+            put("readTimeout", readTimeout)
+            put("forceResend", forceResend)
+            put("logLevel", logType.ordinal)
+            put("notificationType", notificationMode.ordinal)
+            put("cepUrl", cepUrl)
+        }
+    }
+
+    companion object {
+        internal fun fromJSON(json: JSONObject): AppoxeeOptions {
+            return AppoxeeOptions(
+                server = Server.values()[json.getIntOrDefault("server")],
+                sdkKey = json.getStringOrEmpty("sdkKey"),
+                appId = json.getStringOrEmpty("appId"),
+                tenantId = json.getStringOrEmpty("tenantId"),
+            ).apply {
+                connectionTimeout = json.getIntOrDefault("connectionTimeout", DEFAULT_TIMEOUT)
+                readTimeout = json.getIntOrDefault("readTimeout", DEFAULT_TIMEOUT)
+                forceResend = json.getBoolean("forceResend")
+                logType =
+                    LogLevel.values()[json.getIntOrDefault("logLevel", LogLevel.DEBUG.ordinal)]
+                notificationMode = NotificationMode.values()[json.getIntOrDefault(
+                    "notificationType",
+                    NotificationMode.BACKGROUND_AND_FOREGROUND.ordinal
+                )]
+                cepUrl = json.getNullableString("cepUrl")
+            }
+        }
     }
 }

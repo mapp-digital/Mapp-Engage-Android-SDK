@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.shared.AppoxeeOptions
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import java.util.Date
@@ -23,6 +24,7 @@ internal class PrefsStorageImpl(
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
     private val registerDeviceKey = stringPreferencesKey("registerDevice")
     private val timestampKey = longPreferencesKey("timestamp")
+    private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
 
     private suspend fun getTimestamp(): Long {
         return application.dataStore.data.first()[timestampKey] ?: 0
@@ -78,6 +80,24 @@ internal class PrefsStorageImpl(
             application.dataStore.edit {
                 it.remove(registerDeviceKey)
             }
+            null
+        }
+    }
+
+    override suspend fun saveInitOptions(options: AppoxeeOptions?) {
+        options?.toJSON().let {
+            application.dataStore.edit { prefs ->
+                prefs[appoxeeOptionsKey] = it.toString()
+            }
+        }
+    }
+
+    override suspend fun getInitOptions(): AppoxeeOptions? {
+        return try {
+            val json = application.dataStore.data.first()[appoxeeOptionsKey]
+            json?.let { AppoxeeOptions.fromJSON(JSONObject(it)) }
+        } catch (e: Exception) {
+            application.dataStore.edit { it.remove(appoxeeOptionsKey) }
             null
         }
     }

@@ -1,8 +1,9 @@
 @file:Suppress("MemberVisibilityCanBePrivate")
 
-package com.appoxee.internal
+package com.appoxee.internal.container
 
 import android.app.Application
+import com.appoxee.internal.AppoxeeAdapter
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.NetworkClient
@@ -15,15 +16,14 @@ import com.appoxee.shared.AppoxeeOptions
 
 internal class AppoxeeContainer(
     private val application: Application,
-    private val options: AppoxeeOptions,
-    private val cacheValidityMs: Long
+    private val storage: Storage
 ) {
 
-    internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
+    internal lateinit var options: AppoxeeOptions
 
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = application) }
 
-    internal val storage: Storage by lazy { PrefsStorageImpl(application, cacheValidityMs) }
+    internal val networkClient: NetworkClient by lazy { NetworkClientImpl(options) }
 
     internal val engageApi: EngageApi by lazy {
         EngageApiImpl(

@@ -12,10 +12,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal class HttpCall<T>(
-    private val coroutineScope: CoroutineScope,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private inline val call: suspend () -> T,
 ) : Call<T> {
-
     private val mutex = Mutex()
 
     @Volatile
@@ -42,8 +41,8 @@ internal class HttpCall<T>(
     override fun enqueue(callback: MappCallback<T>) {
         if (isExecuted()) throw CallConsumedException()
         coroutineScope.launch {
-            val result=executeWithErrorHandling()
-            withContext(Dispatchers.Main){
+            val result = executeWithErrorHandling()
+            withContext(Dispatchers.Main) {
                 callback.onResult(result)
             }
         }

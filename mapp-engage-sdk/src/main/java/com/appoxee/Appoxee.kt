@@ -2,12 +2,18 @@ package com.appoxee
 
 import android.content.Context
 import com.appoxee.internal.AppoxeeImpl
+import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
+import com.appoxee.internal.network.response.Response
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.google.firebase.messaging.RemoteMessage
+import org.jetbrains.annotations.TestOnly
 
 interface Appoxee {
     companion object {
@@ -19,6 +25,12 @@ interface Appoxee {
             options: AppoxeeOptions,
         ) {
             mInstance = AppoxeeImpl(context.applicationContext, options)
+        }
+
+        internal fun engage(context: Context) {
+            if (!::mInstance.isInitialized) {
+                mInstance = AppoxeeImpl(context.applicationContext)
+            }
         }
 
         @JvmStatic
@@ -62,9 +74,33 @@ interface Appoxee {
 
     fun unsubscribe(observer: AppoxeeObserver)
 
+    fun handlePushMessage(remoteMessage: RemoteMessage)
+
+    fun isPushMessageFromMapp(remoteMessage: RemoteMessage):Boolean
+
+    @TestOnly
     fun testCall(): Call<String>
 
+    @TestOnly
     fun testInappEvent(): Call<Boolean>
 
+    @TestOnly
     fun testPushEvent(): Call<Boolean>
+
+    @TestOnly
+    fun testGetRegions(
+        lat: Double,
+        lng: Double,
+        version: Int,
+        pageSize: Int
+    ): Call<RegionsResponse>
+
+    @TestOnly
+    fun testRegionEvent(
+        geoEvent: GeoEvent,
+        latitude: Double,
+        longitude: Double,
+        regionId: Long,
+        version: Int
+    ): Call<Boolean>
 }

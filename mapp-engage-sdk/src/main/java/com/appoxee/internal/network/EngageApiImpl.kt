@@ -1,10 +1,11 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.Activation
-import com.appoxee.internal.model.request.AttributesGet
-import com.appoxee.internal.model.request.AttributesSet
+import com.appoxee.internal.model.request.GetAttributes
+import com.appoxee.internal.model.request.SetAttributes
 import com.appoxee.internal.model.request.GetAppConfig
 import com.appoxee.internal.model.request.GetDevice
+import com.appoxee.internal.model.request.geo.GetRegions
 import com.appoxee.internal.model.request.MessageBody
 import com.appoxee.internal.model.request.OptIn
 import com.appoxee.internal.model.request.OptOut
@@ -20,11 +21,14 @@ import com.appoxee.internal.model.request.events.PushEvent
 import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.Tracking
 import com.appoxee.internal.model.request.events.TrackingKey
+import com.appoxee.internal.model.request.geo.GeoEvent
+import com.appoxee.internal.model.request.geo.RegionStatus
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
@@ -38,6 +42,7 @@ import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.toMap
 import com.appoxee.shared.AppoxeeOptions
 import java.util.Date
+import java.util.TimeZone
 import java.util.UUID
 
 internal class EngageApiImpl(
@@ -234,7 +239,7 @@ internal class EngageApiImpl(
         val alias = storage.getDevicePayload()?.alias ?: return Response.error(
             DeviceNotRegisteredException()
         )
-        val attributeSet = AttributesSet(attributes = attributes)
+        val attributeSet = SetAttributes(attributes = attributes)
         val requestBody = RequestBody(key = uniqueDeviceId, alias = alias, actions = attributeSet)
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
@@ -252,7 +257,7 @@ internal class EngageApiImpl(
         val alias = storage.getDevicePayload()?.alias ?: return Response.error(
             DeviceNotRegisteredException()
         )
-        val attributeGet = AttributesGet(attributes = attributes)
+        val attributeGet = GetAttributes(attributes = attributes)
         val requestBody = RequestBody(key = uniqueDeviceId, alias = alias, actions = attributeGet)
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
@@ -314,5 +319,73 @@ internal class EngageApiImpl(
             .setPathType(Request.PathType.BASE)
 
         return networkClient.execute(request, StatusAdapter())
+    }
+
+    override suspend fun getRegions(
+        lat: Double,
+        lng: Double,
+        version: Int,
+        pageSize: Int
+    ): Response<ResponseData<RegionsResponse>> {
+        val alias = storage.getDevicePayload()?.alias
+            ?: return Response.error(DeviceNotRegisteredException())
+
+        val appId = options.appId.toLongOrNull() ?: 0L
+
+        val getRegions = GetRegions(lat, lng, version, appId, pageSize)
+
+        val requestBody = RequestBody(
+            key = uniqueDeviceId,
+            alias = alias,
+            actions = getRegions
+        )
+
+        val request = Request.Put(path = devicePathV3, requestBody = requestBody)
+            .addHeader(sdkKeyHeader)
+            .setPathType(Request.PathType.BASE)
+
+        val response = networkClient.execute(request = request, adapter = BaseAdapter {
+            RegionsResponse.fromJSON(it)
+        })
+
+        return response
+    }
+
+    override suspend fun regionEvent(
+        geoEvent: GeoEvent,
+        latitude: Double,
+        longitude: Double,
+        regionId: Long,
+        version: Int
+    ): Response<ResponseData<DefaultResponse>> {
+        val device =
+            storage.getDevicePayload() ?: return Response.error(DeviceNotRegisteredException())
+
+        val dmcUserId: String =
+            device.dmcUserId ?: return Response.error(DeviceNotRegisteredException())
+
+        val regionStatus = RegionStatus(
+            timestamp = Date().time,
+            geoEvent = geoEvent,
+            dmcUserId = dmcUserId,
+            latitude = latitude,
+            longitude = longitude,
+            regionId = regionId,
+            timeZone = TimeZone.getDefault().displayName,
+            version = version,
+            applicationId = options.appId
+        )
+
+        val requestBody = RequestBody(key = uniqueDeviceId, actions = regionStatus)
+
+        val request = Request.Put(path = devicePathV3, requestBody = requestBody)
+            .addHeader(sdkKeyHeader)
+            .setPathType(Request.PathType.BASE)
+
+        val response = networkClient.execute(request, BaseAdapter {
+            DefaultResponse.fromJSON(it)
+        })
+
+        return response
     }
 }

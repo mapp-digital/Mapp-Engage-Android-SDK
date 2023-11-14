@@ -55,6 +55,16 @@ fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
     }
 }
 
+fun JSONObject.getIntOrDefault(name: String, default: Int = 0): Int {
+    if (!this.has(name)) return default
+
+    return try {
+        this.getInt(name)
+    } catch (e: Exception) {
+        default
+    }
+}
+
 fun JSONObject.getNullableLong(name: String): Long? {
     if (!this.has(name)) return null
     return try {

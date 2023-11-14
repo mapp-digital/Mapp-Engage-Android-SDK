@@ -3,9 +3,8 @@ package com.appoxee.internal.model.request
 import com.appoxee.internal.network.NetworkData
 import org.json.JSONObject
 import java.util.Date
-import java.util.UUID
 
-class AttributesSet(
+class SetAttributes(
     private val attributes: Map<String, Any?>
 ) :
     NetworkData {
