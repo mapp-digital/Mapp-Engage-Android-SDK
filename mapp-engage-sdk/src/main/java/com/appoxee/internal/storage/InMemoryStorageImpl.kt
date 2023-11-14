@@ -3,6 +3,7 @@ package com.appoxee.internal.storage
 import android.app.Application
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.shared.AppoxeeOptions
 
 internal class InMemoryStorageImpl(private val application: Application) : Storage {
 
@@ -23,5 +24,13 @@ internal class InMemoryStorageImpl(private val application: Application) : Stora
 
     override suspend fun getRegistrationDevice(): RegisterDevice? {
         return registerDevice
+    }
+
+    override suspend fun saveInitOptions(options: AppoxeeOptions?) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getInitOptions(): AppoxeeOptions? {
+        TODO("Not yet implemented")
     }
 }

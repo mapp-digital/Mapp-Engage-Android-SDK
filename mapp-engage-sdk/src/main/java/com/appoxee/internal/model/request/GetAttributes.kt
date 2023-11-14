@@ -3,10 +3,8 @@ package com.appoxee.internal.model.request
 import com.appoxee.internal.network.NetworkData
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Date
-import java.util.UUID
 
-internal open class AttributesGet(
+internal open class GetAttributes(
     private val attributes: List<String>,
 ) :
     NetworkData {

@@ -11,13 +11,16 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.appoxee.Appoxee;
+import com.appoxee.internal.model.request.geo.GeoEvent;
 import com.appoxee.internal.model.response.DevicePayload;
+import com.appoxee.internal.model.response.geo.Region;
 import com.appoxee.internal.model.response.inapp.InappResponse;
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -36,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
     private final String alias = "abc1@maptest.com";
 
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final Executor executor = Executors.newCachedThreadPool();
 
     private final Handler mainExecutor = new Handler(Looper.getMainLooper());
 
@@ -77,6 +80,11 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
             Appoxee.instance().getDevice().enqueue(mappResult -> {
                 DevicePayload device = mappResult.getData();
                 Util.showDialog(this, "Device", device != null ? device.toString() : "null");
+            });
+            executor.execute(() -> {
+                MappResult<DevicePayload> mappResult = Appoxee.instance().getDevice().execute();
+                String device=mappResult.getData()!=null ? mappResult.getData().toString() : "";
+                mainExecutor.post(() -> Util.showDialog(this, "Device", device));
             });
         });
 
@@ -136,6 +144,24 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
         binding.btnTestPushEvent.setOnClickListener(v -> {
             Appoxee.instance().testPushEvent().enqueue(result -> {
                 Util.showDialog(this, "Test Push Event", String.valueOf(result.getData()));
+            });
+        });
+
+        binding.btnGetRegions.setOnClickListener(v -> {
+            Appoxee.instance().testGetRegions(43.1407, 20.5181, 0, 50).enqueue(result -> {
+                List<Region> regions = result.getData() != null ? result.getData().getRegions() : Collections.emptyList();
+                StringBuilder sb = new StringBuilder();
+                for (Region r : regions) {
+                    sb.append("(").append(r.getId()).append(") ");
+                    sb.append(r.getName()).append("\n(").append(r.getLat()).append("/").append(r.getLng()).append(")\n\n");
+                }
+                Util.showDialog(this, "Regions", sb.toString());
+            });
+        });
+
+        binding.btnEventRegions.setOnClickListener(v -> {
+            Appoxee.instance().testRegionEvent(GeoEvent.ENTER, 43.1407, 20.5181, 91, 0).enqueue(result -> {
+                Util.showDialog(this, "Trigger Enter Geolocation", String.valueOf(result.getData()));
             });
         });
     }

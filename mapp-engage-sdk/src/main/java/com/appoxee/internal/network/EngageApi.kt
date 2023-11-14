@@ -4,11 +4,13 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.request.events.ClickActionType
 import com.appoxee.internal.model.request.events.PushEventType
 import com.appoxee.internal.model.request.events.TrackingKey
+import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.response.Response
@@ -57,4 +59,19 @@ internal interface EngageApi {
         clickActionType: ClickActionType,
         eventType: PushEventType
     ): Response<ResponseData<Boolean>>
+
+    suspend fun getRegions(
+        lat: Double,
+        lng: Double,
+        version: Int,
+        pageSize: Int
+    ): Response<ResponseData<RegionsResponse>>
+
+    suspend fun regionEvent(
+        geoEvent: GeoEvent,
+        latitude: Double,
+        longitude: Double,
+        regionId: Long,
+        version: Int
+    ): Response<ResponseData<DefaultResponse>>
 }
