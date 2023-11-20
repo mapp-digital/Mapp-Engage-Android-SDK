@@ -25,6 +25,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchPushEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="10dp"
+                android:text="Push Enabled"
+                tools:ignore="HardcodedText,UseSwitchCompatOrMaterialXml" />
+
             <TextView
                 android:id="@+id/tvDevice"
                 android:layout_width="match_parent"
@@ -140,6 +148,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Trigger Enter Geolocation" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestActivate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Activate" />
         </LinearLayout>
     </ScrollView>
 

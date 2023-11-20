@@ -40,20 +40,23 @@ internal class Logger private constructor(application: Application) {
             }
         }
 
-        private inline fun print(
+        private fun print(
             tag: String,
             message: String,
             throwable: Throwable? = null,
             call: (String, String, Throwable?) -> Unit
         ) {
-            if (instance.isDebuggable) {
+            if (::instance.isInitialized && instance.isDebuggable) {
                 val maxLength = 10000
                 for (i in message.indices step maxLength) {
-                    val msgLength = if (message.length - i > maxLength) i + maxLength else message.length
+                    val msgLength =
+                        if (message.length - i > maxLength) i + maxLength else message.length
                     if (i >= msgLength) break
                     val part = message.substring(i, msgLength)
                     call(tag, part, throwable)
                 }
+            }else{
+                call(tag, message, throwable)
             }
         }
     }

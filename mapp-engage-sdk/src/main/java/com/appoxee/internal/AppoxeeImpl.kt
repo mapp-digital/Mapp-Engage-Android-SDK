@@ -19,6 +19,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
+import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -31,7 +32,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -42,9 +47,13 @@ internal class AppoxeeImpl(
 
     private val TAG = AppoxeeImpl::class.java.name
 
+    private val mutex = Mutex()
+
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 
     private val mIsReady = AtomicBoolean(false)
+
+    private val pushQueue = mutableSetOf<RemoteMessage>()
 
     private val storageContainer: StorageContainer by lazy {
         StorageContainer(
@@ -152,6 +161,7 @@ internal class AppoxeeImpl(
         Logger.d(TAG, "updateOptStatus()")
         var devicePayload = storage.getDevicePayload()
         val pushToken = FirebaseMessaging.getInstance().token.await()
+        Logger.d(TAG, "PUSH TOKEN: $pushToken")
         var modified: Boolean = false
         // if device opted Out and optOut token is expired, update optOut token
         if (devicePayload?.pushTokenBk?.isNotEmpty() == true
@@ -197,12 +207,13 @@ internal class AppoxeeImpl(
         appoxeeAdapter.fetchInappMessages(eventName)
     }
 
-    override fun optIn(token: String): Call<Boolean> = buildHttpCall {
-        appoxeeAdapter.optIn(pushToken = token)
-    }
-
-    override fun optOut(token: String): Call<Boolean> = buildHttpCall {
-        appoxeeAdapter.optOut(token)
+    override fun enablePush(enabled: Boolean): Call<Boolean> = buildHttpCall {
+        val token = FirebaseMessaging.getInstance().token.await()
+        if (enabled) {
+            appoxeeAdapter.optIn(token)
+        } else {
+            appoxeeAdapter.optOut(token)
+        }
     }
 
     override fun addTags(tags: List<String>): Call<Boolean> = buildHttpCall {
@@ -233,6 +244,9 @@ internal class AppoxeeImpl(
         observers.forEach {
             it.onReadyStatusChanged(status, mappResult)
         }
+        pushQueue.forEach {
+            pushContainer.pushManager.handlePushMessage(it)
+        }
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
@@ -253,17 +267,31 @@ internal class AppoxeeImpl(
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
-        pushContainer.pushManager.handlePushMessage(remoteMessage)
+        coroutineScope.launch {
+            mutex.withLock {
+                if (mIsReady.get()) {
+                    withContext(Dispatchers.Main) {
+                        pushContainer.pushManager.handlePushMessage(remoteMessage)
+                    }
+                } else {
+                    pushQueue.add(remoteMessage)
+                }
+            }
+        }
     }
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
-        return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
+        return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage.toPushData())
     }
 
     override fun testCall(): Call<String> = buildHttpCall {
         val start = System.currentTimeMillis()
         delay(5000)
         return@buildHttpCall "Response from testCall after delay of ${System.currentTimeMillis() - start} ms."
+    }
+
+    override fun testActivate(): Call<Boolean> = buildHttpCall {
+        appoxeeAdapter.activate(3000).isSuccess()
     }
 
     override fun testInappEvent(): Call<Boolean> = buildHttpCall {

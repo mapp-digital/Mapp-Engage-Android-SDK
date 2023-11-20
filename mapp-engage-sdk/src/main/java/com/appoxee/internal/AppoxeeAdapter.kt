@@ -154,4 +154,8 @@ internal class AppoxeeAdapter(
     ): Response<ResponseData<DefaultResponse>> {
         return engageApi.regionEvent(geoEvent, latitude, longitude, regionId, version)
     }
+
+    internal suspend fun activate(timestamp:Long):Response<ResponseData<DefaultResponse>>{
+        return engageApi.activate(timestamp)
+    }
 }

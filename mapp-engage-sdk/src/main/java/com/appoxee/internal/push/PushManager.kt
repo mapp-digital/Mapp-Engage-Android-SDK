@@ -1,19 +1,19 @@
 package com.appoxee.internal.push
 
-import android.app.NotificationChannel
-import androidx.core.app.NotificationCompat
+import android.app.Notification
+import com.appoxee.internal.push.model.PushData
 import com.google.firebase.messaging.RemoteMessage
 
 internal interface PushManager {
     fun handlePushMessage(remoteMessage: RemoteMessage)
 
-    fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
+    fun isPushMessageFromMapp(pushData: PushData): Boolean
 
-    fun createNotification(): NotificationCompat
+    fun createNotification(pushData: PushData): Notification
 
-    fun createNotificationChannel(): NotificationChannel
+    fun createNotificationChannel()
 
-    fun showNotification(notification: NotificationCompat)
+    fun showNotification(notification: Notification)
 
     fun dismissNotification(notificationId: Int)
 }
