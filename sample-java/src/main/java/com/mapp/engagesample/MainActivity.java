@@ -1,11 +1,13 @@
 package com.mapp.engagesample;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.util.Log;
+import android.widget.CompoundButton;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,6 +18,7 @@ import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.model.response.geo.Region;
 import com.appoxee.internal.model.response.inapp.InappResponse;
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
+import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -50,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Log.d(TAG, "onCreate()");
+
         binding.switchReady.setEnabled(false);
 
         binding.btnSetAlias.setOnClickListener(v -> {
@@ -81,11 +86,11 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
                 DevicePayload device = mappResult.getData();
                 Util.showDialog(this, "Device", device != null ? device.toString() : "null");
             });
-            executor.execute(() -> {
-                MappResult<DevicePayload> mappResult = Appoxee.instance().getDevice().execute();
-                String device=mappResult.getData()!=null ? mappResult.getData().toString() : "";
-                mainExecutor.post(() -> Util.showDialog(this, "Device", device));
-            });
+//            executor.execute(() -> {
+//                MappResult<DevicePayload> mappResult = Appoxee.instance().getDevice().execute();
+//                String device=mappResult.getData()!=null ? mappResult.getData().toString() : "";
+//                mainExecutor.post(() -> Util.showDialog(this, "Device", device));
+//            });
         });
 
         binding.btnFetchInboxMessages.setOnClickListener(v -> {
@@ -164,6 +169,19 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
                 Util.showDialog(this, "Trigger Enter Geolocation", String.valueOf(result.getData()));
             });
         });
+
+        binding.btnTestActivate.setOnClickListener(v -> {
+            Call<Boolean> call = Appoxee.instance().testActivate();
+            call.enqueue(result -> {
+                Util.showDialog(this, "Activate", String.valueOf(result.getData()));
+            });
+        });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "onNewIntent()");
     }
 
     @Override
@@ -190,6 +208,12 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
         getWindow().getDecorView().post(() -> {
             binding.switchReady.setChecked(status);
             binding.tvDevice.setText(sb.toString());
+
+            binding.switchPushEnabled.setOnCheckedChangeListener(null);
+            binding.switchPushEnabled.setChecked(payload != null && payload.getPushToken() != null);
+            binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                pushEnable(isChecked);
+            });
         });
     }
 
@@ -203,13 +227,11 @@ public class MainActivity extends AppCompatActivity implements AppoxeeObserver {
 
     }
 
-    private void optIn() {
-        executor.execute(() -> {
-            String token = FirebaseMessaging.getInstance().getToken().getResult();
-            Log.i(TAG, "PUSH TOKEN FROM APP: " + token);
-            MappResult<Boolean> result = Appoxee.instance().optIn(token).execute();
-            if (result.isSuccess() && Boolean.TRUE.equals(result.getData())) {
-                getDevice();
+    private void pushEnable(boolean enabled) {
+        Appoxee.instance().enablePush(enabled).enqueue(result -> {
+            if (result != null) {
+                boolean data = Boolean.TRUE.equals(result.getData());
+                Util.showDialog(this, "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
             }
         });
     }

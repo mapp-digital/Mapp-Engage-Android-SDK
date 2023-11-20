@@ -91,7 +91,11 @@ internal class EngageApiImpl(
     }
 
     override suspend fun activate(timeSpent: Long): Response<ResponseData<DefaultResponse>> {
-        val requestBody = RequestBody(key = uniqueDeviceId, Activation(timeSpent))
+        val alias = storage.getDevicePayload()?.alias
+            ?: return Response.error(DeviceNotRegisteredException())
+
+        val requestBody =
+            RequestBody(key = uniqueDeviceId, actions = Activation(timeSpent), alias = alias)
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)

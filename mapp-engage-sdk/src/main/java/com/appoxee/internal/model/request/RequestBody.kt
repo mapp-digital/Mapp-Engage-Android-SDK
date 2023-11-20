@@ -12,7 +12,7 @@ internal class RequestBody(
 ) :
     NetworkData {
     private lateinit var json: JSONObject
-    private val time = Date().time.toString()
+    private val time = Date().time
     private val requestId = UUID.randomUUID().toString()
     override fun asJson(): JSONObject {
         if (!::json.isInitialized) {

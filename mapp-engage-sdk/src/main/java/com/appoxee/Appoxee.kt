@@ -10,6 +10,7 @@ import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.response.Response
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.google.firebase.messaging.RemoteMessage
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.TestOnly
 
 interface Appoxee {
     companion object {
+        private val TAG = Appoxee::class.java.name
         private lateinit var mInstance: Appoxee
 
         @JvmStatic
@@ -25,12 +27,14 @@ interface Appoxee {
             options: AppoxeeOptions,
         ) {
             mInstance = AppoxeeImpl(context.applicationContext, options)
+            Logger.d(TAG, "engage($context, $options)")
         }
 
         internal fun engage(context: Context) {
             if (!::mInstance.isInitialized) {
                 mInstance = AppoxeeImpl(context.applicationContext)
             }
+            Logger.d(TAG, "engage($context)")
         }
 
         @JvmStatic
@@ -50,6 +54,8 @@ interface Appoxee {
 
     fun getAlias(): Call<String?>
 
+    fun enablePush(enabled: Boolean): Call<Boolean>
+
     fun fetchInboxMessages(
         eventName: String,
     ): Call<InboxMessagesResponse?>
@@ -57,10 +63,6 @@ interface Appoxee {
     fun fetchInappMessages(
         eventName: String,
     ): Call<InappResponse?>
-
-    fun optIn(token: String): Call<Boolean>
-
-    fun optOut(token: String): Call<Boolean>
 
     fun addTags(tags: List<String>): Call<Boolean>
 
@@ -76,10 +78,13 @@ interface Appoxee {
 
     fun handlePushMessage(remoteMessage: RemoteMessage)
 
-    fun isPushMessageFromMapp(remoteMessage: RemoteMessage):Boolean
+    fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
 
     @TestOnly
     fun testCall(): Call<String>
+
+    @TestOnly
+    fun testActivate(): Call<Boolean>
 
     @TestOnly
     fun testInappEvent(): Call<Boolean>
