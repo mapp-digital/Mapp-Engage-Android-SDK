@@ -5,6 +5,13 @@ import org.json.JSONObject
 
 internal data class Metadata(val error: Boolean, val statusCode: Int) {
 
+    fun toJSON(): JSONObject {
+        return JSONObject().apply {
+            put("error", error)
+            put("statusCode", statusCode)
+        }
+    }
+
     companion object {
         fun fromJSON(json: JSONObject): Metadata {
             return Metadata(
