@@ -8,6 +8,14 @@ internal data class RegisterPayload(
     val dmcUserId: String,
     val alias: String?,
 ) {
+
+    fun toJSON(): JSONObject {
+        return JSONObject().apply {
+            put("dmcUserId", dmcUserId)
+            put("alias", alias)
+        }
+    }
+
     companion object {
         fun fromJSON(json: JSONObject): RegisterPayload {
             return RegisterPayload(

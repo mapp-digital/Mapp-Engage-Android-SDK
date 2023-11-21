@@ -46,10 +46,10 @@ import java.util.TimeZone
 import java.util.UUID
 
 internal class EngageApiImpl(
-    private val networkClient: NetworkClient,
-    private val storage: Storage,
-    private val options: AppoxeeOptions,
-    deviceProvider: DeviceProvider,
+    val networkClient: NetworkClient,
+    val storage: Storage,
+    val options: AppoxeeOptions,
+    val deviceProvider: DeviceProvider,
 ) :
     EngageApi {
     private val devicePathV3 = "api/v3/device"
