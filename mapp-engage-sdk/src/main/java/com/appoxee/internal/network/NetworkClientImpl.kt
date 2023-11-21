@@ -27,11 +27,14 @@ internal class NetworkClientImpl(
         adapter: ResponseAdapter<T>
     ): Response<T> {
         val urlPath = buildUrl(request)
-        val url = URL(urlPath)
+
+        val url = provideUrl(urlPath)
 
         var response: Response<T>
 
-        (url.openConnection() as HttpURLConnection).run {
+        val connection: HttpURLConnection = provideHttpUrlConnection(url)
+
+        connection.run {
             try {
                 readTimeout = appoxeeOptions.readTimeout
                 connectTimeout = appoxeeOptions.connectionTimeout
@@ -91,6 +94,14 @@ internal class NetworkClientImpl(
             }
         }
         return response
+    }
+
+    private fun provideHttpUrlConnection(url: URL): HttpURLConnection {
+        return url.openConnection() as HttpURLConnection
+    }
+
+    private fun provideUrl(path: String): URL {
+        return URL(path)
     }
 
     private fun <T> resolveResponse(

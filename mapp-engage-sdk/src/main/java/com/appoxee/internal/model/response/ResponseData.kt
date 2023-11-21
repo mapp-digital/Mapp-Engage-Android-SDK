@@ -6,14 +6,20 @@ internal data class ResponseData<out T>(
     val metadata: Metadata? = null,
     val payload: T? = null
 ) {
+    fun toJSON(): JSONObject {
+        return JSONObject().apply {
+            put("metadata", metadata?.toJSON())
+            put("payload",payload)
+        }
+    }
 
     companion object {
         fun <T> fromJSON(json: JSONObject, payloadParser: (JSONObject) -> T): ResponseData<T> {
-            val metadata = json.getJSONObject("metadata").let {
+            val metadata = json.optJSONObject("metadata")?.let {
                 Metadata.fromJSON(it)
             }
 
-            val payload = json.getJSONObject("payload").let {
+            val payload = json.optJSONObject("payload")?.let {
                 payloadParser.invoke(it)
             }
 

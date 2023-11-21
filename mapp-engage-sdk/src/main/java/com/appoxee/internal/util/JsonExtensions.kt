@@ -31,13 +31,13 @@ fun InputStream?.convertToString(): String? {
             }
         }
     }
-    return if(sb.isNullOrEmpty()) null else sb.toString()
+    return if (sb.isNullOrEmpty()) null else sb.toString()
 }
 
 fun JSONObject.getNullableString(name: String): String? {
-    if (!this.has(name)) return null
+    if (!this.has(name) || this.isNull(name)) return null
 
-    if ("null".equals(this.getString(name), true)) return null
+    if (this.getString(name).equals("null", true)) return null
 
     return this.getString(name)
 }
@@ -47,7 +47,7 @@ fun JSONObject.getStringOrEmpty(name: String): String {
 }
 
 fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
-    if (!this.has(name)) return default
+    if (!this.has(name) || this.isNull(name)) return default
     return try {
         this.getLong(name)
     } catch (e: Exception) {
@@ -56,7 +56,7 @@ fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
 }
 
 fun JSONObject.getIntOrDefault(name: String, default: Int = 0): Int {
-    if (!this.has(name)) return default
+    if (!this.has(name)|| this.isNull(name)) return default
 
     return try {
         this.getInt(name)
@@ -66,7 +66,7 @@ fun JSONObject.getIntOrDefault(name: String, default: Int = 0): Int {
 }
 
 fun JSONObject.getNullableLong(name: String): Long? {
-    if (!this.has(name)) return null
+    if (!this.has(name)|| this.isNull(name)) return null
     return try {
         this.getLong(name)
     } catch (e: Exception) {
@@ -86,7 +86,7 @@ fun <Value> JSONObject.toMap(excludeNulls: Boolean = false): Map<String, Value?>
 }
 
 inline fun <T> JSONObject.arrayToList(name: String, parser: (JSONObject) -> T): List<T> {
-    val array = if (this.has(name)) this.optJSONArray(name) else JSONArray()
+    val array = if (this.has(name) && !this.isNull(name)) this.optJSONArray(name) else JSONArray()
     val list = mutableListOf<T>()
     for (i in 0 until array.length()) {
         list.add(parser.invoke(array.getJSONObject(i)))

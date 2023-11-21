@@ -12,29 +12,35 @@ internal class Logger private constructor(application: Application) {
         @Volatile
         private lateinit var instance: Logger
 
-        fun init(application: Application) {
+        @JvmStatic
+        internal fun init(application: Application) {
             instance = Logger(application)
         }
 
-        fun d(tag: String, message: String) {
+
+        @JvmStatic
+        internal fun d(tag: String, message: String) {
             print(tag, message, null) { s1, s2, t ->
                 Log.d(s1, s2, t)
             }
         }
 
-        fun w(tag: String, message: String, throwable: Throwable? = null) {
+        @JvmStatic
+        internal fun w(tag: String, message: String, throwable: Throwable? = null) {
             print(tag, message, throwable) { s1, s2, t ->
                 Log.w(s1, s2, t)
             }
         }
 
-        fun i(tag: String, message: String, throwable: Throwable? = null) {
+        @JvmStatic
+        internal fun i(tag: String, message: String, throwable: Throwable? = null) {
             print(tag, message, throwable) { s1, s2, t ->
                 Log.i(s1, s2, t)
             }
         }
 
-        fun e(tag: String, message: String, throwable: Throwable? = null) {
+        @JvmStatic
+        internal fun e(tag: String, message: String, throwable: Throwable? = null) {
             print(tag, message, throwable) { s1, s2, t ->
                 Log.e(s1, s2, t)
             }
@@ -55,7 +61,7 @@ internal class Logger private constructor(application: Application) {
                     val part = message.substring(i, msgLength)
                     call(tag, part, throwable)
                 }
-            }else{
+            } else {
                 call(tag, message, throwable)
             }
         }
