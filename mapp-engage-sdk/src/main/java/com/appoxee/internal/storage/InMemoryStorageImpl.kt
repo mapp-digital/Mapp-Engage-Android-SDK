@@ -5,10 +5,11 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeOptions
 
-internal class InMemoryStorageImpl(private val application: Application) : Storage {
+internal class InMemoryStorageImpl() : Storage {
 
     private var devicePayload: DevicePayload? = null
     private var registerDevice: RegisterDevice? = null
+    private var initOptions:AppoxeeOptions?=null
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
         this.devicePayload = devicePayload
@@ -27,10 +28,10 @@ internal class InMemoryStorageImpl(private val application: Application) : Stora
     }
 
     override suspend fun saveInitOptions(options: AppoxeeOptions?) {
-        TODO("Not yet implemented")
+        this.initOptions=options
     }
 
     override suspend fun getInitOptions(): AppoxeeOptions? {
-        TODO("Not yet implemented")
+        return initOptions
     }
 }

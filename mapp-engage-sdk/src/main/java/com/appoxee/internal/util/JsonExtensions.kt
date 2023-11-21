@@ -15,7 +15,7 @@ fun JSONArray?.toList(): List<String> {
     return data
 }
 
-fun InputStream?.convertToString(): String {
+fun InputStream?.convertToString(): String? {
     val sb = StringBuilder()
     this?.let {
         BufferedReader(InputStreamReader(this)).run {
@@ -31,7 +31,7 @@ fun InputStream?.convertToString(): String {
             }
         }
     }
-    return sb.toString()
+    return if(sb.isNullOrEmpty()) null else sb.toString()
 }
 
 fun JSONObject.getNullableString(name: String): String? {

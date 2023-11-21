@@ -12,7 +12,6 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
 import com.appoxee.shared.AppoxeeOptions
-import org.json.JSONObject
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -63,68 +62,84 @@ internal class NetworkClientImpl(
                 )
                 // retrieve request result
                 val statusCode = responseCode
-                val responseUrl = this.url
 
-                var result: String? = null
-                var error: String? = null
-                if (statusCode in 200 until 300) {
-                    result = inputStream.convertToString()
+                val result: String? = inputStream.convertToString()?.let {
                     Logger.i(
                         TAG,
-                        "\nRESPONSE - ${requestMethod}: ${responseUrl}\nResponseBody: $result"
+                        "\nRESPONSE - ${requestMethod}: ${this.url}\nResponseBody: $it"
                     )
-                } else {
-                    error = errorStream.convertToString()
+                    it
+                }
+                val error: String? = errorStream.convertToString()?.also {
                     Logger.e(
                         TAG,
-                        "\nRESPONSE - ${requestMethod}: ${responseUrl}\nErrorBody: $error"
+                        "\nRESPONSE - ${requestMethod}: ${this.url}\nErrorBody: $it"
                     )
                 }
 
-                when (statusCode) {
-                    in 200..299 -> {
-                        // success
-                        val json = result.parseAsJSON()
-                        response = adapter.createResponse(statusCode, json, null)
-                    }
-
-                    in 300..399 -> {
-                        // redirect
-                        throw RedirectException(
-                            code = statusCode,
-                            message = "Redirect exception",
-                            cause = Throwable(error)
-                        )
-                    }
-
-                    in 400..499 -> {
-                        // request error
-                        throw ClientException(
-                            code = statusCode,
-                            message = "Client network request error",
-                            cause = Throwable(error)
-                        )
-                    }
-
-                    in 500..599 -> {
-                        // server error
-                        throw ServerException(
-                            code = statusCode,
-                            message = "Server network error",
-                            cause = Throwable(error)
-                        )
-                    }
-
-                    else -> {
-                        // unknown error
-                        throw UnknownNetworkException(
-                            message = "Unknown network error",
-                            cause = Throwable(error)
-                        )
-                    }
+                response = resolveResponse(adapter, statusCode, result, error)
+            } catch (e: Exception) {
+                val error: String? = errorStream.convertToString()?.also {
+                    Logger.e(
+                        TAG,
+                        "\nRESPONSE - ${requestMethod}: ${this.url}\nErrorBody: $it"
+                    )
                 }
+                response = resolveResponse(adapter, this.responseCode, null, error)
             } finally {
                 this.disconnect()
+            }
+        }
+        return response
+    }
+
+    private fun <T> resolveResponse(
+        adapter: ResponseAdapter<T>,
+        statusCode: Int,
+        result: String?,
+        error: String?
+    ): Response<T> {
+        val response: Response<T>
+        when (statusCode) {
+            in 200..299 -> {
+                // success
+                val json = result.parseAsJSON()
+                response = adapter.createResponse(statusCode, json, null)
+            }
+
+            in 300..399 -> {
+                // redirect
+                throw RedirectException(
+                    code = statusCode,
+                    message = "Redirect exception",
+                    cause = Throwable(error)
+                )
+            }
+
+            in 400..499 -> {
+                // request error
+                throw ClientException(
+                    code = statusCode,
+                    message = "Client network request error",
+                    cause = Throwable(error)
+                )
+            }
+
+            in 500..599 -> {
+                // server error
+                throw ServerException(
+                    code = statusCode,
+                    message = "Server network error",
+                    cause = Throwable(error)
+                )
+            }
+
+            else -> {
+                // unknown error
+                throw UnknownNetworkException(
+                    message = "Unknown network error",
+                    cause = Throwable(error)
+                )
             }
         }
         return response
