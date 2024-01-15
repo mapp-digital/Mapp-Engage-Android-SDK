@@ -7,7 +7,6 @@ internal abstract class Request(
     val requestBody: NetworkData? = null,
     val headers: MutableMap<String, String> = mutableMapOf(
         "Content-Type" to "application/json; utf-8",
-        "Accept" to "application/json"
     ),
 
     ) {

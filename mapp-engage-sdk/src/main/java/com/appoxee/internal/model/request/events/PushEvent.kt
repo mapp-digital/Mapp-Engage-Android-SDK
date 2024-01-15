@@ -5,11 +5,11 @@ import org.json.JSONObject
 
 internal class PushEvent(
     private val tenantId: String,
-    private val eventType: PushEventType,
+    private val eventType: NotificationClick,
     private val messageId: Long,
     private val dmcUserId: String,
     private val sendoutId: Long,
-    private val clickType: ClickActionType
+    private val clickType: PushAction?
 ) : NetworkData {
 
     private lateinit var json: JSONObject
@@ -21,10 +21,15 @@ internal class PushEvent(
                 put("message_id", messageId)
                 put("user_id", dmcUserId)
                 put("sendout_id", sendoutId)
-                put("click_action_type", clickType.ordinal)
+                // DISMISS is not acceptable on backend, so we are omit sending that value
+                if (clickType != PushAction.DISMISS) {
+                    clickType?.ordinal?.let {
+                        put("click_action_type", it)
+                    }
+                }
             }
         }
-        return json;
+        return json
     }
 
     override fun asString(): String {

@@ -2,8 +2,8 @@ package com.appoxee.internal
 
 import android.annotation.SuppressLint
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.ClickActionType
-import com.appoxee.internal.model.request.events.PushEventType
+import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -18,7 +18,6 @@ import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
 import java.util.Objects
-import kotlin.math.ln
 
 @SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
@@ -130,10 +129,10 @@ internal class AppoxeeAdapter(
     internal suspend fun pushEvent(
         messageId: Long,
         sendoutId: Long,
-        clickActionType: ClickActionType,
-        eventType: PushEventType
+        pushAction: PushAction,
+        eventType: NotificationClick
     ): Response<ResponseData<Boolean>> {
-        return engageApi.pushEvent(messageId, sendoutId, clickActionType, eventType)
+        return engageApi.pushEvent(messageId, sendoutId, pushAction, eventType)
     }
 
     internal suspend fun getRegions(

@@ -1,4 +1,4 @@
-package com.appoxee.internal.push
+package com.appoxee.internal.push.base
 
 import android.app.Notification
 import com.appoxee.internal.push.model.PushData
@@ -9,11 +9,11 @@ internal interface PushManager {
 
     fun isPushMessageFromMapp(pushData: PushData): Boolean
 
-    fun createNotification(pushData: PushData): Notification
+    suspend fun createNotification(pushData: PushData, notificationId: Int): Notification
 
     fun createNotificationChannel()
 
-    fun showNotification(notification: Notification)
+    fun showNotification(notification: Notification, notificationId:Int)
 
     fun dismissNotification(notificationId: Int)
 }

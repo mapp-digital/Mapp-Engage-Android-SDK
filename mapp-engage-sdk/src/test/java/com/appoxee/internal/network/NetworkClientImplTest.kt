@@ -3,23 +3,26 @@ package com.appoxee.internal.network
 import com.appoxee.internal.model.request.GetDevice
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.network.exceptions.ClientException
+import com.appoxee.internal.network.exceptions.RedirectException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.response.BaseAdapter
 import com.appoxee.internal.util.convertToString
 import com.appoxee.shared.AppoxeeOptions
 import com.google.common.truth.Truth
-import io.mockk.coJustRun
 import io.mockk.every
 import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
+import java.net.SocketException
 
 internal class NetworkClientImplTest {
     private val devicePathV3 = "api/v3/device"
@@ -49,28 +52,30 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return response status`() {
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
-        )
+        runBlocking {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
+            )
 
-        val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-            .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-            .setPathType(Request.PathType.BASE)
+            val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
+                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
+                .setPathType(Request.PathType.BASE)
 
-        val adapter = BaseAdapter {
-            DevicePayload.fromJSON(it)
+            val adapter = BaseAdapter {
+                DevicePayload.fromJSON(it)
+            }
+
+
+            val response = networkClient.execute(request, adapter)
+
+            val recordedRequest = server.takeRequest()
+
+            Truth.assertThat(response.data).isNotNull()
+
+            Truth.assertThat(response.isSuccess()).isTrue()
+
+            Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
         }
-
-
-        val response = runBlocking { networkClient.execute(request, adapter) }
-
-        val recordedRequest = server.takeRequest()
-
-        Truth.assertThat(response.data).isNotNull()
-
-        Truth.assertThat(response.isSuccess()).isTrue()
-
-        Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
     }
 
     @Test
@@ -124,7 +129,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return server exception status`() {
-        coJustRun {
+        runBlocking {
             server.enqueue(
                 MockResponse().setResponseCode(500)
             )
@@ -142,6 +147,81 @@ internal class NetworkClientImplTest {
             } catch (e: Exception) {
                 val recordedRequest = server.takeRequest()
                 Truth.assertThat(e).isInstanceOf(ServerException::class.java)
+                Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
+            }
+        }
+    }
+
+    @Test
+    fun `test execute request and return client exception status`() {
+        runBlocking {
+            server.enqueue(
+                MockResponse().setResponseCode(400)
+            )
+
+            val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
+                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
+                .setPathType(Request.PathType.BASE)
+
+            val adapter = BaseAdapter {
+                DevicePayload.fromJSON(it)
+            }
+
+            try {
+                networkClient.execute(request, adapter)
+            } catch (e: Exception) {
+                val recordedRequest = server.takeRequest()
+                Truth.assertThat(e).isInstanceOf(ClientException::class.java)
+                Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
+            }
+        }
+    }
+
+    @Test
+    fun `test execute request and return redirect exception status`() {
+        runBlocking {
+            server.enqueue(
+                MockResponse().setResponseCode(300)
+            )
+
+            val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
+                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
+                .setPathType(Request.PathType.BASE)
+
+            val adapter = BaseAdapter {
+                DevicePayload.fromJSON(it)
+            }
+
+            try {
+                networkClient.execute(request, adapter)
+            } catch (e: Exception) {
+                val recordedRequest = server.takeRequest()
+                Truth.assertThat(e).isInstanceOf(RedirectException::class.java)
+                Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
+            }
+        }
+    }
+
+    @Test
+    fun `test execute request and return socket exception`() {
+        runBlocking {
+            server.enqueue(
+                MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)
+            )
+
+            val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
+                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
+                .setPathType(Request.PathType.BASE)
+
+            val adapter = BaseAdapter {
+                DevicePayload.fromJSON(it)
+            }
+
+            try {
+                networkClient.execute(request, adapter)
+            } catch (e: Exception) {
+                val recordedRequest = server.takeRequest()
+                Truth.assertThat(e).isInstanceOf(SocketException::class.java)
                 Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
             }
         }

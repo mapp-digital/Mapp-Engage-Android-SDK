@@ -1,8 +1,8 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.ClickActionType
-import com.appoxee.internal.model.request.events.PushEventType
+import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -27,7 +27,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
-import io.mockk.spyk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -833,7 +832,7 @@ internal class EngageApiImplTest {
 
         coEvery {
             engageApi.pushEvent(
-                1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK
+                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
             )
         } coAnswers {
             networkClient.execute(
@@ -842,14 +841,14 @@ internal class EngageApiImplTest {
         }
 
         val apiResponse =
-            engageApi.pushEvent(1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK)
+            engageApi.pushEvent(1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK)
         Truth.assertThat(apiResponse.isSuccess()).isTrue()
         Truth.assertThat(apiResponse.data).isNotNull()
         Truth.assertThat(apiResponse.error).isNull()
 
         coVerify(atLeast = 1) {
             engageApi.pushEvent(
-                1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK
+                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
             )
         }
         coVerify(atLeast = 1) { networkClient.execute(request, adapter) }
@@ -865,7 +864,7 @@ internal class EngageApiImplTest {
 
         coEvery {
             engageApi.pushEvent(
-                1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK
+                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
             )
         } coAnswers {
             networkClient.execute(
@@ -874,14 +873,14 @@ internal class EngageApiImplTest {
         }
 
         val apiResponse =
-            engageApi.pushEvent(1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK)
+            engageApi.pushEvent(1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK)
         Truth.assertThat(apiResponse.isSuccess()).isFalse()
         Truth.assertThat(apiResponse.data).isNull()
         Truth.assertThat(apiResponse.error).isNotNull()
 
         coVerify(atLeast = 1) {
             engageApi.pushEvent(
-                1234, 1, ClickActionType.DIAL_NUMBER, PushEventType.CLICK
+                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
             )
         }
         coVerify(atLeast = 1) { networkClient.execute(request, adapter) }

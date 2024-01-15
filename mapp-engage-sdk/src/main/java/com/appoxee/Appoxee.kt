@@ -14,6 +14,7 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.google.firebase.messaging.RemoteMessage
+import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.TestOnly
 
 interface Appoxee {
@@ -79,6 +80,8 @@ interface Appoxee {
     fun handlePushMessage(remoteMessage: RemoteMessage)
 
     fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
+
+    fun closeNotification(notificationId:Int)
 
     @TestOnly
     fun testCall(): Call<String>

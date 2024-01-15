@@ -1,14 +1,17 @@
 package com.appoxee.internal.push.model
 
+import android.os.Parcelable
 import com.appoxee.internal.util.getNullableString
+import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 
+@Parcelize
 internal data class BgAction(
     val name: String? = null,
     val todo: String? = null,
     val type: String? = null,
     val value: String? = null
-) {
+) : Parcelable {
     companion object {
         private const val NAME = "name"
         private const val TODO = "todo"

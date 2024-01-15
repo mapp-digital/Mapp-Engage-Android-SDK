@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <activity
+            android:name=".DeepLinkActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <data android:scheme="apx" />
+                <data android:host="deeplink" />
+
+                <action android:name="com.appoxee.VIEW_DEEPLINK" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="${applicationId}" />
+            </intent-filter>
+        </activity>
+    </application>
+
 </manifest>
