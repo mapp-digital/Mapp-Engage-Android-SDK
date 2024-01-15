@@ -8,8 +8,8 @@ import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.model.request.events.ClickActionType
-import com.appoxee.internal.model.request.events.PushEventType
+import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
@@ -21,6 +21,8 @@ import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.ActivityLifecycleHandler
+import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -36,8 +38,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
@@ -57,8 +57,7 @@ internal class AppoxeeImpl(
 
     private val storageContainer: StorageContainer by lazy {
         StorageContainer(
-            context.applicationContext as Application,
-            TimeUnit.DAYS.toMillis(1)
+            context.applicationContext as Application
         )
     }
 
@@ -68,38 +67,50 @@ internal class AppoxeeImpl(
             storage = storage
         )
     }
-
-    private val pushContainer: PushContainer by lazy { PushContainer(context) }
-
-    private val coroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
-
-    private val internalCoroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
-    private val appoxeeAdapter: AppoxeeAdapter
+    internal val appoxeeAdapter: AppoxeeAdapter
         get() = appoxeeContainer.appoxeeAdapter
-    private val storage: Storage
+    internal val storage: Storage
         get() = storageContainer.storage
-    private val deviceProvider: DeviceProvider
+    internal val deviceProvider: DeviceProvider
         get() = appoxeeContainer.deviceProvider
+
+    internal val pushContainer: PushContainer by lazy { PushContainer(context, storage) }
+
+    private val internalCoroutineContext by lazy { CoroutineScope(Dispatchers.IO) }
+
+    private val callCoroutineContext by lazy { CoroutineScope(Dispatchers.IO) }
+
+    internal val activityLifecycleCallback =
+        ActivityLifecycleHandler(context.applicationContext)
 
     init {
         Logger.init(context.applicationContext as Application)
+        (context.applicationContext as Application).registerActivityLifecycleCallbacks(
+            activityLifecycleCallback
+        )
         println("OPTIONS: $options")
-        coroutineScope.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
-            Logger.e(TAG, "exception in sdk init")
+        internalCoroutineContext.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
+            Logger.e(TAG, "exception in sdk init: $throwable")
         }) {
+            // save config to local storage if not null
             options?.let {
                 storage.saveInitOptions(it)
             }
 
+            // init mOptions instance from provided value or from saved local storage
+            // otherwise throw exception
             val mOptions: AppoxeeOptions = (options ?: storage.getInitOptions())
                 ?: throw IllegalArgumentException("AppoxeeOptions are not provided!")
 
             appoxeeContainer.options = mOptions
             pushContainer.options = mOptions
+
             // check device registration
             // update if exist or register new device
             validateRegistration()?.let {
-                updateReadyStatus(true, MappResult.Success(it))
+                withContext(Dispatchers.Main) {
+                    updateReadyStatus(true, MappResult.Success(it))
+                }
             }
 
             // when registration is validated
@@ -108,6 +119,11 @@ internal class AppoxeeImpl(
 
             // fetch InApp Configuration parameters
             getAppConfig()
+
+            //init webview
+            withContext(Dispatchers.Main) {
+                MappWebView.getInstance(context.applicationContext)
+            }
         }
     }
 
@@ -250,16 +266,18 @@ internal class AppoxeeImpl(
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
-        coroutineScope.launch {
+        internalCoroutineContext.launch {
             val payload = storage.getDevicePayload()
             payload?.let {
-                observer.onReadyStatusChanged(
-                    isReady(),
-                    MappResult.Success(data = it)
-                )
+                withContext(Dispatchers.Main) {
+                    observer.onReadyStatusChanged(
+                        isReady(),
+                        MappResult.Success(data = it)
+                    )
+                }
             }
+            observers.add(observer)
         }
-        observers.add(observer)
     }
 
     override fun unsubscribe(observer: AppoxeeObserver) {
@@ -267,7 +285,7 @@ internal class AppoxeeImpl(
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
-        coroutineScope.launch {
+        internalCoroutineContext.launch {
             mutex.withLock {
                 if (mIsReady.get()) {
                     withContext(Dispatchers.Main) {
@@ -307,8 +325,8 @@ internal class AppoxeeImpl(
         val response = appoxeeAdapter.pushEvent(
             124852,
             233861,
-            ClickActionType.DIAL_NUMBER,
-            PushEventType.CLICK
+            PushAction.OPEN_DIALER,
+            NotificationClick.CLICK
         )
         response.isSuccess()
     }
@@ -335,23 +353,28 @@ internal class AppoxeeImpl(
         appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
     }
 
-    private fun saveConfiguration(options: AppoxeeOptions) = coroutineScope.launch {
+    private fun saveConfiguration(options: AppoxeeOptions) = internalCoroutineContext.launch {
         storage.saveInitOptions(options)
     }
 
     private suspend fun getAppConfig() {
         val result = appoxeeAdapter.getAppConfig()
         if (result.isSuccess()) {
+            storage.saveAppConfig(result.data?.payload)
             Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
         } else {
             Logger.e(TAG, result.error?.toString() ?: "Error")
         }
     }
 
+    override fun closeNotification(notificationId: Int) {
+        pushContainer.pushManager.dismissNotification(notificationId = notificationId)
+    }
+
     private fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope = internalCoroutineScope, call)
+        return HttpCall(coroutineScope = callCoroutineContext, call)
     }
 
     private suspend fun <T> safeCall(

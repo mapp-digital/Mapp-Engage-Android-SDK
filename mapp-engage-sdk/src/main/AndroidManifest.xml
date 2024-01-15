@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <service
-            android:name="com.appoxee.internal.push.MappMessagingService"
+            android:name="com.appoxee.internal.push.base.MappMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -19,6 +20,24 @@
              notification message. See README(https://goo.gl/6BKBk7) for more. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@android:color/system_primary_light" />
+            android:resource="@android:color/system_primary_light"
+            tools:targetApi="upside_down_cake" />
+        <receiver
+            android:name="com.appoxee.internal.broadcast.MappInternalBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.appoxee.PUSH_OPENED" />
+                <action android:name="com.appoxee.PUSH_RECEIVED" />
+                <action android:name="com.appoxee.PUSH_DISMISSED" />
+                <action android:name="com.appoxee.BUTTON_CLICKED" />
+                <category android:name="${applicationId}" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name="com.appoxee.internal.ui.activity.FullScreenActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:theme="@style/Mapp.TransparentActivity" />
     </application>
 </manifest>

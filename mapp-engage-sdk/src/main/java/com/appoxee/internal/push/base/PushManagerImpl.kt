@@ -1,4 +1,4 @@
-package com.appoxee.internal.push
+package com.appoxee.internal.push.base
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -11,6 +11,9 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.NotificationMode
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 internal class PushManagerImpl(
@@ -23,10 +26,12 @@ internal class PushManagerImpl(
 
     private val TAG = PushManagerImpl::class.java.name
 
+    private val scope = CoroutineScope(Dispatchers.Default)
+
     private val notificationMode: NotificationMode
         get() = options.notificationMode
 
-    override fun handlePushMessage(remoteMessage: RemoteMessage) {
+    override fun handlePushMessage(remoteMessage: RemoteMessage){
         val pushData = remoteMessage.toPushData()
 
         when (notificationMode) {
@@ -39,9 +44,12 @@ internal class PushManagerImpl(
             }
 
             else -> {
-                Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData")
-                val notification = createNotification(pushData)
-                showNotification(notification)
+                scope.launch {
+                    Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData")
+                    val notificationId = Random.nextInt(1, 100_000)
+                    val notification = createNotification(pushData, notificationId)
+                    showNotification(notification, notificationId)
+                }
             }
         }
     }
@@ -50,8 +58,8 @@ internal class PushManagerImpl(
         return pushData.id != 0L && pushData.category != null && pushData.userId != null && pushData.customerId != null
     }
 
-    override fun createNotification(pushData: PushData): Notification {
-        return notificationFactory.createSimpleNotification(pushData)
+    override suspend fun createNotification(pushData: PushData, notificationId: Int): Notification {
+        return notificationFactory.createSimpleNotification(pushData, notificationId)
     }
 
     override fun createNotificationChannel() {
@@ -66,9 +74,8 @@ internal class PushManagerImpl(
         }
     }
 
-    override fun showNotification(notification: Notification) {
-        val id= Random(1_000_000).nextInt()
-        notificationManager.notify(id, notification)
+    override fun showNotification(notification: Notification, notificationId: Int) {
+        notificationManager.notify(notificationId, notification)
     }
 
     override fun dismissNotification(notificationId: Int) {

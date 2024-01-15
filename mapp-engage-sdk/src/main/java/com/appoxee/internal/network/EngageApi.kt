@@ -1,8 +1,8 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.ClickActionType
-import com.appoxee.internal.model.request.events.PushEventType
+import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -56,8 +56,8 @@ internal interface EngageApi {
     suspend fun pushEvent(
         messageId: Long,
         sendoutId: Long,
-        clickActionType: ClickActionType,
-        eventType: PushEventType
+        pushAction: PushAction,
+        eventType: NotificationClick
     ): Response<ResponseData<Boolean>>
 
     suspend fun getRegions(

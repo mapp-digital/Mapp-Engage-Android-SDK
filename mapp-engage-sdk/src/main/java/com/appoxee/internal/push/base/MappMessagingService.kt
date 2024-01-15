@@ -1,4 +1,4 @@
-package com.appoxee.internal.push
+package com.appoxee.internal.push.base
 
 import com.appoxee.Appoxee
 import com.appoxee.internal.util.Logger
@@ -7,7 +7,12 @@ import com.google.firebase.messaging.RemoteMessage
 
 class MappMessagingService : FirebaseMessagingService() {
 
-    private val TAG=MappMessagingService::class.java.name
+    private val TAG = MappMessagingService::class.java.name
+
+    override fun onCreate() {
+        super.onCreate()
+        Appoxee.engage(applicationContext)
+    }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:ignore="HardcodedText">
+
+    <Switch
+        android:id="@+id/switchReady"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingVertical="10dp"
+        android:text="Is Ready"
+        tools:ignore="HardcodedText,UseSwitchCompatOrMaterialXml" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchPushEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="10dp"
+                android:text="Push Enabled"
+                tools:ignore="HardcodedText,UseSwitchCompatOrMaterialXml" />
+
+            <TextView
+                android:id="@+id/tvDevice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="5dp"
+                android:layout_marginVertical="10dp"
+                android:hint="New alias"
+                app:boxCornerRadiusBottomEnd="15dp"
+                app:boxCornerRadiusBottomStart="15dp"
+                app:boxCornerRadiusTopEnd="15dp"
+                app:boxCornerRadiusTopStart="15dp"
+                app:placeholderText="Enter alias">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editTextAlias"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetAlias"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Set Alias" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetAlias"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Alias" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetDevice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Device" />
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFetchInboxMessages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fetch Inbox Messages" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFetchInappMessages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fetch InApp Messages" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestCallExecute"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test call (execute - 5 seconds delay)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestCallEnqueue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test call (enqueue - 5 seconds delay)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Set Tags" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRemoveTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Remove Tags" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetCustomAttributes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Set custom attributes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetCustomAttributes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get custom attributes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestInappEvent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Inapp Event" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestPushEvent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Push Event" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Regions (Geofencing)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEventRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Trigger Enter Geolocation" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestActivate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Activate" />
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

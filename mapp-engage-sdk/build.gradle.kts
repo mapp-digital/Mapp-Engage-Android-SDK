@@ -3,6 +3,7 @@ import com.google.common.collect.ImmutableList
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("kotlin-parcelize")
 }
 
 val sdkVersion = project.properties["VERSION"]
@@ -10,6 +11,10 @@ val sdkVersion = project.properties["VERSION"]
 android {
     namespace = "com.appoxee"
     compileSdk = 34
+
+    lint {
+        targetSdk = 34
+    }
 
     defaultConfig {
         minSdk = 21
@@ -45,8 +50,11 @@ android {
             )
         )
     }
-
-    android.buildFeatures.buildConfig = true
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
+    //android.buildFeatures.buildConfig = true
 }
 
 dependencies {
@@ -54,7 +62,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     //implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.10.0")
+    implementation("com.google.android.material:material:1.11.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.4.0"))
@@ -63,8 +71,17 @@ dependencies {
     // Data store
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // Coil
+    implementation("io.coil-kt:coil:2.5.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
+
+    // ExoPlayer 3
+    implementation("androidx.media3:media3-exoplayer:1.2.0")
+    implementation("androidx.media3:media3-exoplayer-dash:1.2.0")
+    implementation("androidx.media3:media3-ui:1.2.0")
+
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.9.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("com.google.truth:truth:1.1.5")
     testImplementation("junit:junit:4.13.2")
@@ -73,6 +90,8 @@ dependencies {
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("org.junit.jupiter:junit-jupiter:5.9.1")
+    androidTestImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     androidTestImplementation("io.mockk:mockk-android:1.13.8")
+    androidTestImplementation("com.google.truth:truth:1.1.5")
+    androidTestImplementation("androidx.test:core:1.5.0")
 }

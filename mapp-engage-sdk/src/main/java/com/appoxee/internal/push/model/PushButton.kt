@@ -1,13 +1,16 @@
 package com.appoxee.internal.push.model
 
+import android.os.Parcelable
 import com.appoxee.internal.util.arrayToList
+import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
 import org.json.JSONObject
 
+@Parcelize
 internal data class PushButton(
     val fgActions: MutableList<FgAction> = mutableListOf(),
     val bgActions: MutableList<BgAction> = mutableListOf()
-) {
+) :Parcelable{
     companion object {
         private const val FG_ACTION = "fgAction"
         private const val BG_ACTION = "bgAction"

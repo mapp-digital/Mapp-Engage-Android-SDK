@@ -8,26 +8,36 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.util.Date
+
+private val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = "EngageDataStore")
 
 internal class PrefsStorageImpl(
     private val application: Application,
     private val dataValidityMs: Long
 ) : Storage {
 
-    private val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = "EngageDataStore")
-
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
     private val registerDeviceKey = stringPreferencesKey("registerDevice")
     private val timestampKey = longPreferencesKey("timestamp")
     private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
+    private val appConfigKey = stringPreferencesKey("appConfig")
+
+    private val dataStore: DataStore<Preferences>
+        get() = application.dataStore
+
+    private val mutex = Mutex()
 
     private suspend fun getTimestamp(): Long {
-        return application.dataStore.data.first()[timestampKey] ?: 0
+        return dataStore.data.first()[timestampKey] ?: 0
     }
 
     private suspend fun isCacheValid(): Boolean {
@@ -37,48 +47,62 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
-        application.dataStore.edit {
-            val json = devicePayload?.toJSON()
-            it[devicePayloadKey] = json.toString()
-            it[timestampKey] = Date().time
+        dataStore.edit {
+            mutex.withLock {
+                val json = devicePayload?.toJSON()
+                it[devicePayloadKey] = json.toString()
+                it[timestampKey] = Date().time
+            }
         }
     }
 
     override suspend fun getDevicePayload(): DevicePayload? {
         if (!isCacheValid()) {
-            application.dataStore.edit {
-                it.remove(devicePayloadKey)
+            dataStore.edit {
+                mutex.withLock {
+                    it.remove(devicePayloadKey)
+                }
             }
             return null
         }
 
-        val json = application.dataStore.data.first()[devicePayloadKey]
+        val json = mutex.withLock {
+            dataStore.data.first()[devicePayloadKey]
+        }
         return try {
             json?.let {
                 DevicePayload.fromJSON(JSONObject(it))
             }
         } catch (e: Exception) {
-            application.dataStore.edit {
-                it.remove(devicePayloadKey)
+            dataStore.edit {
+                mutex.withLock {
+                    it.remove(devicePayloadKey)
+                }
             }
             null
         }
     }
 
     override suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?) {
-        application.dataStore.edit {
-            val json = registerDevice?.asJson()?.getJSONObject("register")
-            it[registerDeviceKey] = json.toString()
+        dataStore.edit {
+            mutex.withLock {
+                val json = registerDevice?.asJson()?.getJSONObject("register")
+                it[registerDeviceKey] = json.toString()
+            }
         }
     }
 
     override suspend fun getRegistrationDevice(): RegisterDevice? {
         return try {
-            val json = application.dataStore.data.first()[registerDeviceKey]
-            json?.let { RegisterDevice.fromJSON(JSONObject(it)) }
+            mutex.withLock {
+                val json = dataStore.data.first()[registerDeviceKey]
+                json?.let { RegisterDevice.fromJSON(JSONObject(it)) }
+            }
         } catch (e: Exception) {
-            application.dataStore.edit {
-                it.remove(registerDeviceKey)
+            dataStore.edit {
+                mutex.withLock {
+                    it.remove(registerDeviceKey)
+                }
             }
             null
         }
@@ -86,18 +110,53 @@ internal class PrefsStorageImpl(
 
     override suspend fun saveInitOptions(options: AppoxeeOptions?) {
         options?.toJSON().let {
-            application.dataStore.edit { prefs ->
-                prefs[appoxeeOptionsKey] = it.toString()
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    prefs[appoxeeOptionsKey] = it.toString()
+                }
             }
         }
     }
 
     override suspend fun getInitOptions(): AppoxeeOptions? {
         return try {
-            val json = application.dataStore.data.first()[appoxeeOptionsKey]
-            json?.let { AppoxeeOptions.fromJSON(JSONObject(it)) }
+            mutex.withLock {
+                val json = dataStore.data.first()[appoxeeOptionsKey]
+                json?.let { AppoxeeOptions.fromJSON(JSONObject(it)) }
+            }
         } catch (e: Exception) {
-            application.dataStore.edit { it.remove(appoxeeOptionsKey) }
+            dataStore.edit {
+                mutex.withLock {
+                    it.remove(appoxeeOptionsKey)
+                }
+            }
+            null
+        }
+    }
+
+    override suspend fun saveAppConfig(appConfigPayload: AppConfigPayload?) {
+        appConfigPayload?.toJSON()?.let { appConfig ->
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    prefs[appConfigKey] = appConfig.toString()
+                }
+            }
+        }
+    }
+
+    override suspend fun getAppConfig(): AppConfigPayload? {
+        return try {
+            mutex.withLock {
+                val json = dataStore.data.first()[appConfigKey]
+                json?.let { AppConfigPayload.fromJson(JSONObject(it)) }
+            }
+        } catch (e: Exception) {
+            Logger.e(PrefsStorageImpl::class.java.name,e.message ?: "",e)
+            dataStore.edit {
+                mutex.withLock {
+                    it.remove(appConfigKey)
+                }
+            }
             null
         }
     }

@@ -1,8 +1,11 @@
 package com.appoxee.internal.push.model
 
+import android.os.Parcelable
 import com.appoxee.internal.util.getNullableString
+import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 
+@Parcelize
 internal data class FgAction(
     val apxUrl: String? = null,
     val apxAid: String? = null,
@@ -11,9 +14,35 @@ internal data class FgAction(
     val apxUrlInternal: String? = null,
     val apxDpl: String? = null,
     val apxDestroyPush: String? = null
-) {
+) : Parcelable {
     fun isDestroyAction(): Boolean {
-        return apxUrl == null && apxAid == null && apxVc == null && apxInbox == null && apxUrlInternal == null && apxDpl == null && apxDestroyPush == null
+        return apxUrl.isNullOrEmpty() && apxAid.isNullOrEmpty() && apxVc.isNullOrEmpty() &&
+                apxInbox.isNullOrEmpty() && apxUrlInternal.isNullOrEmpty() && apxDpl.isNullOrEmpty() &&
+                apxDestroyPush.isNullOrEmpty()
+    }
+
+    @Synchronized
+    fun getUriType(): PushUriType {
+        if (!apxUrl.isNullOrEmpty()) return PushUriType.KEY_URL
+        if (!apxAid.isNullOrEmpty()) return PushUriType.KEY_APP_PACKAGE
+        if (!apxVc.isNullOrEmpty()) return PushUriType.KEY_APX_VC
+        if (!apxInbox.isNullOrEmpty()) return PushUriType.KEY_INBOX
+        if (!apxUrlInternal.isNullOrEmpty()) return PushUriType.KEY_URL_INTERNAL
+        if (!apxDpl.isNullOrEmpty()) return PushUriType.KEY_DEEP_LINK
+        return PushUriType.KEY_APP_DESTROY_PUSH
+    }
+
+    @Synchronized
+    fun getAction(): String {
+        return when (getUriType()) {
+            PushUriType.KEY_URL -> apxUrl!!
+            PushUriType.KEY_APP_PACKAGE -> apxAid!!
+            PushUriType.KEY_APX_VC -> apxVc!!
+            PushUriType.KEY_INBOX -> apxInbox!!
+            PushUriType.KEY_URL_INTERNAL -> apxUrlInternal!!
+            PushUriType.KEY_DEEP_LINK -> apxDpl!!
+            else -> PushUriType.KEY_APP_DESTROY_PUSH.value
+        }
     }
 
     companion object {

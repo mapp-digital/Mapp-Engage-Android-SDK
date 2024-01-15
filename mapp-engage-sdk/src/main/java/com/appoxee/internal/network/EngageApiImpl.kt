@@ -14,11 +14,11 @@ import com.appoxee.internal.model.request.RequestBody
 import com.appoxee.internal.model.request.SetAlias
 import com.appoxee.internal.model.request.Tags
 import com.appoxee.internal.model.request.TagsAction
-import com.appoxee.internal.model.request.events.ClickActionType
+import com.appoxee.internal.model.request.events.PushAction
 import com.appoxee.internal.model.request.events.InappEvent
 import com.appoxee.internal.model.request.events.MessageContext
 import com.appoxee.internal.model.request.events.PushEvent
-import com.appoxee.internal.model.request.events.PushEventType
+import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.Tracking
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
@@ -302,8 +302,8 @@ internal class EngageApiImpl(
     override suspend fun pushEvent(
         messageId: Long,
         sendoutId: Long,
-        clickActionType: ClickActionType,
-        eventType: PushEventType
+        pushAction: PushAction,
+        eventType: NotificationClick
     ): Response<ResponseData<Boolean>> {
         val dmcUserId =
             storage.getDevicePayload()?.dmcUserId ?: return Response.error(
@@ -315,7 +315,7 @@ internal class EngageApiImpl(
             sendoutId = sendoutId,
             dmcUserId = dmcUserId,
             eventType = eventType,
-            clickType = clickActionType,
+            clickType = pushAction,
         )
 
         val request = Request.Post(path = pushEventsPath, requestBody = pushEvent)
