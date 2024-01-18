@@ -19,7 +19,8 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.drawable.toBitmapOrNull
 import com.appoxee.internal.Actions
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
-import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.response.Category
 import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.model.CategoryType
@@ -78,15 +79,20 @@ internal class NotificationFactory(
 
         pushData.buttonList.flatMap { it?.fgActions ?: emptyList() }
             .forEachIndexed { index, fgAction ->
+                val eventType = when (index) {
+                    1 -> EventType.BUTTON2
+                    2 -> EventType.BUTTON3
+                    else -> EventType.BUTTON1
+                }
                 val pendingIntent = if (fgAction.isDestroyAction()) {
                     createDismissPendingIntent(notificationId, pushData)
                 } else {
                     createCustomPendingIntent(
                         fgAction.getUriType(),
                         fgAction.getAction(),
-                        null,
+                        pushData,
                         notificationId,
-                        notificationId
+                        eventType
                     )
                 }
                 pendingIntent.let { pi ->
@@ -100,10 +106,10 @@ internal class NotificationFactory(
             categories.firstOrNull { CategoryType.APX_SPECIFIC_ANDROID == it.name }
                 ?.let { specificCategory ->
                     addSpecificButtons(
-                        builder, pushData, specificCategory, Actions.Button.PLAY, notificationId
+                        builder, pushData, specificCategory, Actions.Button.PLAY, notificationId, EventType.BUTTON2
                     )
                     addSpecificButtons(
-                        builder, pushData, specificCategory, Actions.Button.TURN_OFF, notificationId
+                        builder, pushData, specificCategory, Actions.Button.TURN_OFF, notificationId, EventType.DISMISS
                     )
                 }
         }
@@ -115,6 +121,7 @@ internal class NotificationFactory(
         specificCategory: Category,
         buttonTitle: String,
         notificationId: Int,
+        click: EventType
     ) {
         val language = pushData.language
         specificCategory.buttons.firstOrNull { buttonTitle.equals(it.title, true) }?.let {
@@ -124,7 +131,7 @@ internal class NotificationFactory(
                 createDismissPendingIntent(notificationId, pushData)
             } else {
                 createCustomPendingIntent(
-                    uriType, pushData.iosApxMedia, pushData, notificationId, notificationId
+                    uriType, pushData.iosApxMedia, pushData, notificationId, click
                 )
             }
 
@@ -145,12 +152,14 @@ internal class NotificationFactory(
                 it.setPackage(context.packageName)
                 it.action = Intent.ACTION_MAIN
                 it.putExtra("pushData", pushData)
+                it.putExtra("eventType", EventType.CLICK.ordinal)
             }
         } else {
             FullScreenActivity.getIntent(context).let {
                 it.setAction(pushUriType.toPushAction().value)
                 it.putExtra("pushData", pushData)
                 it.setData(pushData.actionUri)
+                it.putExtra("eventType", EventType.CLICK.ordinal)
             }
         }
 
@@ -169,14 +178,15 @@ internal class NotificationFactory(
         uriType: PushUriType,
         actionData: String?,
         pushData: PushData?,
-        requestCode: Int,
         notificationId: Int,
+        eventType: EventType,
     ): PendingIntent {
         if (uriType == PushUriType.KEY_APP_DESTROY_PUSH) {
             return createDismissPendingIntent(notificationId, pushData)
         } else {
             val intent = FullScreenActivity.getIntent(context).apply {
                 putExtra("notificationId", notificationId)
+                putExtra("eventType", eventType.ordinal)
                 action = uriType.toPushAction().value
                 actionData?.let {
                     data = Uri.parse(it)
@@ -185,7 +195,7 @@ internal class NotificationFactory(
             }
             return PendingIntent.getActivity(
                 context,
-                requestCode,
+                notificationId,
                 intent,
                 CompatExt.PENDING_INTENT_CANCEL_FLAGS
             )
@@ -199,9 +209,10 @@ internal class NotificationFactory(
         val intent = Intent().apply {
             setPackage(context.packageName)
             putExtra("notificationId", notificationId)
+            putExtra("eventType", EventType.DISMISS.ordinal)
             pushData?.let { putExtra("pushData", it) }
             setClass(context, MappInternalBroadcastReceiver::class.java)
-            action = PushAction.DISMISS.value
+            action = ClickType.DISMISS.value
         }
         return PendingIntent.getBroadcast(
             context,

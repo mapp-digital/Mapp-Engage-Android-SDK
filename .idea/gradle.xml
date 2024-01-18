@@ -9,6 +9,7 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/dependencies.gradle.kts" />
             <option value="$PROJECT_DIR$/mapp-engage-sdk" />
             <option value="$PROJECT_DIR$/sample-java" />
             <option value="$PROJECT_DIR$/sample-kotlin" />

@@ -34,13 +34,11 @@ android {
 }
 
 dependencies {
+    implementation(libs.bundles.base)
+    implementation(libs.bundles.ui.components)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
 
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    implementation(platform("com.google.firebase:firebase-bom:32.4.0"))
-    implementation("com.google.firebase:firebase-messaging")
     implementation project(path: ':mapp-engage-sdk')
     implementation project(path: ':shared-ui')
     testImplementation 'junit:junit:4.13.2'

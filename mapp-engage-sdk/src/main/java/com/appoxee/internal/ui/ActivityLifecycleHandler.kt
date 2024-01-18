@@ -6,7 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
-import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.ui.custom.MediaDialog
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
@@ -53,12 +53,11 @@ internal class ActivityLifecycleHandler(context: Context) : Application.Activity
         Logger.d(TAG, "LAUNCHING CLASS NAME: $launchingClassName")
         if (activity.componentName == launchingIntent?.component) {
             launchingActivity = activity
-            val pushData = activity.intent?.extras?.getParcelableCompat<PushData>("pushData")
-            val action = PushAction.fromString(activity.intent?.action) ?: return
-
-            if (Objects.equals(action, PushAction.OPEN_RICH_PUSH)) {
-                pushData?.let {
-                    handleRichPush(activity, it)
+            activity.intent?.extras?.getParcelableCompat<PushData>("pushData")?.let { pushData ->
+                ClickType.fromString(activity.intent.action).let { action ->
+                    if (Objects.equals(action, ClickType.OPEN_RICH_PUSH)) {
+                        handleRichPush(activity, pushData)
+                    }
                 }
             }
         }
@@ -81,10 +80,7 @@ internal class ActivityLifecycleHandler(context: Context) : Application.Activity
             }
 
         } else {
-            val bundle = Bundle().apply {
-                putParcelable("pushData", pushData)
-            }
-            context.startMainActivity(bundle)
+            context.startMainActivity(pushData)
         }
     }
 }

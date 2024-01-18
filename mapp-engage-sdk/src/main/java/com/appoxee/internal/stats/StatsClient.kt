@@ -1,13 +1,13 @@
 package com.appoxee.internal.stats
 
-import com.appoxee.internal.model.request.events.PushAction
-import com.appoxee.internal.model.request.events.NotificationClick
+import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.model.request.events.ClickType
 
 internal interface StatsClient {
-    suspend fun reportPushEvent(
+    fun reportPushEvent(
         messageId: Long,
         sendoutId: Long,
-        pushAction: PushAction,
-        eventType: NotificationClick
+        clickType: ClickType,
+        eventType: EventType
     )
 }

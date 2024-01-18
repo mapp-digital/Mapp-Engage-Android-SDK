@@ -2,8 +2,8 @@ package com.appoxee.internal
 
 import android.annotation.SuppressLint
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.PushAction
-import com.appoxee.internal.model.request.events.NotificationClick
+import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -129,10 +129,10 @@ internal class AppoxeeAdapter(
     internal suspend fun pushEvent(
         messageId: Long,
         sendoutId: Long,
-        pushAction: PushAction,
-        eventType: NotificationClick
+        clickType: ClickType,
+        eventType: EventType
     ): Response<ResponseData<Boolean>> {
-        return engageApi.pushEvent(messageId, sendoutId, pushAction, eventType)
+        return engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
     }
 
     internal suspend fun getRegions(

@@ -5,21 +5,21 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
     <Button
-        android:id="@+id/btnBrowserIntent"
+        android:id="@+id/btnBrowser"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Browser Intent"
+        android:text="Text notification"
         tools:ignore="HardcodedText" />
     <Button
-        android:id="@+id/btnGifIntent"
+        android:id="@+id/btnGif"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Gif Intent"
+        android:text="Gif Notification"
         tools:ignore="HardcodedText" />
     <Button
-        android:id="@+id/btnVideoIntent"
+        android:id="@+id/btnVideo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Video Intent"
+        android:text="Video Notification"
         tools:ignore="HardcodedText" />
 </LinearLayout>

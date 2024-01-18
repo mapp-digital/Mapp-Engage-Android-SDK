@@ -1,27 +1,27 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.Activation
-import com.appoxee.internal.model.request.GetAttributes
-import com.appoxee.internal.model.request.SetAttributes
 import com.appoxee.internal.model.request.GetAppConfig
+import com.appoxee.internal.model.request.GetAttributes
 import com.appoxee.internal.model.request.GetDevice
-import com.appoxee.internal.model.request.geo.GetRegions
 import com.appoxee.internal.model.request.MessageBody
 import com.appoxee.internal.model.request.OptIn
 import com.appoxee.internal.model.request.OptOut
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.request.RequestBody
 import com.appoxee.internal.model.request.SetAlias
+import com.appoxee.internal.model.request.SetAttributes
 import com.appoxee.internal.model.request.Tags
 import com.appoxee.internal.model.request.TagsAction
-import com.appoxee.internal.model.request.events.PushAction
 import com.appoxee.internal.model.request.events.InappEvent
 import com.appoxee.internal.model.request.events.MessageContext
+import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.PushEvent
-import com.appoxee.internal.model.request.events.NotificationClick
 import com.appoxee.internal.model.request.events.Tracking
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
+import com.appoxee.internal.model.request.geo.GetRegions
 import com.appoxee.internal.model.request.geo.RegionStatus
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -48,7 +48,6 @@ import java.util.UUID
 internal class EngageApiImpl(
     val networkClient: NetworkClient,
     val storage: Storage,
-    val options: AppoxeeOptions,
     val deviceProvider: DeviceProvider,
 ) :
     EngageApi {
@@ -58,8 +57,30 @@ internal class EngageApiImpl(
     private val inappEventsPathV5 = "api/v5/device/inapp/tracking"
     private val pushEventsPath = "/api/push/event"
 
-    private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
+    //private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
+    private var options: AppoxeeOptions? = null
+
+    private suspend fun getSdkKeyHeader(): Map<String, String> {
+        return (options ?: storage.getInitOptions())?.let {
+            this.options = it
+            mapOf("X_KEY" to it.sdkKey)
+        } ?: throw DeviceNotRegisteredException()
+    }
+
+    private suspend fun getAppId(): String {
+        return (options ?: storage.getInitOptions())?.let {
+            this.options = it
+            it.appId
+        } ?: throw DeviceNotRegisteredException()
+    }
+
+    private suspend fun getTenantId(): String {
+        return (options ?: storage.getInitOptions())?.let {
+            this.options = it
+            it.tenantId
+        } ?: throw DeviceNotRegisteredException()
+    }
 
     override suspend fun registerDevice(
         register: RegisterDevice
@@ -68,7 +89,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = deviceModel)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             RegisterPayload.fromJSON(it)
@@ -81,7 +102,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, GetDevice())
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DevicePayload.fromJSON(it.getJSONObject("get"))
@@ -99,7 +120,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -115,7 +136,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -134,7 +155,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -150,7 +171,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -163,7 +184,7 @@ internal class EngageApiImpl(
 
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             AppConfigPayload.fromJson(it.getJSONObject("app_conf"))
@@ -186,8 +207,8 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inboxPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(mapOf("tenant_id" to options.tenantId))
-            .addHeader(mapOf("app_id" to options.appId))
+            .addHeader(mapOf("tenant_id" to getTenantId()))
+            .addHeader(mapOf("app_id" to getAppId()))
 
         return networkClient.execute(request, InboxAdapter())
     }
@@ -207,8 +228,8 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inappPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(mapOf("tenant_id" to options.tenantId))
-            .addHeader(mapOf("app_id" to options.appId))
+            .addHeader(mapOf("tenant_id" to getTenantId()))
+            .addHeader(mapOf("app_id" to getAppId()))
 
         return networkClient.execute(request, InappAdapter())
     }
@@ -217,7 +238,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, Tags(tags, TagsAction.SET))
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -230,7 +251,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, Tags(tags, TagsAction.REMOVE))
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             DefaultResponse.fromJSON(it)
@@ -247,7 +268,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, alias = alias, actions = attributeSet)
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
             .setPathType(Request.PathType.BASE)
 
         val response = networkClient.execute(request, BaseAdapter {
@@ -265,7 +286,7 @@ internal class EngageApiImpl(
         val requestBody = RequestBody(key = uniqueDeviceId, alias = alias, actions = attributeGet)
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
 
         val response = networkClient.execute(request, BaseAdapter {
             it.toMap<Any?>(excludeNulls = false)
@@ -293,8 +314,8 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inappEventsPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(mapOf("tenant_id" to options.tenantId))
-            .addHeader(mapOf("app_id" to options.appId))
+            .addHeader(mapOf("tenant_id" to getTenantId()))
+            .addHeader(mapOf("app_id" to getAppId()))
 
         return networkClient.execute(request, StatusAdapter())
     }
@@ -302,24 +323,24 @@ internal class EngageApiImpl(
     override suspend fun pushEvent(
         messageId: Long,
         sendoutId: Long,
-        pushAction: PushAction,
-        eventType: NotificationClick
+        clickType: ClickType,
+        eventType: EventType
     ): Response<ResponseData<Boolean>> {
         val dmcUserId =
             storage.getDevicePayload()?.dmcUserId ?: return Response.error(
                 DeviceNotRegisteredException()
             )
         val pushEvent = PushEvent(
-            tenantId = options.tenantId,
+            tenantId = getTenantId(),
             messageId = messageId,
             sendoutId = sendoutId,
             dmcUserId = dmcUserId,
             eventType = eventType,
-            clickType = pushAction,
+            clickType = clickType,
         )
 
         val request = Request.Post(path = pushEventsPath, requestBody = pushEvent)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
             .setPathType(Request.PathType.BASE)
 
         return networkClient.execute(request, StatusAdapter())
@@ -334,7 +355,7 @@ internal class EngageApiImpl(
         val alias = storage.getDevicePayload()?.alias
             ?: return Response.error(DeviceNotRegisteredException())
 
-        val appId = options.appId.toLongOrNull() ?: 0L
+        val appId = getAppId().toLongOrNull() ?: 0L
 
         val getRegions = GetRegions(lat, lng, version, appId, pageSize)
 
@@ -345,7 +366,7 @@ internal class EngageApiImpl(
         )
 
         val request = Request.Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
             .setPathType(Request.PathType.BASE)
 
         val response = networkClient.execute(request = request, adapter = BaseAdapter {
@@ -377,13 +398,13 @@ internal class EngageApiImpl(
             regionId = regionId,
             timeZone = TimeZone.getDefault().displayName,
             version = version,
-            applicationId = options.appId
+            applicationId = getAppId()
         )
 
         val requestBody = RequestBody(key = uniqueDeviceId, actions = regionStatus)
 
         val request = Request.Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(sdkKeyHeader)
+            .addHeader(getSdkKeyHeader())
             .setPathType(Request.PathType.BASE)
 
         val response = networkClient.execute(request, BaseAdapter {
