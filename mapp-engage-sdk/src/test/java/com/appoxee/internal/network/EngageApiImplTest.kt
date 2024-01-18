@@ -1,8 +1,8 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.PushAction
-import com.appoxee.internal.model.request.events.NotificationClick
+import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
@@ -832,7 +832,7 @@ internal class EngageApiImplTest {
 
         coEvery {
             engageApi.pushEvent(
-                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
+                1234, 1, ClickType.OPEN_DIALER, EventType.CLICK
             )
         } coAnswers {
             networkClient.execute(
@@ -841,14 +841,14 @@ internal class EngageApiImplTest {
         }
 
         val apiResponse =
-            engageApi.pushEvent(1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK)
+            engageApi.pushEvent(1234, 1, ClickType.OPEN_DIALER, EventType.CLICK)
         Truth.assertThat(apiResponse.isSuccess()).isTrue()
         Truth.assertThat(apiResponse.data).isNotNull()
         Truth.assertThat(apiResponse.error).isNull()
 
         coVerify(atLeast = 1) {
             engageApi.pushEvent(
-                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
+                1234, 1, ClickType.OPEN_DIALER, EventType.CLICK
             )
         }
         coVerify(atLeast = 1) { networkClient.execute(request, adapter) }
@@ -864,7 +864,7 @@ internal class EngageApiImplTest {
 
         coEvery {
             engageApi.pushEvent(
-                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
+                1234, 1, ClickType.OPEN_DIALER, EventType.CLICK
             )
         } coAnswers {
             networkClient.execute(
@@ -873,14 +873,14 @@ internal class EngageApiImplTest {
         }
 
         val apiResponse =
-            engageApi.pushEvent(1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK)
+            engageApi.pushEvent(1234, 1, ClickType.OPEN_DIALER, EventType.CLICK)
         Truth.assertThat(apiResponse.isSuccess()).isFalse()
         Truth.assertThat(apiResponse.data).isNull()
         Truth.assertThat(apiResponse.error).isNotNull()
 
         coVerify(atLeast = 1) {
             engageApi.pushEvent(
-                1234, 1, PushAction.OPEN_DIALER, NotificationClick.CLICK
+                1234, 1, ClickType.OPEN_DIALER, EventType.CLICK
             )
         }
         coVerify(atLeast = 1) { networkClient.execute(request, adapter) }

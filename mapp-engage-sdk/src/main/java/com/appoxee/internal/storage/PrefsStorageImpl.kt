@@ -1,6 +1,7 @@
 package com.appoxee.internal.storage
 
 import android.app.Application
+import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -21,8 +22,7 @@ import java.util.Date
 private val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = "EngageDataStore")
 
 internal class PrefsStorageImpl(
-    private val application: Application,
-    private val dataValidityMs: Long
+    context: Context, private val dataValidityMs: Long
 ) : Storage {
 
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
@@ -31,8 +31,7 @@ internal class PrefsStorageImpl(
     private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
     private val appConfigKey = stringPreferencesKey("appConfig")
 
-    private val dataStore: DataStore<Preferences>
-        get() = application.dataStore
+    private val dataStore: DataStore<Preferences> by lazy { (context.applicationContext as Application).dataStore }
 
     private val mutex = Mutex()
 
@@ -151,7 +150,7 @@ internal class PrefsStorageImpl(
                 json?.let { AppConfigPayload.fromJson(JSONObject(it)) }
             }
         } catch (e: Exception) {
-            Logger.e(PrefsStorageImpl::class.java.name,e.message ?: "",e)
+            Logger.e(PrefsStorageImpl::class.java.name, e.message ?: "", e)
             dataStore.edit {
                 mutex.withLock {
                     it.remove(appConfigKey)

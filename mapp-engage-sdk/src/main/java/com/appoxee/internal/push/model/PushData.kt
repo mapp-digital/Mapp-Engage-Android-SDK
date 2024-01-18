@@ -1,7 +1,6 @@
 package com.appoxee.internal.push.model
 
 import android.net.Uri
-import android.os.Bundle
 import android.os.Parcelable
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.parcelize.Parcelize
@@ -26,6 +25,7 @@ internal data class PushData(
     val silentType: String? = null,
     val silentData: String? = null,
     val buttonList: List<PushButton?> = emptyList(),
+    val sendoutId: Long? = null,
     var extraFields: Map<String, String> = emptyMap(),
     val category: String? = null,
     val language: String? = null,
@@ -46,32 +46,6 @@ internal data class PushData(
             else -> null
         }
     }
-
-//    fun toBundle(): Bundle {
-//        return Bundle().apply {
-//            putLong("id", id)
-//            putString("title", title)
-//            putString("alert", alert)
-//            putString("bigText", bigText)
-//            putString("sound", sound)
-//            putString("actionUri", actionUri.toString())
-//            putString("internalUriType", internalUriType)
-//            putString("collapseKey", collapseKey)
-//            putString("type", type)
-//            putString("userId", userId)
-//            putString("customerId", customerId)
-//            putString("iosApxMedia", iosApxMedia)
-//            putInt("badgeNumber", badgeNumber ?: 0)
-//            putBoolean("contentAvailable", contentAvailable ?: false)
-//            putString("silentType", silentType)
-//            putString("silentData", silentData)
-//            putString("category", category)
-//            putString("language", language)
-//            extraFields.entries.forEach { entry ->
-//                putString(entry.key, entry.value)
-//            }
-//        }
-//    }
 
     internal companion object {
         private const val BUTTONS = "buttons"
@@ -99,6 +73,7 @@ internal data class PushData(
         private const val LANGUAGE = "lc"
         private const val KEY_CUSTOMER_ID = "customer_id"
         private const val KEY_USER_ID = "user_id"
+        private const val KEY_SENDOUT_ID = "sendout_id"
 
         internal fun RemoteMessage.toPushData(): PushData {
             val map = mutableMapOf<String, String?>().apply {
@@ -126,6 +101,7 @@ internal data class PushData(
                 language = map.getData(LANGUAGE),
                 userId = map.getData(KEY_USER_ID),
                 customerId = map.getData(KEY_CUSTOMER_ID),
+                sendoutId = map.getData(KEY_SENDOUT_ID)?.toLongOrNull(),
                 buttonList = getButtons(map),
                 extraFields = getExtraFields(map),
             )

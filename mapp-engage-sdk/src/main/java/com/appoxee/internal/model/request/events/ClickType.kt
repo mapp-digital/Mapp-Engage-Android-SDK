@@ -1,10 +1,10 @@
 package com.appoxee.internal.model.request.events
 
 /**
- * Defines actions that can be executed from a notification
+ * Defines click types that can be executed from a notification
  * of a Mapp's push message
  */
-internal enum class PushAction(val value: String) {
+internal enum class ClickType(val value: String) {
     /**
      * open launching activity of a host application
      */
@@ -41,8 +41,9 @@ internal enum class PushAction(val value: String) {
      */
     OPEN_RICH_PUSH("OPEN_RICH_PUSH");
 
+
     companion object {
-        fun fromString(value: String?): PushAction {
+        fun fromString(value: String?): ClickType {
             return when (value) {
                 LAUNCH_APP.value -> LAUNCH_APP
                 OPEN_LANDING_PAGE.value -> OPEN_LANDING_PAGE
@@ -52,6 +53,14 @@ internal enum class PushAction(val value: String) {
                 OPEN_RICH_PUSH.value -> OPEN_RICH_PUSH
                 else -> DISMISS
             }
+        }
+
+        /**
+         * Backend can only accept values from 0-4 (included),
+         * so any other defined clickType must be omitted from sending
+         */
+        fun ClickType.numeric(): Int? {
+            return if (this.ordinal <= 4) this.ordinal else null
         }
     }
 }

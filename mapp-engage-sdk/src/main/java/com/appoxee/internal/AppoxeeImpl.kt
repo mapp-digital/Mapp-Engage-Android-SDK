@@ -8,8 +8,8 @@ import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.model.request.events.PushAction
-import com.appoxee.internal.model.request.events.NotificationClick
+import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
@@ -56,14 +56,12 @@ internal class AppoxeeImpl(
     private val pushQueue = mutableSetOf<RemoteMessage>()
 
     private val storageContainer: StorageContainer by lazy {
-        StorageContainer(
-            context.applicationContext as Application
-        )
+        StorageContainer.getInstance(context)
     }
 
     private val appoxeeContainer by lazy {
         AppoxeeContainer(
-            application = context.applicationContext as Application,
+            context = context,
             storage = storage
         )
     }
@@ -74,11 +72,12 @@ internal class AppoxeeImpl(
     internal val deviceProvider: DeviceProvider
         get() = appoxeeContainer.deviceProvider
 
-    internal val pushContainer: PushContainer by lazy { PushContainer(context, storage) }
+    internal val callCoroutineContext
+        get() = appoxeeContainer.baseScope
+
+    internal val pushContainer: PushContainer by lazy { PushContainer(context) }
 
     private val internalCoroutineContext by lazy { CoroutineScope(Dispatchers.IO) }
-
-    private val callCoroutineContext by lazy { CoroutineScope(Dispatchers.IO) }
 
     internal val activityLifecycleCallback =
         ActivityLifecycleHandler(context.applicationContext)
@@ -96,14 +95,6 @@ internal class AppoxeeImpl(
             options?.let {
                 storage.saveInitOptions(it)
             }
-
-            // init mOptions instance from provided value or from saved local storage
-            // otherwise throw exception
-            val mOptions: AppoxeeOptions = (options ?: storage.getInitOptions())
-                ?: throw IllegalArgumentException("AppoxeeOptions are not provided!")
-
-            appoxeeContainer.options = mOptions
-            pushContainer.options = mOptions
 
             // check device registration
             // update if exist or register new device
@@ -325,8 +316,8 @@ internal class AppoxeeImpl(
         val response = appoxeeAdapter.pushEvent(
             124852,
             233861,
-            PushAction.OPEN_DIALER,
-            NotificationClick.CLICK
+            ClickType.OPEN_DIALER,
+            EventType.CLICK
         )
         response.isSuccess()
     }

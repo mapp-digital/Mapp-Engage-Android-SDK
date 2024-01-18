@@ -1,6 +1,6 @@
 package com.appoxee.internal.push.model
 
-import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.model.request.events.ClickType
 
 enum class PushUriType(val value: String) {
     KEY_URL("apx_url"),
@@ -15,13 +15,15 @@ enum class PushUriType(val value: String) {
     KEY_TURN_OFF("turn_off");
 
     companion object {
-        internal fun PushUriType?.toPushAction(): PushAction {
+        internal fun PushUriType?.toPushAction(): ClickType {
             return when (this) {
-                KEY_URL -> PushAction.OPEN_LANDING_PAGE
-                KEY_APP_PACKAGE -> PushAction.OPEN_STORE
-                KEY_DEEP_LINK -> PushAction.OPEN_DEEP_LINK
-                KEY_DIALER -> PushAction.OPEN_DIALER
-                else -> PushAction.LAUNCH_APP
+                KEY_URL -> ClickType.OPEN_LANDING_PAGE
+                KEY_APP_PACKAGE -> ClickType.OPEN_STORE
+                KEY_DEEP_LINK -> ClickType.OPEN_DEEP_LINK
+                KEY_DIALER -> ClickType.OPEN_DIALER
+                KEY_PLAY -> ClickType.OPEN_RICH_PUSH
+                KEY_TURN_OFF -> ClickType.DISMISS
+                else -> ClickType.LAUNCH_APP
             }
         }
     }

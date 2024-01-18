@@ -10,10 +10,14 @@ import com.appoxee.Appoxee
 import com.appoxee.databinding.ActivityFullScreenBinding
 import com.appoxee.internal.Actions
 import com.appoxee.internal.AppoxeeImpl
-import com.appoxee.internal.model.request.events.PushAction
+import com.appoxee.internal.container.StatsContainer
+import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
+import com.appoxee.internal.util.LibExt.startIntentOrDefault
 import com.appoxee.internal.util.Logger
 
 class FullScreenActivity : AppCompatActivity() {
@@ -38,10 +42,13 @@ class FullScreenActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFullScreenBinding
 
+    private lateinit var statsClient: StatsClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
         super.onCreate(savedInstanceState)
         binding = ActivityFullScreenBinding.inflate(layoutInflater)
+        statsClient = StatsContainer(this).statsClient
         handleIntent(intent)
     }
 
@@ -53,41 +60,62 @@ class FullScreenActivity : AppCompatActivity() {
     private fun handleIntent(intent: Intent?) {
         intent?.let {
             val notificationId = it.getIntExtra("notificationId", 0)
+            val eventType =
+                it.getIntExtra("eventType", 0).let { EventType.values()[it] }
             if (notificationId != 0) {
                 Appoxee.instance().closeNotification(notificationId)
             }
+            val pushData = it.extras?.getParcelableCompat<PushData>("pushData")
+            val messageId = pushData?.id ?: 0
+            val sendoutId = pushData?.sendoutId ?: 0
+
             it.action?.let { a ->
-                val pushData = it.extras?.getParcelableCompat<PushData>("pushData")
-                val action = PushAction.fromString(a)
-                when (action) {
-                    PushAction.OPEN_LANDING_PAGE -> {
-                        it.handleIntentSafe("Error creating Open PlayStore Intent") {
+                val clickType = ClickType.fromString(a)
+
+                statsClient.reportPushEvent(
+                    messageId,
+                    sendoutId,
+                    clickType,
+                    eventType
+                )
+
+                when (clickType) {
+                    ClickType.OPEN_LANDING_PAGE -> {
+                        it.handleIntentSafe("Error creating Open Landing Page Intent") {
                             showWebView(it)
                         }
                     }
 
-                    PushAction.OPEN_RICH_PUSH -> {
+                    ClickType.OPEN_RICH_PUSH -> {
                         showGif(it)
                     }
 
-                    PushAction.OPEN_DIALER -> {
+                    ClickType.OPEN_DIALER -> {
                         it.handleIntentSafe("Error creating Open Dialer Intent") {
                             val dialerIntent = Intent(Intent.ACTION_DIAL, it)
                             startActivity(dialerIntent)
+                            finish()
                         }
                     }
 
-                    PushAction.OPEN_STORE -> {
+                    ClickType.OPEN_STORE -> {
                         it.handleIntentSafe("Error creating Open PlayStore Intent") {
                             val dialerIntent = Intent(Intent.ACTION_VIEW, it)
                             startActivity(dialerIntent)
+                            finish()
                         }
                     }
 
-                    PushAction.OPEN_DEEP_LINK -> {
+                    ClickType.OPEN_DEEP_LINK -> {
                         it.handleIntentSafe("Error creating Open DeepLink Intent") { uri ->
-                            handleDeepLink(pushData, intent)
+                            val deepLinkIntent = createDeepLink(pushData, it)
+                            this@FullScreenActivity.startIntentOrDefault(deepLinkIntent)
+                            finish()
                         }
+                    }
+
+                    ClickType.DISMISS -> {
+                        finish()
                     }
 
                     else -> {}
@@ -96,8 +124,8 @@ class FullScreenActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleDeepLink(pushData: PushData?, it: Intent) {
-        val dialerIntent = Intent(Actions.MAPP_DEEP_LINK).apply {
+    private fun createDeepLink(pushData: PushData?, it: Intent): Intent {
+        return Intent(Actions.MAPP_DEEP_LINK).apply {
             setPackage(this@FullScreenActivity.packageName)
             val uriBuilder = Uri.Builder()
                 .scheme(Actions.MAPP_DEEP_LINK_SCHEME)
@@ -112,7 +140,6 @@ class FullScreenActivity : AppCompatActivity() {
 
             data = uriBuilder.build()
         }
-        startActivity(dialerIntent)
     }
 
     private fun showWebView(uri: Uri) {

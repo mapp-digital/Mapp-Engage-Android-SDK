@@ -3,11 +3,13 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.network.exceptions.ClientException
+import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
 import com.appoxee.internal.network.exceptions.RedirectException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.exceptions.UnknownNetworkException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.network.response.ResponseAdapter
+import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
@@ -17,10 +19,18 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 internal class NetworkClientImpl(
-    private val appoxeeOptions: AppoxeeOptions,
+    private val storage: Storage
 ) : NetworkClient {
 
     private val TAG = NetworkClientImpl::class.java.name
+
+    private lateinit var options: AppoxeeOptions
+    private suspend fun getOptions(): AppoxeeOptions {
+        if (!::options.isInitialized) {
+            options = storage.getInitOptions() ?: throw DeviceNotRegisteredException()
+        }
+        return options
+    }
 
     override suspend fun <T> execute(
         request: Request,
@@ -36,8 +46,9 @@ internal class NetworkClientImpl(
 
         connection.run {
             try {
-                readTimeout = appoxeeOptions.readTimeout
-                connectTimeout = appoxeeOptions.connectionTimeout
+                val options = getOptions()
+                readTimeout = options.readTimeout
+                connectTimeout = options.connectionTimeout
                 requestMethod = request.method.toString()
                 doInput = request.doInput
                 doOutput = request.doOutput
@@ -156,14 +167,15 @@ internal class NetworkClientImpl(
         return response
     }
 
-    private fun buildUrl(request: Request): String {
+    private suspend fun buildUrl(request: Request): String {
         val queryPath = buildQueryPath(request)
         val sb = StringBuilder()
+        val options = getOptions()
 
         if (request.pathType == Request.PathType.CEP) {
-            sb.append(appoxeeOptions.server.internalCepUrl)
+            sb.append(options.server.internalCepUrl)
         } else {
-            sb.append(appoxeeOptions.server.value)
+            sb.append(options.server.value)
         }
 
         sb.append("/")

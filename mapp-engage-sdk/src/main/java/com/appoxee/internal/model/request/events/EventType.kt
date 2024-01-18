@@ -1,9 +1,10 @@
 package com.appoxee.internal.model.request.events
 
 /**
- * Defines possible click types of a single notification
+ * Defines possible event types of a single notification
+ * Every click on some notification UI part produces some event type
  */
-internal enum class NotificationClick {
+internal enum class EventType {
     /**
      * click on notification body
      */

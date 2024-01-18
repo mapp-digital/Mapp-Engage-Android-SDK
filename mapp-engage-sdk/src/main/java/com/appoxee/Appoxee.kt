@@ -31,12 +31,12 @@ interface Appoxee {
             Logger.d(TAG, "engage($context, $options)")
         }
 
-        internal fun engage(context: Context) {
-            if (!::mInstance.isInitialized) {
-                mInstance = AppoxeeImpl(context.applicationContext)
-            }
-            Logger.d(TAG, "engage($context)")
-        }
+//        internal fun engage(context: Context) {
+//            if (!::mInstance.isInitialized) {
+//                mInstance = AppoxeeImpl(context.applicationContext)
+//            }
+//            Logger.d(TAG, "engage($context)")
+//        }
 
         @JvmStatic
         fun instance(): Appoxee {
