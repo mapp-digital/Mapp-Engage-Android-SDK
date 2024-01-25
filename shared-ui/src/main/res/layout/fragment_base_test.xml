@@ -75,6 +75,11 @@
                 android:layout_height="wrap_content"
                 android:text="Get Device" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetFbToken"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Firebase Token" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFetchInboxMessages"
