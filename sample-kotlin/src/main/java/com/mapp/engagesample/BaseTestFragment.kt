@@ -1,9 +1,12 @@
 package com.mapp.engagesample
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
@@ -73,6 +76,10 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
             }
         }
 
+        binding.btnGetFbToken.setOnClickListener {
+            getFirebaseToken()
+        }
+
         binding.btnFetchInboxMessages.setOnClickListener {
             lifecycleScope.launch {
                 val result = Appoxee.instance().fetchInboxMessages("app_inbox").asSuspend()
@@ -124,9 +131,68 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
     }
 
     override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        binding.switchReady.apply {
-            isEnabled = false
-            isChecked = status
+        binding.root.post {
+            binding.switchReady.apply {
+                isEnabled = false
+                isChecked = status
+            }
+
+            isPushEnabled()
+
+            mappResult.getData()?.let {
+                val device = "UDIDHashed\n${it.udidHashed}"
+                binding.tvDevice.text = device
+            }
+        }
+    }
+
+    private fun pushEnable(enabled: Boolean) {
+        lifecycleScope.launch {
+            val call = Appoxee.instance().enablePush(enabled, null)
+            val result = call.asSuspend()
+            val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
+            Util.showDialog(
+                requireContext(),
+                "Push status",
+                "Action $actionStatus\nStatus:${enabled}"
+            )
+        }
+    }
+
+    private fun isPushEnabled() {
+        lifecycleScope.launch {
+            val call = Appoxee.instance().isPushEnabled()
+            val result = call.asSuspend()
+            if (result.isSuccess()) {
+                val enabled = result.getData() ?: false
+                binding.switchPushEnabled.also {
+                    it.setOnCheckedChangeListener(null)
+                    it.isChecked = enabled
+                    it.setOnCheckedChangeListener { _, isChecked ->
+                        pushEnable(isChecked)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getFirebaseToken() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().getFirebaseToken().asSuspend()
+            if (result.isSuccess()) {
+                result.getData()?.let {
+                    // copy token to clipboard
+                    val clipboard = getSystemService(
+                        requireContext(),
+                        ClipboardManager::class.java
+                    ) as ClipboardManager
+                    val clip = ClipData.newPlainText("token", it)
+                    clipboard.setPrimaryClip(clip)
+
+                    // show dialog with token value
+                    Util.showDialog(requireContext(), "Firebase token", it)
+                }
+            }
         }
     }
 

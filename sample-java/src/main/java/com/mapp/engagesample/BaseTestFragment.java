@@ -217,15 +217,12 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
         if (payload != null) {
             sb.append("UDIDHashed: ").append("\n").append(payload.getUdidHashed());
         }
+
+        isPushEnabled();
+
         mainExecutor.post(() -> {
             binding.switchReady.setChecked(status);
             binding.tvDevice.setText(sb.toString());
-
-            binding.switchPushEnabled.setOnCheckedChangeListener(null);
-            binding.switchPushEnabled.setChecked(payload != null && payload.getPushToken() != null);
-            binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                pushEnable(isChecked);
-            });
         });
     }
 
@@ -240,7 +237,8 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     }
 
     private void pushEnable(boolean enabled) {
-        Appoxee.instance().enablePush(enabled).enqueue(result -> {
+        Call<Boolean> call = Appoxee.instance().enablePush(enabled, null);
+        call.enqueue(result -> {
             boolean data = Boolean.TRUE.equals(result.getData());
             Util.showDialog(requireContext(), "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
         });
@@ -255,5 +253,28 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
         } else {
             Log.e(TAG, "ERROR IN MAIN ACTIVITY: " + result.getError());
         }
+    }
+
+    private void isPushEnabled() {
+        Call<Boolean> call = Appoxee.instance().isPushEnabled();
+        call.enqueue(result -> {
+            if (result.isSuccess()) {
+                Boolean enabled = result.getData();
+                binding.switchPushEnabled.setOnCheckedChangeListener(null);
+                binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
+                binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    pushEnable(isChecked);
+                });
+            }
+        });
+    }
+
+    private void setToken() {
+        Call<String> call = Appoxee.instance().getFirebaseToken();
+        call.enqueue(result -> {
+            if (result.isSuccess()) {
+                String token = result.getData();
+            }
+        });
     }
 }

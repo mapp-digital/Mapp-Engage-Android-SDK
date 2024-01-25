@@ -8,8 +8,8 @@ import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
@@ -214,13 +214,21 @@ internal class AppoxeeImpl(
         appoxeeAdapter.fetchInappMessages(eventName)
     }
 
-    override fun enablePush(enabled: Boolean): Call<Boolean> = buildHttpCall {
-        val token = FirebaseMessaging.getInstance().token.await()
+    override fun enablePush(enabled: Boolean, token: String?): Call<Boolean> = buildHttpCall {
+        val fbToken = token ?: FirebaseMessaging.getInstance().token.await()
         if (enabled) {
-            appoxeeAdapter.optIn(token)
+            appoxeeAdapter.optIn(fbToken)
         } else {
-            appoxeeAdapter.optOut(token)
+            appoxeeAdapter.optOut(fbToken)
         }
+    }
+
+    override fun isPushEnabled(): Call<Boolean> = buildHttpCall {
+        !storage.getDevicePayload()?.pushToken.isNullOrEmpty()
+    }
+
+    override fun getFirebaseToken(): Call<String?> = buildHttpCall {
+        storage.getDevicePayload()?.pushToken
     }
 
     override fun addTags(tags: List<String>): Call<Boolean> = buildHttpCall {
