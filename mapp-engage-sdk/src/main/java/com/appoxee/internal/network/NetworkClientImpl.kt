@@ -93,7 +93,7 @@ internal class NetworkClientImpl(
 
                 response = resolveResponse(adapter, statusCode, result, error)
             } catch (e: Exception) {
-                val error: String? = errorStream.convertToString()?.also {
+                val error: String? = e.message+ errorStream.convertToString()?.also {
                     Logger.e(
                         TAG,
                         "\nRESPONSE - ${requestMethod}: ${this.url}\nErrorBody: $it"

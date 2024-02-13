@@ -41,13 +41,28 @@ dependencyResolutionManagement {
             library("media3-exoplayer-dash","androidx.media3:media3-exoplayer-dash:1.2.0")
             library("media3-ui","androidx.media3:media3-ui:1.2.0")
 
+            //test
+            library("junit4","junit:junit:4.13.2")
+            library("jupiter","org.junit.jupiter:junit-jupiter:5.10.1")
+            library("mockk","io.mockk:mockk:1.13.8")
+            library("truth","com.google.truth:truth:1.2.0")
+            library("json","org.json:json:20180813")
+            library("okhttp3-mockwebserver","com.squareup.okhttp3:mockwebserver:4.11.0")
+
+            //androidTest
+            library("androidx-test-junit","androidx.test.ext:junit:1.1.5")
+            library("androidx-test-espresso","androidx.test.espresso:espresso-core:3.5.1")
+            library("androidx-test-core","androidx.test:core:1.5.0")
+            library("androidx-test-mockk","io.mockk:mockk-android:1.13.8")
+
             //bundles
             bundle("base", listOf("core-ktx", "appcompat","material","lifecycle-runtime-ktx","coroutines-ktx"))
             bundle("datastore", listOf("datastore-preferences"))
             bundle("ui-components", listOf("recycler","constraintlayout"))
             bundle("coil", listOf("coil","coil-gif"))
             bundle("exoplayer", listOf("media3-exoplayer","media3-exoplayer-dash","media3-ui"))
-
+            bundle("test", listOf("junit4","jupiter","mockk","truth","json","okhttp3-mockwebserver"))
+            bundle("androidTest", listOf("androidx-test-junit","androidx-test-espresso","androidx-test-core", "androidx-test-mockk", "truth","jupiter"))
         }
     }
 }

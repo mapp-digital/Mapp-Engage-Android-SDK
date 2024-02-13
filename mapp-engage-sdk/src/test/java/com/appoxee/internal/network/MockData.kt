@@ -1,7 +1,29 @@
 package com.appoxee.internal.network
 
+import com.appoxee.internal.push.model.PushData
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.NotificationMode
+
 object MockData {
-    const val GET_DEVICE_RESPONSE="{\n" +
+    internal fun getPushData(type: String = "text"): PushData {
+        return PushData(
+            id = 1L,
+            title = "Push title",
+            alert = "New alert message",
+            bigText = "Big text for a push message",
+            type = type
+        )
+    }
+
+    val appoxeeOptions =
+        AppoxeeOptions(server = AppoxeeOptions.Server.L3, "12345.67890", "1234", "5678").also {
+            it.connectionTimeout = 5000
+            it.readTimeout = 5000
+            it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
+            it.logType = AppoxeeOptions.LogLevel.DEBUG
+        }
+
+    const val GET_DEVICE_RESPONSE = "{\n" +
             "    \"links\": [],\n" +
             "    \"metadata\": {\n" +
             "        \"error\": false,\n" +

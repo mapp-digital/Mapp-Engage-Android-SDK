@@ -48,6 +48,17 @@ android {
 
     buildFeatures {
         viewBinding = true
+        flavorDimensions += listOf("main")
+    }
+    productFlavors {
+        create("app"){
+            dimension=flavorDimensions[0]
+            minSdk=21
+        }
+        create("tst") {
+            dimension = flavorDimensions.get(0)
+            minSdk=23
+        }
     }
 }
 

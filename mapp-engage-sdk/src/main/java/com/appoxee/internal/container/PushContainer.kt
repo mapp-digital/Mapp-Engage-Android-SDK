@@ -9,7 +9,7 @@ import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.style.NotificationStyleFactory
 
 internal class PushContainer(
-    context: Context
+    private val context: Context
 ) {
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
     private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
@@ -30,6 +30,7 @@ internal class PushContainer(
 
     internal val pushManager: PushManager by lazy {
         PushManagerImpl(
+            context,
             notificationManager,
             notificationFactory,
             storageContainer.storage,

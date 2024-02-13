@@ -1,8 +1,11 @@
 package com.appoxee.internal.push.base
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
@@ -20,6 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 internal class PushManagerImpl(
+    private val context: Context,
     private val notificationManager: NotificationManagerCompat,
     private val notificationFactory: NotificationFactory,
     private val storage: Storage,
@@ -62,7 +66,7 @@ internal class PushManagerImpl(
                         val notificationId = Random.nextInt(1, 100_000)
                         val notification = createNotification(pushData, notificationId)
                         withContext(Dispatchers.Main) {
-                            showNotification(notification, notificationId)
+                            showNotification(context, notification, notificationId)
                         }
                     }
                 }
@@ -90,7 +94,19 @@ internal class PushManagerImpl(
         }
     }
 
-    override fun showNotification(notification: Notification, notificationId: Int) {
+    override fun showNotification(
+        context: Context,
+        notification: Notification,
+        notificationId: Int
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val postNotificationPermission =
+                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            if (postNotificationPermission != PackageManager.PERMISSION_GRANTED) {
+                Logger.e(TAG, "Permission ${Manifest.permission.POST_NOTIFICATIONS} is not granted!!!")
+                return
+            }
+        }
         notificationManager.notify(notificationId, notification)
     }
 
