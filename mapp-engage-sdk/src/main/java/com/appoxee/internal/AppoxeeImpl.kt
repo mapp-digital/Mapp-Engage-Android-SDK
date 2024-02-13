@@ -84,10 +84,13 @@ internal class AppoxeeImpl(
 
     init {
         Logger.init(context.applicationContext as Application)
+
         (context.applicationContext as Application).registerActivityLifecycleCallbacks(
             activityLifecycleCallback
         )
+
         println("OPTIONS: $options")
+
         internalCoroutineContext.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(TAG, "exception in sdk init: $throwable")
         }) {

@@ -53,7 +53,7 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun getAlias(): String {
-        val response = engageApi.getDevice()
+        val response = engageApi.getAlias()
         return response.data?.payload?.alias ?: ""
     }
 

@@ -53,8 +53,19 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        flavorDimensions += listOf("main")
     }
-    //android.buildFeatures.buildConfig = true
+
+    productFlavors {
+        create("app"){
+            dimension=flavorDimensions[0]
+            minSdk=21
+        }
+        create("tst") {
+            dimension = flavorDimensions.get(0)
+            minSdk=23
+        }
+    }
 }
 
 dependencies {
@@ -66,18 +77,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
-    testImplementation("io.mockk:mockk:1.13.8")
-    testImplementation("com.google.truth:truth:1.1.5")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20180813")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
+    testImplementation(libs.bundles.test)
 
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
-    androidTestImplementation("io.mockk:mockk-android:1.13.8")
-    androidTestImplementation("com.google.truth:truth:1.1.5")
-    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation(libs.bundles.androidTest)
 }

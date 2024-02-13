@@ -1,6 +1,8 @@
 package com.mapp.engagesample;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.appoxee.Appoxee;
@@ -56,6 +59,7 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        requestPostNotificationPermission();
 
         binding.switchReady.setEnabled(false);
 
@@ -178,12 +182,29 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
                 Util.showDialog(requireContext(), "Activate", String.valueOf(result.getData()));
             });
         });
+
+        binding.btnGetFbToken.setOnClickListener(v -> {
+            Appoxee.instance().getFirebaseToken().enqueue(result -> {
+                if (!result.isSuccess() || result.getData() == null) return;
+
+                String token = result.getData();
+                // copy token to clipboard
+                ClipboardManager clipboard = ContextCompat.getSystemService(
+                        requireContext(),
+                        ClipboardManager.class
+                );
+                ClipData clip = ClipData.newPlainText("token", token);
+                if (clip != null && clipboard != null) {
+                    clipboard.setPrimaryClip(clip);
+
+                    // show dialog with token value
+                    Util.showDialog(requireContext(), "Firebase token", token);
+                }
+            });
+        });
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        Appoxee.instance().subscribe(this);
+    private void requestPostNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             PermissionHelper permissionHelper = new PermissionHelper(requireActivity().getActivityResultRegistry());
             List<String> permissions = new ArrayList<>();
