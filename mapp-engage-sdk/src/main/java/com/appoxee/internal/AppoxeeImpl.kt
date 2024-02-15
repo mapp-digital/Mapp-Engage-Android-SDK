@@ -49,9 +49,9 @@ internal class AppoxeeImpl(
 
     private val mutex = Mutex()
 
-    private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
+    private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
 
-    private val mIsReady = AtomicBoolean(false)
+    private val mIsReady by lazy { AtomicBoolean(false) }
 
     private val pushQueue = mutableSetOf<RemoteMessage>()
 
@@ -227,7 +227,8 @@ internal class AppoxeeImpl(
     }
 
     override fun isPushEnabled(): Call<Boolean> = buildHttpCall {
-        !storage.getDevicePayload()?.pushToken.isNullOrEmpty()
+        val devicePayload = storage.getDevicePayload()
+        !devicePayload?.pushToken.isNullOrEmpty()
     }
 
     override fun getFirebaseToken(): Call<String?> = buildHttpCall {
@@ -269,16 +270,17 @@ internal class AppoxeeImpl(
 
     override fun subscribe(observer: AppoxeeObserver) {
         internalCoroutineContext.launch {
-            val payload = storage.getDevicePayload()
-            payload?.let {
+            mutex.withLock {
+                val payload = storage.getDevicePayload()
                 withContext(Dispatchers.Main) {
+                    observers.add(observer)
+                    val device = payload ?: return@withContext
                     observer.onReadyStatusChanged(
                         isReady(),
-                        MappResult.Success(data = it)
+                        MappResult.Success(data = device)
                     )
                 }
             }
-            observers.add(observer)
         }
     }
 
