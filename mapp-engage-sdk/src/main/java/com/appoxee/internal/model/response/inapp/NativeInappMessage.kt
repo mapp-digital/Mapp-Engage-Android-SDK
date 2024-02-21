@@ -7,11 +7,11 @@ import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
 data class NativeInappMessage(
-    val templateId: String,
-    val content: String,
-    val type: Int,
-    val behaviour: Behaviour?,
-    val location: Location?,
+    override val templateId: String,
+    override val content: String,
+    override val type: Int,
+    override val behaviour: Behaviour?,
+    override val location: Location?,
     val imageUrl: String?,
     val title: String,
     val titleColor: String?,
@@ -19,7 +19,7 @@ data class NativeInappMessage(
     val contentColor: String?,
     val buttons: List<InappButton>,
     val contentTemplateId: String
-) {
+) : Message(templateId, content, type, behaviour, location) {
     companion object {
         fun fromJSON(json: JSONObject): NativeInappMessage {
             return NativeInappMessage(

@@ -3,14 +3,13 @@ package com.appoxee.internal.model.response.inapp
 import com.appoxee.internal.util.getLongOrDefault
 import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
-
-data class WebInappMessage(
-    val templateId: String,
-    val content: String,
-    val type: Int,
-    val behaviour: Behaviour?,
-    val location: Location?
-) {
+ data class WebInappMessage(
+    override val templateId: String,
+    override val content: String,
+    override val type: Int,
+    override val behaviour: Behaviour?,
+    override val location: Location?
+) : Message(templateId, content, type, behaviour, location) {
     companion object {
         fun fromJSON(json: JSONObject): WebInappMessage {
             return WebInappMessage(

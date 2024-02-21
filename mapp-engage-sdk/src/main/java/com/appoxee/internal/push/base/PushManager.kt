@@ -8,7 +8,7 @@ import com.google.firebase.messaging.RemoteMessage
 internal interface PushManager {
     fun handlePushMessage(remoteMessage: RemoteMessage)
 
-    fun isPushMessageFromMapp(pushData: PushData): Boolean
+    fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
 
     suspend fun createNotification(pushData: PushData, notificationId: Int): Notification
 

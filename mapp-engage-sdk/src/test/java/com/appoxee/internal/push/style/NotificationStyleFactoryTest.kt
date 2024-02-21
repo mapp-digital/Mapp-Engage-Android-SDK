@@ -3,6 +3,7 @@ package com.appoxee.internal.push.style
 import com.appoxee.internal.network.MockData
 import com.google.common.truth.Truth
 import io.mockk.spyk
+import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -17,7 +18,7 @@ class NotificationStyleFactoryTest {
 
     @After
     fun tearDown() {
-
+        unmockkAll()
     }
 
     @Test

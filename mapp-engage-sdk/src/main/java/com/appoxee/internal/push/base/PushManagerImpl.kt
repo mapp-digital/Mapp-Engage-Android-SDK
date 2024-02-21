@@ -24,6 +24,7 @@ import kotlin.random.Random
 
 internal class PushManagerImpl(
     private val context: Context,
+    private val scope: CoroutineScope,
     private val notificationManager: NotificationManagerCompat,
     private val notificationFactory: NotificationFactory,
     private val storage: Storage,
@@ -32,8 +33,6 @@ internal class PushManagerImpl(
 ) : PushManager {
 
     private val TAG = PushManagerImpl::class.java.name
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     private lateinit var options: AppoxeeOptions
     private suspend fun getOptions(): AppoxeeOptions {
@@ -49,9 +48,10 @@ internal class PushManagerImpl(
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
         scope.launch {
+            if(!isPushMessageFromMapp(remoteMessage)) return@launch
+
             val pushData = remoteMessage.toPushData()
-            val notificationMode = getNotificationMode()
-            when (notificationMode) {
+            when (getNotificationMode()) {
                 NotificationMode.SILENT_ONLY -> {
                     Logger.d(TAG, "SILENT ONLY $pushData")
                 }
@@ -61,21 +61,32 @@ internal class PushManagerImpl(
                 }
 
                 else -> {
-                    scope.launch {
-                        Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData")
-                        val notificationId = Random.nextInt(1, 100_000)
-                        val notification = createNotification(pushData, notificationId)
-                        withContext(Dispatchers.Main) {
-                            showNotification(context, notification, notificationId)
-                        }
+                    Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData")
+                    val notificationId = Random.nextInt(1, 100_000)
+                    val notification = createNotification(pushData, notificationId)
+                    withContext(Dispatchers.Main) {
+                        showNotification(context, notification, notificationId)
                     }
                 }
             }
         }
     }
 
-    override fun isPushMessageFromMapp(pushData: PushData): Boolean {
-        return pushData.id != 0L && pushData.category != null && pushData.userId != null && pushData.customerId != null
+    override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
+        return try {
+            val id = remoteMessage.data["p"]
+            val category = remoteMessage.data["category"]
+            val userId = remoteMessage.data["user_id"]
+            val customerId = remoteMessage.data["customer_id"]
+            id != null && category != null && userId != null && customerId != null
+        } catch (e: Exception) {
+            false
+        }
+
+//        return pushData.id != 0L && /* id == 'p' parameter */
+//                pushData.category != null &&
+//                pushData.userId != null &&
+//                pushData.customerId != null
     }
 
     override suspend fun createNotification(pushData: PushData, notificationId: Int): Notification {
@@ -103,7 +114,10 @@ internal class PushManagerImpl(
             val postNotificationPermission =
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
             if (postNotificationPermission != PackageManager.PERMISSION_GRANTED) {
-                Logger.e(TAG, "Permission ${Manifest.permission.POST_NOTIFICATIONS} is not granted!!!")
+                Logger.e(
+                    TAG,
+                    "Permission ${Manifest.permission.POST_NOTIFICATIONS} is not granted!!!"
+                )
                 return
             }
         }

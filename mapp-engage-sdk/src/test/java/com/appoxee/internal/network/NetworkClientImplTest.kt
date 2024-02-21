@@ -15,6 +15,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.spyk
+import io.mockk.unmockkAll
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -60,6 +61,7 @@ internal class NetworkClientImplTest {
     fun tearDown() {
         server.close()
         server.shutdown()
+        unmockkAll()
     }
 
     @Test

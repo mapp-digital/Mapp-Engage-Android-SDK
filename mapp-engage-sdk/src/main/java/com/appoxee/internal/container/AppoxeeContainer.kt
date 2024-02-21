@@ -13,6 +13,7 @@ import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.internal.storage.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 internal class AppoxeeContainer(
     context: Context,
@@ -20,7 +21,7 @@ internal class AppoxeeContainer(
 ) {
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = context) }
 
-    internal val baseScope: CoroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
+    internal val baseScope: CoroutineScope by lazy { CoroutineScope(Dispatchers.IO + SupervisorJob()) }
 
     internal val networkClient: NetworkClient by lazy {
         NetworkClientImpl(storage)
