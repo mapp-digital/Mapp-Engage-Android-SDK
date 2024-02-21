@@ -29,7 +29,6 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentBaseTestBinding.inflate(layoutInflater)
-        Appoxee.instance().subscribe(this)
         return binding.root
     }
 
@@ -94,13 +93,14 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
 
         binding.btnFetchInappMessages.setOnClickListener {
             lifecycleScope.launch {
-                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
-                Util.showDialog(
-                    requireContext(),
-                    "Inapp Messages",
-                    if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
+//                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
+//                Util.showDialog(
+//                    requireContext(),
+//                    "Inapp Messages",
+//                    if (result.isSuccess()) result.getData().toString()
+//                    else result.getError().toString()
+//                )
+                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
             }
         }
 
@@ -130,6 +130,10 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        Appoxee.instance().subscribe(this)
+    }
     override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
         binding.root.post {
             binding.switchReady.apply {
@@ -196,9 +200,13 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         }
     }
 
+    override fun onPause() {
+        Appoxee.instance().unsubscribe(this)
+        super.onPause()
+    }
+
     override fun onDestroyView() {
         _binding = null
-        Appoxee.instance().unsubscribe(this)
         super.onDestroyView()
     }
 }

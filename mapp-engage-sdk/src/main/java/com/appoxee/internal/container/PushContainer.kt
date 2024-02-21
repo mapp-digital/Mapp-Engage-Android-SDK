@@ -7,9 +7,11 @@ import com.appoxee.internal.push.base.PushManager
 import com.appoxee.internal.push.base.PushManagerImpl
 import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.style.NotificationStyleFactory
+import kotlinx.coroutines.CoroutineScope
 
 internal class PushContainer(
-    private val context: Context
+    private val context: Context,
+    private val scope: CoroutineScope
 ) {
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
     private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
@@ -31,6 +33,7 @@ internal class PushContainer(
     internal val pushManager: PushManager by lazy {
         PushManagerImpl(
             context,
+            scope,
             notificationManager,
             notificationFactory,
             storageContainer.storage,

@@ -107,7 +107,7 @@ internal class MediaDialog : DialogFragment() {
             }
             scaleType = ImageView.ScaleType.CENTER
             setBackgroundColor(Color.TRANSPARENT)
-            setImageResource(R.drawable.mapp_ic_close)
+            setImageResource(R.drawable.me_ic_close)
             imageTintList = ContextCompat.getColorStateList(requireContext(), android.R.color.white)
             container?.addView(this)
         }

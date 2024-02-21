@@ -13,6 +13,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.push.base.PushManagerImpl
+import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -30,6 +31,7 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import net.bytebuddy.utility.RandomString
 import org.junit.After
@@ -43,10 +45,12 @@ class AppoxeeImplTest {
     private lateinit var appoxee: AppoxeeImpl
     private lateinit var engageApiImpl: EngageApiImpl
     private lateinit var storage: Storage
+    private lateinit var scope: CoroutineScope
 
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Application>()
+        scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val appoxeeOptions = spyk(
             AppoxeeOptions(
                 server = AppoxeeOptions.Server.L3,
@@ -60,9 +64,9 @@ class AppoxeeImplTest {
 
         engageApiImpl = mockk<EngageApiImpl>(relaxed = true)
 
-        storage = mockk<Storage>(relaxed = true)
+        storage = mockk<InMemoryStorageImpl>(relaxed = true)
 
-        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions))
+        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, scope))
 
         val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage)) {
             coEvery { this@spyk["refreshDevicePayload"]() as Unit } just Runs
@@ -318,20 +322,13 @@ class AppoxeeImplTest {
     fun updateReadyStatus() {
         runBlocking {
             val status = true
-            val devicePayload = mockk<DevicePayload>()
+            val devicePayload = mockk<DevicePayload>(relaxed = true, relaxUnitFun = true)
             val result = MappResult.Success(devicePayload)
 
-            val observer = mockk<AppoxeeObserver>() {
-                every { onReadyStatusChanged(status, any()) } just Runs
-            }
+            val observer = mockk<AppoxeeObserver>(relaxed = true, relaxUnitFun = true)
 
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
 
-            every { appoxee.getProperty("internalCoroutineContext") as CoroutineScope } answers {
-                CoroutineScope(
-                    Dispatchers.Unconfined
-                )
-            }
             appoxee.updateReadyStatus(status, result)
             appoxee.subscribe(observer)
 
@@ -347,12 +344,6 @@ class AppoxeeImplTest {
             }
 
             val observers: MutableSet<AppoxeeObserver> = mockk(relaxed = true)
-
-            every { appoxee.getProperty("internalCoroutineContext") as CoroutineScope } answers {
-                CoroutineScope(
-                    Dispatchers.Unconfined
-                )
-            }
 
             every { appoxee.getProperty("observers") as MutableSet<*> } answers { observers }
 
@@ -370,12 +361,6 @@ class AppoxeeImplTest {
 
             val observers: MutableSet<AppoxeeObserver> = mockk(relaxed = true)
 
-            every { appoxee.getProperty("internalCoroutineContext") as CoroutineScope } answers {
-                CoroutineScope(
-                    Dispatchers.Unconfined
-                )
-            }
-
             every { appoxee.getProperty("observers") as MutableSet<*> } answers { observers }
 
             appoxee.unsubscribe(observer)
@@ -386,13 +371,7 @@ class AppoxeeImplTest {
     @Test
     fun handlePushMessage() {
         runBlocking {
-            // val appoxee = mockkClass(type = AppoxeeImpl::class, relaxed = true, relaxUnitFun = true)
             val remoteMessage = mockk<RemoteMessage>(relaxed = true)
-            every { appoxee.getProperty("internalCoroutineContext") as CoroutineScope } answers {
-                CoroutineScope(
-                    Dispatchers.Unconfined
-                )
-            }
             appoxee.handlePushMessage(remoteMessage)
             verify { appoxee.handlePushMessage(any()) }
         }
@@ -406,13 +385,6 @@ class AppoxeeImplTest {
             }
 
             val remoteMessage: RemoteMessage = mockk(relaxed = true, relaxUnitFun = true)
-
-            every { appoxee.getProperty("internalCoroutineContext") as CoroutineScope } answers {
-                CoroutineScope(
-                    Dispatchers.Unconfined
-                )
-            }
-
 
             val pushContainer: PushContainer = mockk(relaxed = true)
             val pushManager: PushManagerImpl = mockk(relaxed = true)

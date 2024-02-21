@@ -2,6 +2,7 @@
 
 package com.appoxee.internal
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import com.appoxee.Appoxee
@@ -15,13 +16,14 @@ import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
+import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
-import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.ActivityLifecycleHandler
+import com.appoxee.internal.ui.banner.BannerFactory
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -42,7 +44,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
     context: Context,
-    options: AppoxeeOptions? = null,
+    private val options: AppoxeeOptions? = null,
+    private val internalScope: CoroutineScope
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
@@ -72,12 +75,10 @@ internal class AppoxeeImpl(
     internal val deviceProvider: DeviceProvider
         get() = appoxeeContainer.deviceProvider
 
-    internal val callCoroutineContext
+    internal val callCoroutineScope
         get() = appoxeeContainer.baseScope
 
-    internal val pushContainer: PushContainer by lazy { PushContainer(context) }
-
-    private val internalCoroutineContext by lazy { CoroutineScope(Dispatchers.IO) }
+    internal val pushContainer: PushContainer by lazy { PushContainer(context, internalScope) }
 
     internal val activityLifecycleCallback =
         ActivityLifecycleHandler(context.applicationContext)
@@ -91,7 +92,7 @@ internal class AppoxeeImpl(
 
         println("OPTIONS: $options")
 
-        internalCoroutineContext.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
+        internalScope.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(TAG, "exception in sdk init: $throwable")
         }) {
             // save config to local storage if not null
@@ -214,7 +215,38 @@ internal class AppoxeeImpl(
         }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
-        appoxeeAdapter.fetchInappMessages(eventName)
+        val response = appoxeeAdapter.fetchInappMessages(eventName)
+        response
+    }
+
+    override fun triggerInApp(context: Activity, eventName: String) {
+        callCoroutineScope.launch {
+            val messages = mutableListOf<Message>()
+
+            val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
+
+            if (inappResponse?.nativeMessages.isNullOrEmpty() && inappResponse?.webMessages.isNullOrEmpty()) {
+                return@launch
+            }
+
+            inappResponse?.nativeMessages?.let { messages.addAll(it) }
+            inappResponse?.webMessages?.let { messages.addAll(it) }
+
+            withContext(Dispatchers.Main) {
+                val sortedMessages = messages.sortedBy { it.templateId }.toMutableList()
+                displayMessage(context, sortedMessages)
+            }
+        }
+    }
+
+    private fun displayMessage(context: Activity, messages: MutableList<Message>) {
+        if (messages.isEmpty()) return
+        val message = messages.first()
+        messages.removeFirst()
+        BannerFactory.createBanner(context, message) {
+            if (messages.isNotEmpty())
+                displayMessage(context, messages)
+        }
     }
 
     override fun enablePush(enabled: Boolean, token: String?): Call<Boolean> = buildHttpCall {
@@ -269,7 +301,7 @@ internal class AppoxeeImpl(
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
-        internalCoroutineContext.launch {
+        internalScope.launch {
             mutex.withLock {
                 val payload = storage.getDevicePayload()
                 withContext(Dispatchers.Main) {
@@ -289,7 +321,7 @@ internal class AppoxeeImpl(
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
-        internalCoroutineContext.launch {
+        internalScope.launch {
             mutex.withLock {
                 if (mIsReady.get()) {
                     withContext(Dispatchers.Main) {
@@ -303,7 +335,7 @@ internal class AppoxeeImpl(
     }
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
-        return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage.toPushData())
+        return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
 
     override fun testCall(): Call<String> = buildHttpCall {
@@ -357,7 +389,7 @@ internal class AppoxeeImpl(
         appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
     }
 
-    private fun saveConfiguration(options: AppoxeeOptions) = internalCoroutineContext.launch {
+    private fun saveConfiguration(options: AppoxeeOptions) = internalScope.launch {
         storage.saveInitOptions(options)
     }
 
@@ -378,7 +410,7 @@ internal class AppoxeeImpl(
     private fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope = callCoroutineContext, call)
+        return HttpCall(coroutineScope = callCoroutineScope, call)
     }
 
     private suspend fun <T> safeCall(

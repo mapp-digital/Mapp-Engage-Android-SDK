@@ -4,17 +4,22 @@ import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.util.Logger
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class MappMessagingService : FirebaseMessagingService() {
 
     private val TAG = MappMessagingService::class.java.name
+
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private lateinit var pushContainer: PushContainer
 
     override fun onCreate() {
         Logger.d(TAG, "MappMessagingService - onCreate()")
         super.onCreate()
-        pushContainer = PushContainer(this)
+        pushContainer = PushContainer(this, coroutineScope)
         instance = this
     }
 

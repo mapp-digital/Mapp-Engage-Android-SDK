@@ -1,5 +1,6 @@
 package com.appoxee
 
+import android.app.Activity
 import android.content.Context
 import android.os.Looper
 import com.appoxee.internal.AppoxeeImpl
@@ -13,6 +14,9 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.jetbrains.annotations.TestOnly
 
 /**
@@ -23,6 +27,7 @@ interface Appoxee {
     companion object {
         private val TAG = Appoxee::class.java.name
         private lateinit var mInstance: Appoxee
+        private val internalScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
         /**
          * Initialization method for the SDK.
@@ -37,7 +42,7 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            mInstance = AppoxeeImpl(context.applicationContext, options)
+            mInstance = AppoxeeImpl(context.applicationContext, options, internalScope)
             Logger.d(TAG, "engage($context, $options)")
         }
 
@@ -120,6 +125,11 @@ interface Appoxee {
     fun fetchInappMessages(
         eventName: String,
     ): Call<InappResponse?>
+
+    /**
+     * Get list of inapp messages from server and show them as proper dialog or fullscreen page
+     */
+    fun triggerInApp(context: Activity, eventName: String)
 
     /**
      * Add list of tags on a device
