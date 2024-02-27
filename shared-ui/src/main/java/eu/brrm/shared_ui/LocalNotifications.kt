@@ -58,6 +58,8 @@ object LocalNotifications {
             putString("big_text_body", "Big body text...")
             putString("category", "apx_read_open")
             putString("language", "en")
+            putString("user_id",random.nextLong(1000,100_000).toString())
+            putString("customer_id",random.nextLong(1000,100_000).toString())
             media?.entries?.first()?.let {
                 putString("type", it.key)
                 putString("ios_apx_media", it.value)

@@ -1,11 +1,16 @@
 package com.mapp.engagesample
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import eu.brrm.shared_ui.PermissionHelper
+import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.camelCaseToWords
 import eu.brrm.shared_ui.databinding.ActivityMainBinding
 
@@ -45,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
         navigate(HomeFragment())
+        requestPostNotificationPermission()
     }
 
     fun <T : Fragment> navigate(fragment: T) {
@@ -60,6 +66,21 @@ class MainActivity : AppCompatActivity() {
             true
         } else {
             super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun requestPostNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionHelper = PermissionHelper(this@MainActivity.activityResultRegistry)
+            val permissions: MutableList<String> = ArrayList()
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            permissionHelper.requestPermissions(this@MainActivity, permissions) { result ->
+                Toast.makeText(
+                    this@MainActivity,
+                    "Permission(s) granted: \n" + Util.permissionsToString(result),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

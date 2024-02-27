@@ -1,11 +1,14 @@
 package com.mapp.engagesample
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -14,8 +17,11 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
+import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
+import eu.brrm.shared_ui.Util.permissionsToString
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BaseTestFragment : Fragment(), AppoxeeObserver {
@@ -93,14 +99,14 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
 
         binding.btnFetchInappMessages.setOnClickListener {
             lifecycleScope.launch {
-//                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
-//                Util.showDialog(
-//                    requireContext(),
-//                    "Inapp Messages",
-//                    if (result.isSuccess()) result.getData().toString()
-//                    else result.getError().toString()
-//                )
-                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
+                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
+                Util.showDialog(
+                    requireContext(),
+                    "Inapp Messages",
+                    if (result.isSuccess()) result.getData().toString()
+                    else result.getError().toString()
+                )
+//                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
             }
         }
 
@@ -134,8 +140,9 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         super.onResume()
         Appoxee.instance().subscribe(this)
     }
+
     override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        binding.root.post {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             binding.switchReady.apply {
                 isEnabled = false
                 isChecked = status
@@ -147,6 +154,8 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
                 val device = "UDIDHashed\n${it.udidHashed}"
                 binding.tvDevice.text = device
             }
+
+
         }
     }
 
