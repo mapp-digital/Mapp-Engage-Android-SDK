@@ -1,5 +1,6 @@
 package com.appoxee.internal.push.base
 
+import androidx.core.app.NotificationCompat
 import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.PendingIntentProvider
 import com.appoxee.internal.push.model.CategoriesFactory
@@ -10,7 +11,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
@@ -54,7 +55,7 @@ class NotificationFactoryTest {
         }
 
         notificationBuilderFactory = mockk(relaxed = true) {
-            every { setPriority(any()) } returns this
+            every { setPriority(NotificationCompat.PRIORITY_HIGH) } returns this
             every { setContentTitle(pushData.title) } returns this
             every { setContentText(pushData.bigText) } returns this
             every { setLargeIcon(iconProvider.getLargeIcon()) } returns this
@@ -64,7 +65,7 @@ class NotificationFactoryTest {
             every { setSmallIcon(iconProvider.getSmallIconApi23()) } returns this
             every { setDeleteIntent(any()) } returns this
             every { setContentIntent(any()) } returns this
-            every { build() } returns mockk()
+            every { build() } returns mockk(relaxed = true)
         }
 
         notificationFactory = NotificationFactory(
@@ -77,20 +78,20 @@ class NotificationFactoryTest {
     }
 
     @Test
-    fun testCreateSimpleNotification() = runBlocking {
+    fun testCreateSimpleNotification() = runTest {
 
         val notificationId = 123
         val builder = notificationBuilderFactory
 
         val notification = notificationFactory.createSimpleNotification(pushData, notificationId)
 
-        verify(exactly = 1) { builder.setPriority(any()) }
-        verify(exactly = 1) { builder.setContentTitle(any()) }
-        verify(exactly = 1) { builder.setContentText(any()) }
-        verify(exactly = 1) { builder.setLargeIcon(any()) }
-        verify(exactly = 1) { builder.setAutoCancel(true) }
-        verify(exactly = 1) { builder.setStyle(any()) }
-        verify(exactly = 1) { builder.build() }
+        verify { builder.setPriority(any()) }
+        verify { builder.setContentTitle(any()) }
+        verify { builder.setContentText(any()) }
+        verify { builder.setLargeIcon(any()) }
+        verify { builder.setAutoCancel(true) }
+        verify { builder.setStyle(any()) }
+        verify { builder.build() }
 
         assertNotNull(notification)
     }

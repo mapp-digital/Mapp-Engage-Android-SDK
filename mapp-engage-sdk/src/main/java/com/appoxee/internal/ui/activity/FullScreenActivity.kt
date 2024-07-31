@@ -41,7 +41,6 @@ class FullScreenActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityFullScreenBinding
-
     private lateinit var statsClient: StatsClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
