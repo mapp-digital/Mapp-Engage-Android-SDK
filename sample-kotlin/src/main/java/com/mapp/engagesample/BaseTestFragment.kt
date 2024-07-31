@@ -8,8 +8,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.Toast
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.view.children
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
@@ -17,6 +19,7 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
+import com.google.android.material.button.MaterialButton
 import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.permissionsToString
@@ -139,6 +142,11 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
     override fun onResume() {
         super.onResume()
         Appoxee.instance().subscribe(this)
+        binding.llInnerContainer.children.forEach {
+            (it as? MaterialButton)?.let { btn ->
+                btn.isEnabled = btn.hasOnClickListeners()
+            }
+        }
     }
 
     override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {

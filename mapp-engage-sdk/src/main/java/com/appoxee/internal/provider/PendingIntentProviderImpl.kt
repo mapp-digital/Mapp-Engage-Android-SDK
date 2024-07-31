@@ -1,0 +1,92 @@
+package com.appoxee.internal.provider
+
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
+import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.push.model.PushUriType
+import com.appoxee.internal.push.model.PushUriType.Companion.toPushAction
+import com.appoxee.internal.ui.activity.FullScreenActivity
+import com.appoxee.internal.util.CompatExt
+
+internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
+    override fun createPendingIntent(pushData: PushData): PendingIntent? {
+        val pushUriType = pushData.getContentUriType()
+        val intent = if (pushUriType == null) {
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                setPackage(context.packageName)
+                action = Intent.ACTION_MAIN
+                putExtra("pushData", pushData)
+                putExtra("eventType", EventType.CLICK.ordinal)
+            }
+        } else {
+            FullScreenActivity.getIntent(context).apply {
+                setAction(pushUriType.toPushAction().value)
+                putExtra("pushData", pushData)
+                setData(pushData.actionUri)
+                putExtra("eventType", EventType.CLICK.ordinal)
+            }
+        }
+
+        return intent?.let {
+            PendingIntent.getActivity(
+                context,
+                pushData.id.toInt(),
+                it,
+                CompatExt.PENDING_INTENT_CANCEL_FLAGS
+            )
+        }
+    }
+
+    override fun createDismissPendingIntent(
+        notificationId: Int,
+        pushData: PushData?
+    ): PendingIntent {
+        val intent = Intent().apply {
+            setPackage(context.packageName)
+            putExtra("notificationId", notificationId)
+            putExtra("eventType", EventType.DISMISS.ordinal)
+            pushData?.let { putExtra("pushData", it) }
+            setClass(context, MappInternalBroadcastReceiver::class.java)
+            action = ClickType.DISMISS.value
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            notificationId,
+            intent,
+            CompatExt.PENDING_INTENT_CANCEL_FLAGS
+        )
+    }
+
+    override fun createCustomPendingIntent(
+        uriType: PushUriType,
+        actionData: String?,
+        pushData: PushData?,
+        notificationId: Int,
+        eventType: EventType
+    ): PendingIntent {
+        if (uriType == PushUriType.KEY_APP_DESTROY_PUSH) {
+            return createDismissPendingIntent(notificationId, pushData)
+        } else {
+            val intent = FullScreenActivity.getIntent(context).apply {
+                putExtra("notificationId", notificationId)
+                putExtra("eventType", eventType.ordinal)
+                action = uriType.toPushAction().value
+                actionData?.let { data = Uri.parse(it) }
+                pushData?.let { putExtra("pushData", it) }
+            }
+            return PendingIntent.getActivity(
+                context,
+                notificationId,
+                intent,
+                CompatExt.PENDING_INTENT_CANCEL_FLAGS
+            )
+        }
+    }
+}

@@ -7,6 +7,7 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import org.jetbrains.annotations.TestOnly
 
 class MappMessagingService : FirebaseMessagingService() {
 
@@ -43,8 +44,8 @@ class MappMessagingService : FirebaseMessagingService() {
     companion object {
         @Volatile
         @JvmStatic
+        @TestOnly
         var instance: MappMessagingService? = null
-            get
-            set
+            private set
     }
 }

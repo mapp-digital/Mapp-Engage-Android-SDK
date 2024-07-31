@@ -1,3 +1,7 @@
+@file:Suppress("UnstableApiUsage")
+
+import org.gradle.api.initialization.resolve.RepositoriesMode.FAIL_ON_PROJECT_REPOS
+
 pluginManagement {
     repositories {
         google()
@@ -6,7 +10,7 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
@@ -48,6 +52,7 @@ dependencyResolutionManagement {
             library("truth","com.google.truth:truth:1.2.0")
             library("json","org.json:json:20180813")
             library("okhttp3-mockwebserver","com.squareup.okhttp3:mockwebserver:4.11.0")
+            library( "kotlinx-coroutines-test","org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
 
             //androidTest
             library("androidx-test-junit","androidx.test.ext:junit:1.1.5")
@@ -61,7 +66,7 @@ dependencyResolutionManagement {
             bundle("ui-components", listOf("recycler","constraintlayout"))
             bundle("coil", listOf("coil","coil-gif"))
             bundle("exoplayer", listOf("media3-exoplayer","media3-exoplayer-dash","media3-ui"))
-            bundle("test", listOf("junit4","jupiter","mockk","truth","json","okhttp3-mockwebserver"))
+            bundle("test", listOf("junit4","jupiter","mockk","truth","json","okhttp3-mockwebserver", "kotlinx-coroutines-test"))
             bundle("androidTest", listOf("androidx-test-junit","androidx-test-espresso","androidx-test-core", "androidx-test-mockk", "truth","jupiter"))
         }
     }
