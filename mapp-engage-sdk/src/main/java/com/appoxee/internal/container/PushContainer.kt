@@ -10,6 +10,8 @@ import com.appoxee.internal.provider.PendingIntentProviderImpl
 import com.appoxee.internal.push.base.NotificationBuilder
 import com.appoxee.internal.push.base.NotificationBuilderImpl
 import com.appoxee.internal.push.base.NotificationFactory
+import com.appoxee.internal.push.base.Notify
+import com.appoxee.internal.push.base.NotifyImpl
 import com.appoxee.internal.push.base.PushManager
 import com.appoxee.internal.push.base.PushManagerImpl
 import com.appoxee.internal.push.model.CategoriesFactory
@@ -56,11 +58,12 @@ internal class PushContainer(
         )
     }
 
+    internal val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
+
     internal val pushManager: PushManager by lazy {
         PushManagerImpl(
-            context,
             scope,
-            notificationManager,
+            notify,
             notificationFactory,
             storageContainer.storage,
             NOTIFICATION_CHANNEL_ID,

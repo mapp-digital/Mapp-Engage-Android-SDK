@@ -1,13 +1,9 @@
 package com.appoxee.internal.push.base
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationManagerCompat
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushData.Companion.toPushData
@@ -23,9 +19,8 @@ import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 internal class PushManagerImpl(
-    private val context: Context,
     private val scope: CoroutineScope,
-    private val notificationManager: NotificationManagerCompat,
+    private val notify: Notify,
     private val notificationFactory: NotificationFactory,
     private val storage: Storage,
     private val notificationChannelId: String,
@@ -48,7 +43,7 @@ internal class PushManagerImpl(
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
         scope.launch {
-            if(!isPushMessageFromMapp(remoteMessage)) return@launch
+            if (!isPushMessageFromMapp(remoteMessage)) return@launch
 
             val pushData = remoteMessage.toPushData()
             when (getNotificationMode()) {
@@ -65,7 +60,7 @@ internal class PushManagerImpl(
                     val notificationId = Random.nextInt(1, 100_000)
                     val notification = createNotification(pushData, notificationId)
                     withContext(Dispatchers.Main) {
-                        showNotification(context, notification, notificationId)
+                        showNotification(notification, notificationId)
                     }
                 }
             }
@@ -82,49 +77,29 @@ internal class PushManagerImpl(
         } catch (e: Exception) {
             false
         }
-
-//        return pushData.id != 0L && /* id == 'p' parameter */
-//                pushData.category != null &&
-//                pushData.userId != null &&
-//                pushData.customerId != null
     }
 
     override suspend fun createNotification(pushData: PushData, notificationId: Int): Notification {
         return notificationFactory.createSimpleNotification(pushData, notificationId)
     }
 
+    @SuppressLint("InlinedApi")
     override fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager.createNotificationChannel(
-                NotificationChannel(
-                    notificationChannelId,
-                    notificationChannelName,
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                )
-            )
-        }
+        notify.createChannel(
+            notificationChannelId,
+            notificationChannelName,
+            NotificationManager.IMPORTANCE_DEFAULT,
+        )
     }
 
     override fun showNotification(
-        context: Context,
         notification: Notification,
         notificationId: Int
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val postNotificationPermission =
-                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-            if (postNotificationPermission != PackageManager.PERMISSION_GRANTED) {
-                Logger.e(
-                    TAG,
-                    "Permission ${Manifest.permission.POST_NOTIFICATIONS} is not granted!!!"
-                )
-                return
-            }
-        }
-        notificationManager.notify(notificationId, notification)
+        notify.showNotification(notification, notificationId)
     }
 
     override fun dismissNotification(notificationId: Int) {
-        notificationManager.cancel(notificationId)
+        notify.closeNotification(notificationId)
     }
 }

@@ -1,6 +1,5 @@
 package com.appoxee.internal.push.style
 
-import com.appoxee.internal.network.MockData
 import com.appoxee.internal.push.model.PushData
 import com.google.common.truth.Truth
 import io.mockk.every
