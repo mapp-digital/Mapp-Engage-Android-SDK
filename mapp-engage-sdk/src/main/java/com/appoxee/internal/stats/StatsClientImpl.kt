@@ -18,16 +18,16 @@ internal class StatsClientImpl(
         clickType: ClickType,
         eventType: EventType
     ) {
-        scope.launch {
-            val response = engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
-            if (response.isSuccess()) {
-                Logger.d(
-                    TAG,
-                    "Push Event sent successfully: $messageId, $sendoutId, ${clickType.name}, ${eventType.name}"
-                )
-            } else {
-                Logger.e(TAG, "Push Event sending error: ${response.error?.message}")
-            }
-        }
+//        scope.launch {
+//            val response = engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
+//            if (response.isSuccess()) {
+//                Logger.d(
+//                    TAG,
+//                    "Push Event sent successfully: $messageId, $sendoutId, ${clickType.name}, ${eventType.name}"
+//                )
+//            } else {
+//                Logger.e(TAG, "Push Event sending error: ${response.error?.message}")
+//            }
+//        }
     }
 }

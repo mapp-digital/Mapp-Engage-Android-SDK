@@ -1,12 +1,6 @@
 package com.appoxee.internal.push.base
 
-import android.Manifest
 import android.app.Notification
-import android.app.NotificationChannel
-import android.content.Context
-import android.content.pm.PackageManager
-import androidx.core.app.NotificationManagerCompat
-import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
@@ -19,9 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
-import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -35,28 +27,32 @@ import org.junit.Test
 
 class PushManagerImplTest {
     private lateinit var pushManager: PushManagerImpl
-    private lateinit var context: Context
-    private lateinit var notificationManager: NotificationManagerCompat
     private lateinit var notificationFactory: NotificationFactory
     private lateinit var storage: Storage
     private lateinit var scope: CoroutineScope
+    private lateinit var notify: Notify
 
-    private val CHANNEL_ID = "CHANNEL_ID_1"
-    private val CHANNEL_NAME = "CHANNEL_NAME"
+    private val CHANNEL_ID = "MAPP_NOTIFICATION_1"
+    private val CHANNEL_NAME = "MAPP_NOTIFICATION_CHANNEL"
 
     @Before
     fun setUp() {
-        context = spyk(ApplicationProvider.getApplicationContext())
-        notificationManager = spyk(NotificationManagerCompat.from(context))
-        notificationFactory = mockk<NotificationFactory>(relaxed = true)
+        notify = mockk(relaxed = true, relaxUnitFun = true)
+        notificationFactory = mockk<NotificationFactory>(relaxed = true) {
+            coEvery { createSimpleNotification(any(), any()) } coAnswers {
+                mockk(
+                    relaxed = true,
+                    relaxUnitFun = true
+                )
+            }
+        }
         storage = spyk(InMemoryStorageImpl())
         scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
 
         pushManager = spyk(
             PushManagerImpl(
-                context,
                 scope,
-                notificationManager,
+                notify,
                 notificationFactory,
                 storage,
                 CHANNEL_ID,
@@ -73,17 +69,27 @@ class PushManagerImplTest {
     @Test
     fun handlePushMessage() {
         runBlocking {
+            // setup test conditions
             val remoteMessage = mockk<RemoteMessage>(relaxed = true)
             val appoxeeOptions = mockk<AppoxeeOptions>(relaxed = true)
             every { appoxeeOptions.notificationMode } answers { NotificationMode.BACKGROUND_AND_FOREGROUND }
-            coEvery { pushManager.isPushMessageFromMapp(any()) } coAnswers { true }
+            coEvery { pushManager.isPushMessageFromMapp(remoteMessage) } coAnswers { true }
             coEvery { storage.getInitOptions() } coAnswers { appoxeeOptions }
             coEvery { pushManager.invokeNoArgs("getNotificationMode") } coAnswers { appoxeeOptions.notificationMode }
-            coEvery { storage.getInitOptions() } coAnswers { appoxeeOptions }
+            coEvery {
+                pushManager.createNotification(
+                    any(),
+                    any()
+                )
+            } coAnswers { mockk(relaxUnitFun = true, relaxed = true) }
+
+            // execute method to be tested
             pushManager.handlePushMessage(remoteMessage)
-            coVerify(exactly = 1) {
-                pushManager.showNotification(any(), any(), any())
-            }
+
+            // validates test results
+            verify { pushManager.isPushMessageFromMapp(any()) }
+            coVerify { pushManager.createNotification(any(), any()) }
+            verify { pushManager.showNotification(any(), any()) }
         }
     }
 
@@ -112,6 +118,7 @@ class PushManagerImplTest {
         runBlocking {
             val pushData = mockk<PushData>()
             val notification = pushManager.createNotification(pushData, 1)
+            coVerify { notificationFactory.createSimpleNotification(pushData,1) }
             Truth.assertThat(notification).isNotNull()
         }
     }
@@ -120,7 +127,7 @@ class PushManagerImplTest {
     fun createNotificationChannel() {
         runBlocking {
             pushManager.createNotificationChannel()
-            verify(exactly = 1) { notificationManager.createNotificationChannel(any<NotificationChannel>()) }
+            verify(exactly = 1) { notify.createChannel(any(), any(), any()) }
         }
     }
 
@@ -128,24 +135,17 @@ class PushManagerImplTest {
     fun showNotification() {
         runBlocking {
             val notification = mockk<Notification>()
-            every { context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) } answers { PackageManager.PERMISSION_GRANTED }
-            every {
-                notificationManager.notify(
-                    any(Int::class),
-                    any(Notification::class)
-                )
-            } just Runs
-            pushManager.showNotification(context, notification, 1)
-            verify(exactly = 1) { notificationManager.notify(1, notification) }
+
+            pushManager.showNotification(notification, 1)
+            verify(exactly = 1) { notify.showNotification(notification, 1) }
         }
     }
 
     @Test
     fun dismissNotification() {
         runBlocking {
-            every { notificationManager.cancel(any(Int::class)) } just Runs
             pushManager.dismissNotification(1)
-            verify { notificationManager.cancel(1) }
+            verify { notify.closeNotification(1) }
         }
     }
 }

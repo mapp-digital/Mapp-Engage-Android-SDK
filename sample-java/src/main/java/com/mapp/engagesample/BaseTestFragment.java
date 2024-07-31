@@ -28,6 +28,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -202,6 +203,18 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
                 }
             });
         });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Appoxee.instance().subscribe(this);
+        for (int i = 0; i < binding.llInnerContainer.getChildCount(); i++) {
+            View child = binding.llInnerContainer.getChildAt(i);
+            if (child instanceof MaterialButton) {
+                child.setEnabled(child.hasOnClickListeners());
+            }
+        }
     }
 
     private void requestPostNotificationPermission() {
