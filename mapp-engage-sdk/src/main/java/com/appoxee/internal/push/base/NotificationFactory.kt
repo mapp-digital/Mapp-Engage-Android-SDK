@@ -145,6 +145,7 @@ internal class NotificationFactory(
             val action = NotificationCompat.Action(
                 0, it.getLocalizedTitle(language), pendingIntent
             )
+
             builder.addAction(action)
         }
     }

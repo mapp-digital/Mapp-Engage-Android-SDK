@@ -12,8 +12,11 @@ import com.appoxee.internal.push.model.PushUriType
 import com.appoxee.internal.push.model.PushUriType.Companion.toPushAction
 import com.appoxee.internal.ui.activity.FullScreenActivity
 import com.appoxee.internal.util.CompatExt
+import kotlin.random.Random
 
 internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
+
+    private val random = Random(10000)
     override fun createPendingIntent(pushData: PushData): PendingIntent? {
         val pushUriType = pushData.getContentUriType()
         val intent = if (pushUriType == null) {
@@ -37,7 +40,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         return intent?.let {
             PendingIntent.getActivity(
                 context,
-                pushData.id.toInt(),
+                random.nextInt(100, 10000),
                 it,
                 CompatExt.PENDING_INTENT_CANCEL_FLAGS
             )
@@ -58,14 +61,14 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         }
         return PendingIntent.getBroadcast(
             context,
-            notificationId,
+            random.nextInt(100, 10000),
             intent,
             CompatExt.PENDING_INTENT_CANCEL_FLAGS
         )
     }
 
     override fun createCustomPendingIntent(
-        uriType: PushUriType,
+        uriType: PushUriType?,
         actionData: String?,
         pushData: PushData?,
         notificationId: Int,
@@ -83,10 +86,46 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
             }
             return PendingIntent.getActivity(
                 context,
-                notificationId,
+                random.nextInt(100, 10000),
                 intent,
                 CompatExt.PENDING_INTENT_CANCEL_FLAGS
             )
+        }
+    }
+
+    override fun createDelegateIntent(
+        clickType: ClickType,
+        eventType: EventType,
+        notificationId: Int,
+        pushData: PushData?,
+    ): Intent {
+        return Intent().apply {
+            setPackage(context.packageName)
+            putExtra("notificationId", notificationId)
+            putExtra("eventType", eventType.ordinal)
+            pushData?.let { putExtra("pushData", it) }
+            setClass(context, MappInternalBroadcastReceiver::class.java)
+            setAction(clickType.value)
+//            if (eventType == EventType.BUTTON1) {
+//                setAction(
+//                    pushData?.buttonList?.getOrNull(0)?.fgActions?.firstOrNull()?.getUriType()
+//                        .toPushAction().value
+//                )
+//            } else if (eventType == EventType.BUTTON2) {
+//                setAction(
+//                    pushData?.buttonList?.getOrNull(1)?.fgActions?.firstOrNull()?.getUriType()
+//                        .toPushAction().value
+//                )
+//            } else if (eventType == EventType.BUTTON3) {
+//                setAction(
+//                    pushData?.buttonList?.getOrNull(2)?.fgActions?.firstOrNull()?.getUriType()
+//                        .toPushAction().value
+//                )
+//            } else if (eventType == EventType.CLICK) {
+//                setAction(pushData?.getContentUriType().toPushAction().value)
+//            } else {
+//                setAction(ClickType.DISMISS.value)
+//            }
         }
     }
 }

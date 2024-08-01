@@ -6,10 +6,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.FrameLayout.LayoutParams
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.databinding.ActivityFullScreenBinding
 import com.appoxee.internal.Actions
 import com.appoxee.internal.AppoxeeImpl
+import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
@@ -42,11 +44,13 @@ class FullScreenActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFullScreenBinding
     private lateinit var statsClient: StatsClient
+    private lateinit var pushContainer: PushContainer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
         super.onCreate(savedInstanceState)
         binding = ActivityFullScreenBinding.inflate(layoutInflater)
+        pushContainer = PushContainer(this, lifecycleScope)
         statsClient = StatsContainer(this).statsClient
         handleIntent(intent)
     }
@@ -57,40 +61,41 @@ class FullScreenActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        intent?.let {
-            val notificationId = it.getIntExtra("notificationId", 0)
+        intent?.let { internalIntent ->
+            val pushData = internalIntent.extras?.getParcelableCompat<PushData>("pushData")
+            val notificationId = internalIntent.getIntExtra("notificationId", 0)
             val eventType =
-                it.getIntExtra("eventType", 0).let { EventType.values()[it] }
+                internalIntent.getIntExtra("eventType", 0).let { EventType.entries[it] }
+
+            val clickType =
+                internalIntent.action?.let { ClickType.fromString(it) } ?: ClickType.LAUNCH_APP
             if (notificationId != 0) {
                 Appoxee.instance().closeNotification(notificationId)
             }
-            val pushData = it.extras?.getParcelableCompat<PushData>("pushData")
-            val messageId = pushData?.id ?: 0
-            val sendoutId = pushData?.sendoutId ?: 0
 
-            it.action?.let { a ->
-                val clickType = ClickType.fromString(a)
+            val delegateIntent = pushContainer.pendingIntentProvider.createDelegateIntent(
+                clickType,
+                eventType,
+                notificationId,
+                pushData
+            )
 
-                statsClient.reportPushEvent(
-                    messageId,
-                    sendoutId,
-                    clickType,
-                    eventType
-                )
+            sendBroadcast(delegateIntent)
 
+            internalIntent.action?.let { a ->
                 when (clickType) {
                     ClickType.OPEN_LANDING_PAGE -> {
-                        it.handleIntentSafe("Error creating Open Landing Page Intent") {
+                        internalIntent.handleIntentSafe("Error creating Open Landing Page Intent") {
                             showWebView(it)
                         }
                     }
 
                     ClickType.OPEN_RICH_PUSH -> {
-                        showGif(it)
+                        showGif(internalIntent)
                     }
 
                     ClickType.OPEN_DIALER -> {
-                        it.handleIntentSafe("Error creating Open Dialer Intent") {
+                        internalIntent.handleIntentSafe("Error creating Open Dialer Intent") {
                             val dialerIntent = Intent(Intent.ACTION_DIAL, it)
                             startActivity(dialerIntent)
                             finish()
@@ -98,7 +103,7 @@ class FullScreenActivity : AppCompatActivity() {
                     }
 
                     ClickType.OPEN_STORE -> {
-                        it.handleIntentSafe("Error creating Open PlayStore Intent") {
+                        internalIntent.handleIntentSafe("Error creating Open PlayStore Intent") {
                             val dialerIntent = Intent(Intent.ACTION_VIEW, it)
                             startActivity(dialerIntent)
                             finish()
@@ -106,8 +111,8 @@ class FullScreenActivity : AppCompatActivity() {
                     }
 
                     ClickType.OPEN_DEEP_LINK -> {
-                        it.handleIntentSafe("Error creating Open DeepLink Intent") { uri ->
-                            val deepLinkIntent = createDeepLink(pushData, it)
+                        internalIntent.handleIntentSafe("Error creating Open DeepLink Intent") { uri ->
+                            val deepLinkIntent = createDeepLink(pushData, internalIntent)
                             this@FullScreenActivity.startIntentOrDefault(deepLinkIntent)
                             finish()
                         }

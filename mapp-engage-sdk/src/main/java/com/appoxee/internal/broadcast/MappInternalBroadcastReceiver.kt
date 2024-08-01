@@ -4,10 +4,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
-import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.StatsContainer
-import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.push.model.PushData
@@ -22,43 +19,47 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         Logger.d(TAG, "onReceive: ${intent?.action}")
-
         val action = intent?.action?.let { ClickType.fromString(it) } ?: return
-
         context?.let {
             if (!::statsContainer.isInitialized) {
                 statsContainer = StatsContainer(it)
             }
 
+            val bundle = intent.extras
+            val pushData = bundle?.getParcelableCompat<PushData>("pushData")
+            val notificationId = bundle?.getInt("notificationId")
+            val eventType =
+                bundle?.getInt("eventType")?.let { EventType.entries[it] } ?: EventType.CLICK
+
+            sendReportEvent(context, pushData, action, eventType)
+
             if (Objects.equals(action, ClickType.DISMISS)) {
-                intent.extras?.let { bundle ->
-                    bundle.getInt("notificationId").let { notificationId ->
-                        val notificationManager =
-                            context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                        notificationManager?.cancel(notificationId)
-                    }
-                    sendReportEvent(context, bundle)
+                notificationId?.let { id ->
+                    val notificationManager =
+                        context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                    notificationManager?.cancel(id)
                 }
             }
         }
     }
 
-    private fun sendReportEvent(context: Context?, bundle: Bundle?) {
-        Logger.d(TAG, "sendReportEvent()")
-        bundle?.getParcelableCompat<PushData>("pushData")?.let { pushData ->
-            val messageId = pushData.id
-            val sendoutId = pushData.sendoutId
-            Logger.d(TAG, "sendReportEvent() - $messageId - $sendoutId")
-            context?.let {
-                Logger.d(TAG, "reportPushEvent() - before")
-                statsContainer.statsClient.reportPushEvent(
-                    messageId,
-                    sendoutId ?: 0L,
-                    ClickType.DISMISS,
-                    EventType.DISMISS
-                )
-                Logger.d(TAG, "reportPushEvent() - after")
-            }
+    private fun sendReportEvent(
+        context: Context?,
+        pushData: PushData?,
+        clickType: ClickType,
+        eventType: EventType
+    ) {
+        Logger.d(TAG, "sendReportEvent() - Action: $clickType - Event: $eventType")
+        val data = pushData ?: return
+        val messageId = data.id
+        val sendoutId = data.sendoutId
+        context?.let {
+            statsContainer.statsClient.reportPushEvent(
+                messageId,
+                sendoutId ?: 0L,
+                clickType,
+                eventType,
+            )
         }
     }
 
