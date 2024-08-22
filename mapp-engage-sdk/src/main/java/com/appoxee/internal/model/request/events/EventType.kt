@@ -28,5 +28,16 @@ internal enum class EventType {
     /**
      * clicked 3rd notification action button
      */
-    BUTTON3,
+    BUTTON3;
+
+    fun toAction(): String {
+        return when (this.ordinal) {
+            CLICK.ordinal -> "CLICK"
+            DISMISS.ordinal -> "DISMISS"
+            BUTTON1.ordinal -> "BUTTON1"
+            BUTTON2.ordinal -> "BUTTON2"
+            BUTTON3.ordinal -> "BUTTON3"
+            else -> ""
+        }
+    }
 }

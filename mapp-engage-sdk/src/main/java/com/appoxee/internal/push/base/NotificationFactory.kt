@@ -17,6 +17,7 @@ import com.appoxee.internal.push.model.NotificationType
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushUriType
 import com.appoxee.internal.push.style.NotificationStyleFactory
+import com.appoxee.shared.LocalPushBroadcast
 import java.util.Objects
 
 internal class NotificationFactory(
@@ -39,7 +40,7 @@ internal class NotificationFactory(
             .setStyle(notificationStyle)
 
 
-        pendingIntentProvider.createPendingIntent(pushData)?.let {
+        pendingIntentProvider.createPendingIntent(pushData, LocalPushBroadcast.PUSH_OPENED)?.let {
             builder.setContentIntent(it)
         }
 
@@ -83,9 +84,10 @@ internal class NotificationFactory(
                     pendingIntentProvider.createCustomPendingIntent(
                         fgAction.getUriType(),
                         fgAction.getAction(),
+                        LocalPushBroadcast.PUSH_BUTTON_CLICKED,
                         pushData,
                         notificationId,
-                        eventType
+                        eventType,
                     )
                 }
                 pendingIntent.let { pi ->
@@ -136,9 +138,10 @@ internal class NotificationFactory(
                 pendingIntentProvider.createCustomPendingIntent(
                     uriType,
                     pushData.iosApxMedia,
+                    LocalPushBroadcast.PUSH_RICH,
                     pushData,
                     notificationId,
-                    click
+                    click,
                 )
             }
 

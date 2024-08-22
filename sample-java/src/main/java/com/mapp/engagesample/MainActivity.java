@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import com.appoxee.Appoxee;
+
 import java.util.Objects;
 
 import eu.brrm.shared_ui.Util;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, onBackCallback);
         getSupportFragmentManager().addOnBackStackChangedListener(onBackStackChangedListener);
         navigate(new HomeFragment());
+        Appoxee.instance().setPushBroadcast(MyPushBroadcast.class);
     }
 
     public <T extends Fragment> void navigate(T fragment) {

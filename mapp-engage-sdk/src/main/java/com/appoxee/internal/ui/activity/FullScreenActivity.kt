@@ -60,70 +60,71 @@ class FullScreenActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
-    private fun handleIntent(intent: Intent?) {
-        intent?.let { internalIntent ->
-            val pushData = internalIntent.extras?.getParcelableCompat<PushData>("pushData")
-            val notificationId = internalIntent.getIntExtra("notificationId", 0)
+    private fun handleIntent(i: Intent?) {
+        i?.let { intent ->
+            val pushData = intent.extras?.getParcelableCompat<PushData>("pushData")
+            val notificationId = intent.getIntExtra("notificationId", 0)
             val eventType =
-                internalIntent.getIntExtra("eventType", 0).let { EventType.entries[it] }
+                intent.getIntExtra("eventType", 0).let { EventType.entries[it] }
 
             val clickType =
-                internalIntent.action?.let { ClickType.fromString(it) } ?: ClickType.LAUNCH_APP
+                intent.getStringExtra("clickType")?.let { ClickType.fromString(it) }
+                    ?: ClickType.LAUNCH_APP
+
             if (notificationId != 0) {
-                Appoxee.instance().closeNotification(notificationId)
+                pushContainer.pushManager.dismissNotification(notificationId)
             }
 
             val delegateIntent = pushContainer.pendingIntentProvider.createDelegateIntent(
-                clickType,
-                eventType,
-                notificationId,
-                pushData
+                clickType = clickType,
+                eventType = eventType,
+                notificationId = notificationId,
+                action = intent.action,
+                pushData = pushData,
             )
 
             sendBroadcast(delegateIntent)
 
-            internalIntent.action?.let { a ->
-                when (clickType) {
-                    ClickType.OPEN_LANDING_PAGE -> {
-                        internalIntent.handleIntentSafe("Error creating Open Landing Page Intent") {
-                            showWebView(it)
-                        }
+            when (clickType) {
+                ClickType.OPEN_LANDING_PAGE -> {
+                    intent.handleIntentSafe("Error creating Open Landing Page Intent") {
+                        showWebView(it)
                     }
+                }
 
-                    ClickType.OPEN_RICH_PUSH -> {
-                        showGif(internalIntent)
-                    }
+                ClickType.OPEN_RICH_PUSH -> {
+                    showGif(intent)
+                }
 
-                    ClickType.OPEN_DIALER -> {
-                        internalIntent.handleIntentSafe("Error creating Open Dialer Intent") {
-                            val dialerIntent = Intent(Intent.ACTION_DIAL, it)
-                            startActivity(dialerIntent)
-                            finish()
-                        }
-                    }
-
-                    ClickType.OPEN_STORE -> {
-                        internalIntent.handleIntentSafe("Error creating Open PlayStore Intent") {
-                            val dialerIntent = Intent(Intent.ACTION_VIEW, it)
-                            startActivity(dialerIntent)
-                            finish()
-                        }
-                    }
-
-                    ClickType.OPEN_DEEP_LINK -> {
-                        internalIntent.handleIntentSafe("Error creating Open DeepLink Intent") { uri ->
-                            val deepLinkIntent = createDeepLink(pushData, internalIntent)
-                            this@FullScreenActivity.startIntentOrDefault(deepLinkIntent)
-                            finish()
-                        }
-                    }
-
-                    ClickType.DISMISS -> {
+                ClickType.OPEN_DIALER -> {
+                    intent.handleIntentSafe("Error creating Open Dialer Intent") {
+                        val dialerIntent = Intent(Intent.ACTION_DIAL, it)
+                        startActivity(dialerIntent)
                         finish()
                     }
-
-                    else -> {}
                 }
+
+                ClickType.OPEN_STORE -> {
+                    intent.handleIntentSafe("Error creating Open PlayStore Intent") {
+                        val dialerIntent = Intent(Intent.ACTION_VIEW, it)
+                        startActivity(dialerIntent)
+                        finish()
+                    }
+                }
+
+                ClickType.OPEN_DEEP_LINK -> {
+                    intent.handleIntentSafe("Error creating Open DeepLink Intent") { uri ->
+                        val deepLinkIntent = createDeepLink(pushData, intent)
+                        this@FullScreenActivity.startIntentOrDefault(deepLinkIntent)
+                        finish()
+                    }
+                }
+
+                ClickType.DISMISS -> {
+                    finish()
+                }
+
+                else -> {}
             }
         }
     }

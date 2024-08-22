@@ -4,12 +4,15 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.NotificationMode
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +44,7 @@ internal class PushManagerImpl(
         return getOptions().notificationMode
     }
 
-    override fun handlePushMessage(remoteMessage: RemoteMessage) {
+    override fun handlePushMessage(context: Context, remoteMessage: RemoteMessage) {
         scope.launch {
             if (!isPushMessageFromMapp(remoteMessage)) return@launch
 
@@ -62,6 +65,7 @@ internal class PushManagerImpl(
                     withContext(Dispatchers.Main) {
                         showNotification(notification, notificationId)
                     }
+                    reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_RECEIVED)
                 }
             }
         }
@@ -101,5 +105,13 @@ internal class PushManagerImpl(
 
     override fun dismissNotification(notificationId: Int) {
         notify.closeNotification(notificationId)
+    }
+
+    override fun reportPushReceived(context: Context, pushData: PushData, action: String) {
+        val intent = Intent(context, MappInternalBroadcastReceiver::class.java).apply {
+            setAction(action)
+            putExtra("pushData", pushData)
+        }
+        context.sendBroadcast(intent)
     }
 }

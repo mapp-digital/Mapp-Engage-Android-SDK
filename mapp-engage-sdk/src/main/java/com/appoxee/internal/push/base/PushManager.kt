@@ -1,11 +1,12 @@
 package com.appoxee.internal.push.base
 
 import android.app.Notification
+import android.content.Context
 import com.appoxee.internal.push.model.PushData
 import com.google.firebase.messaging.RemoteMessage
 
 internal interface PushManager {
-    fun handlePushMessage(remoteMessage: RemoteMessage)
+    fun handlePushMessage(context: Context, remoteMessage: RemoteMessage)
 
     fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
 
@@ -16,4 +17,6 @@ internal interface PushManager {
     fun showNotification(notification: Notification, notificationId: Int)
 
     fun dismissNotification(notificationId: Int)
+
+    fun reportPushReceived(context: Context, pushData: PushData, action: String)
 }
