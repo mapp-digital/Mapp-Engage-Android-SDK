@@ -19,6 +19,9 @@ internal class AppoxeeContainer(
     context: Context,
     storage: Storage
 ) {
+
+    internal var localPushBroadcast: Class<*>? = null
+
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = context) }
 
     internal val baseScope: CoroutineScope by lazy { CoroutineScope(Dispatchers.IO + SupervisorJob()) }

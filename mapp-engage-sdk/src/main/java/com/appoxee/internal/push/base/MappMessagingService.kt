@@ -32,7 +32,10 @@ class MappMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Logger.d(TAG, "MappMessagingService - onMessageReceived()")
-        pushContainer.pushManager.handlePushMessage(remoteMessage = message)
+        pushContainer.pushManager.handlePushMessage(
+            context = applicationContext,
+            remoteMessage = message
+        )
     }
 
     override fun onDestroy() {

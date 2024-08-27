@@ -9,6 +9,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import com.appoxee.Appoxee
 import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.camelCaseToWords
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
         navigate(HomeFragment())
         requestPostNotificationPermission()
+        Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
     }
 
     fun <T : Fragment> navigate(fragment: T) {

@@ -28,6 +28,7 @@ import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
@@ -43,7 +44,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppoxeeImpl(
-    context: Context,
+    private val context: Context,
     private val options: AppoxeeOptions? = null,
     private val internalScope: CoroutineScope
 ) : Appoxee, AppoxeeObservable {
@@ -64,8 +65,7 @@ internal class AppoxeeImpl(
 
     private val appoxeeContainer by lazy {
         AppoxeeContainer(
-            context = context,
-            storage = storage
+            context = context, storage = storage
         )
     }
     internal val appoxeeAdapter: AppoxeeAdapter
@@ -80,8 +80,7 @@ internal class AppoxeeImpl(
 
     internal val pushContainer: PushContainer by lazy { PushContainer(context, internalScope) }
 
-    internal val activityLifecycleCallback =
-        ActivityLifecycleHandler(context.applicationContext)
+    internal val activityLifecycleCallback = ActivityLifecycleHandler(context.applicationContext)
 
     init {
         Logger.init(context.applicationContext as Application)
@@ -175,9 +174,7 @@ internal class AppoxeeImpl(
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
         var modified: Boolean = false
         // if device opted Out and optOut token is expired, update optOut token
-        if (devicePayload?.pushTokenBk?.isNotEmpty() == true
-            && pushToken != devicePayload.pushTokenBk
-        ) {
+        if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
             appoxeeAdapter.optOut(pushToken)
             modified = true
         }
@@ -244,8 +241,7 @@ internal class AppoxeeImpl(
         val message = messages.first()
         messages.removeFirst()
         BannerFactory.createBanner(context, message) {
-            if (messages.isNotEmpty())
-                displayMessage(context, messages)
+            if (messages.isNotEmpty()) displayMessage(context, messages)
         }
     }
 
@@ -296,7 +292,7 @@ internal class AppoxeeImpl(
             it.onReadyStatusChanged(status, mappResult)
         }
         pushQueue.forEach {
-            pushContainer.pushManager.handlePushMessage(it)
+            pushContainer.pushManager.handlePushMessage(context, it)
         }
     }
 
@@ -308,8 +304,7 @@ internal class AppoxeeImpl(
                     observers.add(observer)
                     val device = payload ?: return@withContext
                     observer.onReadyStatusChanged(
-                        isReady(),
-                        MappResult.Success(data = device)
+                        isReady(), MappResult.Success(data = device)
                     )
                 }
             }
@@ -325,7 +320,7 @@ internal class AppoxeeImpl(
             mutex.withLock {
                 if (mIsReady.get()) {
                     withContext(Dispatchers.Main) {
-                        pushContainer.pushManager.handlePushMessage(remoteMessage)
+                        pushContainer.pushManager.handlePushMessage(context, remoteMessage)
                     }
                 } else {
                     pushQueue.add(remoteMessage)
@@ -359,32 +354,21 @@ internal class AppoxeeImpl(
 
     override fun testPushEvent(): Call<Boolean> = buildHttpCall {
         val response = appoxeeAdapter.pushEvent(
-            124852,
-            233861,
-            ClickType.OPEN_DIALER,
-            EventType.CLICK
+            124852, 233861, ClickType.OPEN_DIALER, EventType.CLICK
         )
         response.isSuccess()
     }
 
     override fun testGetRegions(
-        lat: Double,
-        lng: Double,
-        version: Int,
-        pageSize: Int
+        lat: Double, lng: Double, version: Int, pageSize: Int
     ): Call<RegionsResponse> = buildHttpCall {
         appoxeeAdapter.getRegions(lat, lng, version, pageSize).data?.payload ?: RegionsResponse(
-            0,
-            emptyList()
+            0, emptyList()
         )
     }
 
     override fun testRegionEvent(
-        geoEvent: GeoEvent,
-        latitude: Double,
-        longitude: Double,
-        regionId: Long,
-        version: Int
+        geoEvent: GeoEvent, latitude: Double, longitude: Double, regionId: Long, version: Int
     ): Call<Boolean> = buildHttpCall {
         appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
     }
@@ -405,6 +389,19 @@ internal class AppoxeeImpl(
 
     override fun closeNotification(notificationId: Int) {
         pushContainer.pushManager.dismissNotification(notificationId = notificationId)
+    }
+
+    override fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>) {
+        val requiredClass = LocalPushBroadcast::class.java
+
+        if (clazz.superclass == requiredClass) {
+            appoxeeContainer.localPushBroadcast = clazz
+            internalScope.launch {
+                storage.setBroadcastClass(clazz)
+            }
+        } else {
+            throw IllegalArgumentException("PushBroadcast must be of type LocalPushBroadcast")
+        }
     }
 
     private fun <T> buildHttpCall(

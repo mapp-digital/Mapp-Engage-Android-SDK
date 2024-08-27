@@ -30,6 +30,7 @@ internal class PrefsStorageImpl(
     private val timestampKey = longPreferencesKey("timestamp")
     private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
     private val appConfigKey = stringPreferencesKey("appConfig")
+    private val broadcastKey = stringPreferencesKey("localBroadcast")
 
     private val dataStore: DataStore<Preferences> by lazy { (context.applicationContext as Application).dataStore }
 
@@ -156,6 +157,27 @@ internal class PrefsStorageImpl(
                     it.remove(appConfigKey)
                 }
             }
+            null
+        }
+    }
+
+    override suspend fun setBroadcastClass(clazz: Class<*>) {
+        dataStore.edit { prefs ->
+            mutex.withLock {
+                prefs[broadcastKey] = clazz.name
+            }
+        }
+    }
+
+    override suspend fun getBroadcastClass(): Class<*>? {
+        return try {
+            mutex.withLock {
+                dataStore.data.first()[broadcastKey]?.let {
+                    Class.forName(it)
+                }
+            }
+        } catch (e: Exception) {
+            Logger.e(PrefsStorageImpl::class.java.name, e.message ?: "", e)
             null
         }
     }

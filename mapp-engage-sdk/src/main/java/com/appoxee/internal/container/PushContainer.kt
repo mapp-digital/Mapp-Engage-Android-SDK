@@ -33,9 +33,9 @@ internal class PushContainer(
 
     private val notificationStyleFactory: NotificationStyleFactory by lazy { NotificationStyleFactory() }
 
-    private val iconProvider: IconProvider by lazy { IconProviderImpl(context) }
+    internal val iconProvider: IconProvider by lazy { IconProviderImpl(context) }
 
-    private val pendingIntentProvider: PendingIntentProvider by lazy {
+    internal val pendingIntentProvider: PendingIntentProvider by lazy {
         PendingIntentProviderImpl(
             context
         )

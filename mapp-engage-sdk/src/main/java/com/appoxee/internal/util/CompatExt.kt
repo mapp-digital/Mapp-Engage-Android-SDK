@@ -34,4 +34,16 @@ object CompatExt {
             this.getParcelable(key)
         }
     }
+
+    internal inline fun <reified T> Intent.getParcelableExtraCompat(
+        key: String,
+    ): T? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val clazz = Class.forName(T::class.java.name)
+            this.getParcelableExtra(key, clazz) as T?
+        } else {
+            @Suppress("DEPRECATION")
+            this.getParcelableExtra(key)
+        }
+    }
 }
