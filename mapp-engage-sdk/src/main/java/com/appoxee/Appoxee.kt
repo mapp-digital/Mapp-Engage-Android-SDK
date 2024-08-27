@@ -10,6 +10,7 @@ import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
+import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -191,6 +192,8 @@ interface Appoxee {
      * @param notificationId for a notification to close
      */
     fun closeNotification(notificationId: Int)
+
+    fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
 
     @TestOnly
     fun testCall(): Call<String>

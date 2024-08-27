@@ -72,7 +72,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "EngageSample"
+rootProject.name = "Mapp-Engage-v7"
 include(":sample-kotlin")
 include(":mapp-engage-sdk")
 include(":sample-java")

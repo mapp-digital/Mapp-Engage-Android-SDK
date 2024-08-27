@@ -1,6 +1,5 @@
 package com.appoxee.internal.storage
 
-import android.app.Application
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
@@ -12,6 +11,7 @@ internal class InMemoryStorageImpl() : Storage {
     private var registerDevice: RegisterDevice? = null
     private var initOptions: AppoxeeOptions? = null
     private var appConfigPayload: AppConfigPayload? = null
+    private var clazz: Class<*>? = null
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
         this.devicePayload = devicePayload
@@ -43,5 +43,13 @@ internal class InMemoryStorageImpl() : Storage {
 
     override suspend fun getAppConfig(): AppConfigPayload? {
         return appConfigPayload
+    }
+
+    override suspend fun setBroadcastClass(clazz: Class<*>) {
+        this.clazz=clazz
+    }
+
+    override suspend fun getBroadcastClass(): Class<*>? {
+        return clazz
     }
 }

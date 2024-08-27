@@ -20,5 +20,9 @@ internal interface Storage {
 
     suspend fun saveAppConfig(appConfigPayload: AppConfigPayload?)
 
-    suspend fun getAppConfig():AppConfigPayload?
+    suspend fun getAppConfig(): AppConfigPayload?
+
+    suspend fun setBroadcastClass(clazz: Class<*>)
+
+    suspend fun getBroadcastClass(): Class<*>?
 }
