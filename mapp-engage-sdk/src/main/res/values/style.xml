@@ -44,7 +44,7 @@
         <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
         <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
     </style>
-    <style name="ModalDialogTheme" parent="Theme.AppCompat.Dialog">
+    <style name="ModalDialogTheme" parent="Theme.AppCompat.Dialog.Alert">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowMinWidthMajor">60%</item>
         <item name="android:windowMinWidthMinor">90%</item>

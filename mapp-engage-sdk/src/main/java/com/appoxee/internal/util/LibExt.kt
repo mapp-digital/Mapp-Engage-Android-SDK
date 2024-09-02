@@ -1,11 +1,12 @@
 package com.appoxee.internal.util
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
+import android.util.DisplayMetrics
 import androidx.core.graphics.toColorInt
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.push.model.PushData
@@ -18,6 +19,13 @@ object LibExt {
         )
 
         return appInfo.theme
+    }
+
+    internal fun Activity.getDisplayMetrics(): DisplayMetrics {
+        val displayMetrics = DisplayMetrics()
+        displayMetrics.widthPixels = this.window.decorView.width
+        displayMetrics.heightPixels = this.window.decorView.height
+        return displayMetrics
     }
 
     internal fun Context.canHandleIntent(intent: Intent?): Boolean {

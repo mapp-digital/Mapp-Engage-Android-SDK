@@ -1,4 +1,4 @@
-package com.appoxee.internal.ui.banner
+package com.appoxee.internal.model.response.inapp
 
 enum class BannerPosition(val position: Int) {
     TOP(0),
