@@ -8,7 +8,7 @@ data class InappButton(
     val text: String,
     val textColor: String?,
     val backgroundColor: String?,
-    val action: String?,
+    val action: InappAction?,
     val link: String?,
     val openInApp: Boolean
 ) {
@@ -18,7 +18,7 @@ data class InappButton(
                 text = json.getStringOrEmpty("text"),
                 textColor = json.getNullableString("text_color"),
                 backgroundColor = json.getNullableString("background_color"),
-                action = json.getNullableString("action"),
+                action = InappAction.from(json.getNullableString("action")),
                 link = json.getNullableString("link"),
                 openInApp = json.getBoolean("open_inApp")
             )

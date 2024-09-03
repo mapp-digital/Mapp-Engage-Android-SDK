@@ -1,4 +1,4 @@
-package com.appoxee.internal.ui.banner
+package com.appoxee.internal.model.response.inapp
 
 enum class ContentTemplates(val template: String) {
     STANDARD("standard"),

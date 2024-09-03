@@ -102,14 +102,14 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
 
         binding.btnFetchInappMessages.setOnClickListener {
             lifecycleScope.launch {
-                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
-                Util.showDialog(
-                    requireContext(),
-                    "Inapp Messages",
-                    if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-//                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
+//                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
+//                Util.showDialog(
+//                    requireContext(),
+//                    "Inapp Messages",
+//                    if (result.isSuccess()) result.getData().toString()
+//                    else result.getError().toString()
+//                )
+                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
             }
         }
 
