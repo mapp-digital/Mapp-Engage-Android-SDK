@@ -7,6 +7,7 @@ import android.app.Application
 import android.content.Context
 import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
+import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
@@ -16,14 +17,12 @@ import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
-import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.ActivityLifecycleHandler
-import com.appoxee.internal.ui.banner.BannerFactory
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -61,6 +60,10 @@ internal class AppoxeeImpl(
 
     private val storageContainer: StorageContainer by lazy {
         StorageContainer.getInstance(context)
+    }
+
+    private val inappContainer: InAppContainer by lazy {
+        InAppContainer(internalScope)
     }
 
     private val appoxeeContainer by lazy {
@@ -218,32 +221,14 @@ internal class AppoxeeImpl(
 
     override fun triggerInApp(context: Activity, eventName: String) {
         callCoroutineScope.launch {
-            val messages = mutableListOf<Message>()
-
             val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
-
-            if (inappResponse?.nativeMessages.isNullOrEmpty() && inappResponse?.webMessages.isNullOrEmpty()) {
-                return@launch
-            }
-
-            inappResponse?.nativeMessages?.let { messages.addAll(it) }
-            inappResponse?.webMessages?.let { messages.addAll(it) }
-
-            withContext(Dispatchers.Main) {
-                val sortedMessages = messages.sortedBy { it.templateId }.toMutableList()
-                displayMessage(context, sortedMessages)
+            inappContainer.inappManager.let { inappManager ->
+                val sortedMessages = inappManager.parseResponse(inappResponse)
+                inappManager.handleMessages(context, sortedMessages)
             }
         }
     }
 
-    private fun displayMessage(context: Activity, messages: MutableList<Message>) {
-        if (messages.isEmpty()) return
-        val message = messages.first()
-        messages.removeFirst()
-        BannerFactory.createBanner(context, message) {
-            if (messages.isNotEmpty()) displayMessage(context, messages)
-        }
-    }
 
     override fun enablePush(enabled: Boolean, token: String?): Call<Boolean> = buildHttpCall {
         val fbToken = token ?: FirebaseMessaging.getInstance().token.await()

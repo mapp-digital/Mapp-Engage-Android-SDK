@@ -64,24 +64,23 @@
             android:layout_height="wrap_content"
             android:contentDescription="@android:string/cancel"
             android:padding="0dp"
-            android:src="@drawable/me_ic_close"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/btn1"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:layout_marginBottom="20dp"
-            android:background="@drawable/me_round_rect_button"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/spacer"
             app:layout_constraintHorizontal_chainStyle="packed"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvContent"
-            app:layout_constraintWidth_percent="0.5"
+            app:layout_constraintWidth_percent="0.45"
             tools:text="button 1"
             tools:textColor="@android:color/white"
             tools:visibility="visible" />
@@ -97,15 +96,14 @@
 
         <Button
             android:id="@+id/btn2"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/me_round_rect_button"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_chainStyle="packed"
             app:layout_constraintStart_toEndOf="@id/spacer"
             app:layout_constraintTop_toTopOf="@id/btn1"
-            app:layout_constraintWidth_percent="0.5"
+            app:layout_constraintWidth_percent="0.45"
             tools:text="button 2"
             tools:textColor="@android:color/white"
             tools:visibility="visible" />

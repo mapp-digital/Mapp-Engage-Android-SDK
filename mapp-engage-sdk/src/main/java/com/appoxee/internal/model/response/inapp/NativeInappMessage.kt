@@ -9,7 +9,7 @@ import org.json.JSONObject
 data class NativeInappMessage(
     override val templateId: String,
     override val content: String,
-    override val type: Int,
+    override val type: InappType,
     override val behaviour: Behaviour?,
     override val location: Location?,
     val imageUrl: String?,
@@ -25,7 +25,7 @@ data class NativeInappMessage(
             return NativeInappMessage(
                 templateId = json.getStringOrEmpty("template_id"),
                 content = json.getStringOrEmpty("content"),
-                type = json.getLongOrDefault("type", 0).toInt(),
+                type = InappType.from(json.getLongOrDefault("type", 0).toInt()),
                 behaviour = json.getJSONObject("behaviour")?.let { Behaviour.fromJSON(it) },
                 location = json.getJSONObject("location")?.let { Location.fromJSON(it) },
                 imageUrl = json.getNullableString("imageURL"),
