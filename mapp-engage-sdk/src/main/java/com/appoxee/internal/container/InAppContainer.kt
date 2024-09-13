@@ -2,20 +2,24 @@ package com.appoxee.internal.container
 
 import com.appoxee.internal.ui.inapp.InAppManager
 import com.appoxee.internal.ui.inapp.InAppManagerImpl
-import com.appoxee.internal.ui.inapp.nativ.NativeTemplateFactory
-import com.appoxee.internal.ui.inapp.web.WebTemplateFactory
+import com.appoxee.internal.ui.inapp.nativ.NativeFactory
+import com.appoxee.internal.ui.inapp.web.WebFactory
+import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersImpl
 import kotlinx.coroutines.CoroutineScope
 
 internal class InAppContainer(private val scope: CoroutineScope) {
-    internal val nativeTemplateFactory: NativeTemplateFactory by lazy {
-        NativeTemplateFactory(scope)
+    internal val dispatchers: Dispatchers by lazy { DispatchersImpl() }
+
+    internal val nativeFactory: NativeFactory by lazy {
+        NativeFactory(scope, dispatchers)
     }
 
-    internal val webTemplateFactory: WebTemplateFactory by lazy {
-        WebTemplateFactory(scope)
+    internal val webFactory: WebFactory by lazy {
+        WebFactory(scope,dispatchers)
     }
 
     internal val inappManager: InAppManager by lazy {
-        InAppManagerImpl(nativeTemplateFactory, webTemplateFactory)
+        InAppManagerImpl(nativeFactory, webFactory)
     }
 }

@@ -2,7 +2,9 @@ package com.appoxee.internal.storage
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.appoxee.internal.TestDispatchers
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.util.Dispatchers
 import com.google.common.truth.Truth
 import io.mockk.every
 import io.mockk.spyk
@@ -18,6 +20,7 @@ internal class PrefsStorageImplTest {
     private lateinit var application: Application
 
     private lateinit var storage: PrefsStorageImpl
+    private lateinit var dispatchers: Dispatchers
 
     private val devicePayload = DevicePayload(
         dmcUserId = "12345",
@@ -29,7 +32,8 @@ internal class PrefsStorageImplTest {
     @Before
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
-        storage = spyk(PrefsStorageImpl(application, TimeUnit.SECONDS.toMillis(1)))
+        dispatchers = TestDispatchers()
+        storage = spyk(PrefsStorageImpl(application, TimeUnit.SECONDS.toMillis(1), dispatchers))
     }
 
     @After
@@ -38,12 +42,13 @@ internal class PrefsStorageImplTest {
     }
 
     @Test
-    fun retrieve_device_payload_when_previously_saved_and_cache_valid_returns_valid_payload() = runBlocking {
-        storage.saveDevicePayload(devicePayload)
-        val saved = storage.getDevicePayload()
-        every { storage invoke "isCacheValid" withArguments listOf() } answers { true }
-        Truth.assertThat(saved).isNotNull()
-    }
+    fun retrieve_device_payload_when_previously_saved_and_cache_valid_returns_valid_payload() =
+        runBlocking {
+            storage.saveDevicePayload(devicePayload)
+            val saved = storage.getDevicePayload()
+            every { storage invoke "isCacheValid" withArguments listOf() } answers { true }
+            Truth.assertThat(saved).isNotNull()
+        }
 
     @Test
     fun retrieve_data_after_validity_expired_returns_null() = runBlocking {

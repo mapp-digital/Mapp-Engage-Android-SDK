@@ -33,7 +33,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -41,16 +41,24 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.CoroutineContext
 
 internal class AppoxeeImpl(
     private val context: Context,
     private val options: AppoxeeOptions? = null,
-    private val internalScope: CoroutineScope
+    private val dispatchers: com.appoxee.internal.util.Dispatchers,
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
 
     private val mutex = Mutex()
+
+    private val coroutineContext: CoroutineContext =
+        SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+            Logger.e(TAG, "exception in sdk init: $throwable")
+        }
+
+    private val internalScope: CoroutineScope = CoroutineScope(coroutineContext)
 
     private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
 
@@ -68,7 +76,7 @@ internal class AppoxeeImpl(
 
     private val appoxeeContainer by lazy {
         AppoxeeContainer(
-            context = context, storage = storage
+            context = context, storage = storage, dispatchers = dispatchers
         )
     }
     internal val appoxeeAdapter: AppoxeeAdapter
@@ -81,45 +89,47 @@ internal class AppoxeeImpl(
     internal val callCoroutineScope
         get() = appoxeeContainer.baseScope
 
-    internal val pushContainer: PushContainer by lazy { PushContainer(context, internalScope) }
+    internal val pushContainer: PushContainer by lazy { PushContainer(context) }
 
     internal val activityLifecycleCallback = ActivityLifecycleHandler(context.applicationContext)
 
     init {
-        Logger.init(context.applicationContext as Application)
+        internalScope.launch {
+            withContext(dispatchers.ioDispatcher) {
+                Logger.init(context.applicationContext as Application)
 
-        (context.applicationContext as Application).registerActivityLifecycleCallbacks(
-            activityLifecycleCallback
-        )
+                (context.applicationContext as Application).registerActivityLifecycleCallbacks(
+                    activityLifecycleCallback
+                )
 
-        println("OPTIONS: $options")
-
-        internalScope.launch(CoroutineExceptionHandler { coroutineContext, throwable ->
-            Logger.e(TAG, "exception in sdk init: $throwable")
-        }) {
-            // save config to local storage if not null
-            options?.let {
-                storage.saveInitOptions(it)
-            }
-
-            // check device registration
-            // update if exist or register new device
-            validateRegistration()?.let {
-                withContext(Dispatchers.Main) {
-                    updateReadyStatus(true, MappResult.Success(it))
+                println("OPTIONS: $options")
+                // save config to local storage if not null
+                options?.let {
+                    if (it != storage.getInitOptions()) {
+                        storage.clearRegistration()
+                        storage.saveInitOptions(it)
+                    }
                 }
-            }
 
-            // when registration is validated
-            // update optIn or optOut status with firebase token
-            updateOptStatus()
+                // check device registration
+                // update if exist or register new device
+                validateRegistration()?.let {
+                    withContext(dispatchers.mainDispatcher) {
+                        updateReadyStatus(true, MappResult.Success(it))
+                    }
+                }
 
-            // fetch InApp Configuration parameters
-            getAppConfig()
+                // when registration is validated
+                // update optIn or optOut status with firebase token
+                updateOptStatus()
 
-            //init webview
-            withContext(Dispatchers.Main) {
-                MappWebView.getInstance(context.applicationContext)
+                // fetch InApp Configuration parameters
+                getAppConfig()
+
+                //init webview
+                withContext(dispatchers.mainDispatcher) {
+                    MappWebView.getInstance(context.applicationContext)
+                }
             }
         }
     }
@@ -171,30 +181,32 @@ internal class AppoxeeImpl(
 
 
     private suspend fun updateOptStatus() {
-        Logger.d(TAG, "updateOptStatus()")
-        var devicePayload = storage.getDevicePayload()
-        val pushToken = FirebaseMessaging.getInstance().token.await()
-        Logger.d(TAG, "PUSH TOKEN: $pushToken")
-        var modified: Boolean = false
-        // if device opted Out and optOut token is expired, update optOut token
-        if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
-            appoxeeAdapter.optOut(pushToken)
-            modified = true
-        }
+        withContext(dispatchers.ioDispatcher) {
+            Logger.d(TAG, "updateOptStatus()")
+            var devicePayload = storage.getDevicePayload()
+            val pushToken = FirebaseMessaging.getInstance().token.await()
+            Logger.d(TAG, "PUSH TOKEN: $pushToken")
+            var modified: Boolean = false
+            // if device opted Out and optOut token is expired, update optOut token
+            if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
+                appoxeeAdapter.optOut(pushToken)
+                modified = true
+            }
 
-        // if device opted In and optIn token is expired, update optIn token
-        if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
-            appoxeeAdapter.optIn(pushToken)
-            modified = true
-        }
+            // if device opted In and optIn token is expired, update optIn token
+            if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
+                appoxeeAdapter.optIn(pushToken)
+                modified = true
+            }
 
-        if (modified) {
-            // get fresh device data from server
-            devicePayload = appoxeeAdapter.getDevice()
-            storage.saveDevicePayload(devicePayload)
-        }
+            if (modified) {
+                // get fresh device data from server
+                devicePayload = appoxeeAdapter.getDevice()
+                storage.saveDevicePayload(devicePayload)
+            }
 
-        Logger.d(TAG, "updateOptStatus() - Finished")
+            Logger.d(TAG, "updateOptStatus() - Finished")
+        }
     }
 
     override fun isReady(): Boolean {
@@ -221,10 +233,14 @@ internal class AppoxeeImpl(
 
     override fun triggerInApp(context: Activity, eventName: String) {
         callCoroutineScope.launch {
-            val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
-            inappContainer.inappManager.let { inappManager ->
-                val sortedMessages = inappManager.parseResponse(inappResponse)
-                inappManager.handleMessages(context, sortedMessages)
+            withContext(dispatchers.ioDispatcher) {
+                val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
+                inappContainer.inappManager.let { inappManager ->
+                    val sortedMessages = inappManager.parseResponse(inappResponse)
+                    withContext(dispatchers.mainDispatcher) {
+                        inappManager.handleMessages(context, sortedMessages)
+                    }
+                }
             }
         }
     }
@@ -277,7 +293,9 @@ internal class AppoxeeImpl(
             it.onReadyStatusChanged(status, mappResult)
         }
         pushQueue.forEach {
-            pushContainer.pushManager.handlePushMessage(context, it)
+            internalScope.launch {
+                pushContainer.pushManager.handlePushMessage(context, it)
+            }
         }
     }
 
@@ -285,7 +303,7 @@ internal class AppoxeeImpl(
         internalScope.launch {
             mutex.withLock {
                 val payload = storage.getDevicePayload()
-                withContext(Dispatchers.Main) {
+                withContext(dispatchers.mainDispatcher) {
                     observers.add(observer)
                     val device = payload ?: return@withContext
                     observer.onReadyStatusChanged(
@@ -304,9 +322,7 @@ internal class AppoxeeImpl(
         internalScope.launch {
             mutex.withLock {
                 if (mIsReady.get()) {
-                    withContext(Dispatchers.Main) {
-                        pushContainer.pushManager.handlePushMessage(context, remoteMessage)
-                    }
+                    pushContainer.pushManager.handlePushMessage(context, remoteMessage)
                 } else {
                     pushQueue.add(remoteMessage)
                 }
@@ -358,17 +374,21 @@ internal class AppoxeeImpl(
         appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
     }
 
-    private fun saveConfiguration(options: AppoxeeOptions) = internalScope.launch {
-        storage.saveInitOptions(options)
+    private fun saveConfiguration(options: AppoxeeOptions) {
+        internalScope.launch {
+            storage.saveInitOptions(options)
+        }
     }
 
     private suspend fun getAppConfig() {
-        val result = appoxeeAdapter.getAppConfig()
-        if (result.isSuccess()) {
-            storage.saveAppConfig(result.data?.payload)
-            Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
-        } else {
-            Logger.e(TAG, result.error?.toString() ?: "Error")
+        withContext(dispatchers.ioDispatcher) {
+            val result = appoxeeAdapter.getAppConfig()
+            if (result.isSuccess()) {
+                storage.saveAppConfig(result.data?.payload)
+                Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
+            } else {
+                Logger.e(TAG, result.error?.toString() ?: "Error")
+            }
         }
     }
 
@@ -377,15 +397,17 @@ internal class AppoxeeImpl(
     }
 
     override fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>) {
-        val requiredClass = LocalPushBroadcast::class.java
+        internalScope.launch {
+            val requiredClass = LocalPushBroadcast::class.java
+            if (clazz.superclass == requiredClass) {
+                appoxeeContainer.localPushBroadcast = clazz
+                withContext(dispatchers.ioDispatcher) {
+                    storage.setBroadcastClass(clazz)
+                }
 
-        if (clazz.superclass == requiredClass) {
-            appoxeeContainer.localPushBroadcast = clazz
-            internalScope.launch {
-                storage.setBroadcastClass(clazz)
+            } else {
+                throw IllegalArgumentException("PushBroadcast must be of type LocalPushBroadcast")
             }
-        } else {
-            throw IllegalArgumentException("PushBroadcast must be of type LocalPushBroadcast")
         }
     }
 

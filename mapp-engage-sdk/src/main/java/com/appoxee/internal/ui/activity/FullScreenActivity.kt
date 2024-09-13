@@ -19,6 +19,7 @@ import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
+import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.LibExt.startIntentOrDefault
 import com.appoxee.internal.util.Logger
 
@@ -50,8 +51,8 @@ class FullScreenActivity : AppCompatActivity() {
         setTheme(android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
         super.onCreate(savedInstanceState)
         binding = ActivityFullScreenBinding.inflate(layoutInflater)
-        pushContainer = PushContainer(this, lifecycleScope)
-        statsClient = StatsContainer(this).statsClient
+        pushContainer = PushContainer(this)
+        statsClient = StatsContainer(this, DispatchersImpl()).statsClient
         handleIntent(intent)
     }
 

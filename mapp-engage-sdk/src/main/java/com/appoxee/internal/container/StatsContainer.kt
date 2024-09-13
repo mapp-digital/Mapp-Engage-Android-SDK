@@ -3,19 +3,23 @@ package com.appoxee.internal.container
 import android.content.Context
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.stats.StatsClientImpl
+import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersImpl
 
 internal class StatsContainer(
-    context: Context
+    context: Context,
+    dispatchers: Dispatchers = DispatchersImpl(),
 ) {
-    private val storageContainer: StorageContainer by lazy { StorageContainer.getInstance(context) }
-    private val appoxeeContainer: AppoxeeContainer by lazy {
+    val storageContainer: StorageContainer by lazy { StorageContainer.getInstance(context) }
+    val appoxeeContainer: AppoxeeContainer by lazy {
         AppoxeeContainer(
             context,
-            storageContainer.storage
+            storageContainer.storage,
+            dispatchers,
         )
     }
     val statsClient: StatsClient by lazy {
-        StatsClientImpl(appoxeeContainer.engageApi, appoxeeContainer.baseScope)
+        StatsClientImpl(appoxeeContainer.engageApi, dispatchers)
     }
 
 }

@@ -154,6 +154,33 @@ class AppoxeeOptions(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AppoxeeOptions
+
+        if (server != other.server) return false
+        if (sdkKey != other.sdkKey) return false
+        if (appId != other.appId) return false
+        if (tenantId != other.tenantId) return false
+        if (logType != other.logType) return false
+        if (notificationMode != other.notificationMode) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = server.hashCode()
+        result = 31 * result + sdkKey.hashCode()
+        result = 31 * result + appId.hashCode()
+        result = 31 * result + tenantId.hashCode()
+        result = 31 * result + logType.hashCode()
+        result = 31 * result + notificationMode.hashCode()
+        return result
+    }
+
+
     companion object {
         internal fun fromJSON(json: JSONObject): AppoxeeOptions {
             return AppoxeeOptions(
