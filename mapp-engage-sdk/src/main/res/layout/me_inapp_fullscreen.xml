@@ -4,76 +4,92 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <!--Relative layout is needed so that content fills full screen dialog container-->
-    <androidx.constraintlayout.widget.ConstraintLayout
+
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <ImageView
-            android:id="@+id/ivImage"
+        android:layout_height="0dp"
+        android:layout_above="@id/llBottomBanner"
+        android:layout_alignParentTop="true">
+        <!--Relative layout is needed so that content fills full screen dialog container-->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="0dp"
-            android:contentDescription="@null"
-            android:scaleType="centerCrop"
-            android:visibility="gone"
-            app:layout_constraintHeight_min="300dp"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:src="@drawable/me_nat"
-            tools:visibility="visible" />
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/tvTitle"
-            style="@style/TextAppearance.AppCompat.Title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="10dp"
-            android:textAlignment="center"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/tvContent"
-            app:layout_constraintTop_toBottomOf="@id/ivImage"
-            app:layout_constraintVertical_chainStyle="packed"
-            tools:maxLength="20"
-            tools:text="@tools:sample/lorem/random"
-            tools:visibility="visible" />
+            <ImageView
+                android:id="@+id/ivImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="0dp"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                app:layout_constraintHeight_min="300dp"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:src="@drawable/me_nat"
+                tools:visibility="visible" />
 
-        <TextView
-            android:id="@+id/tvContent"
-            style="@style/TextAppearance.AppCompat.Body1"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginBottom="10dp"
-            android:gravity="center_horizontal|top"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="10dp"
-            android:textAlignment="center"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/btn1"
-            app:layout_constraintTop_toBottomOf="@id/tvTitle"
-            app:layout_constraintVertical_chainStyle="packed"
-            tools:maxLength="2000"
-            tools:text="@tools:sample/lorem/random"
-            tools:visibility="visible" />
+            <TextView
+                android:id="@+id/tvTitle"
+                style="@style/TextAppearance.AppCompat.Large"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="10dp"
+                android:textAlignment="center"
+                android:visibility="gone"
+                app:layout_constraintBottom_toTopOf="@id/tvContent"
+                app:layout_constraintTop_toBottomOf="@id/ivImage"
+                app:layout_constraintVertical_chainStyle="packed"
+                tools:maxLength="20"
+                tools:text="@tools:sample/lorem/random"
+                tools:visibility="visible" />
 
-        <ImageButton
-            android:id="@+id/ibClose"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:contentDescription="@android:string/cancel"
-            android:padding="0dp"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/tvContent"
+                style="@style/TextAppearance.AppCompat.Subhead"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginBottom="10dp"
+                android:gravity="center_horizontal|top"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="10dp"
+                android:textAlignment="center"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/tvTitle"
+                app:layout_constraintVertical_chainStyle="packed"
+                tools:maxLength="4000"
+                tools:text="@tools:sample/lorem/random"
+                tools:visibility="visible" />
+
+            <ImageButton
+                android:id="@+id/ibClose"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:contentDescription="@android:string/cancel"
+                android:padding="0dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/llBottomBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="10dp">
 
         <Button
             android:id="@+id/btn1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="20dp"
+            android:layout_weight="1"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/spacer"
@@ -87,7 +103,7 @@
 
         <Space
             android:id="@+id/spacer"
-            android:layout_width="10dp"
+            android:layout_width="@dimen/bottom_banner_buttons_spacer"
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="@id/btn1"
             app:layout_constraintEnd_toStartOf="@id/btn2"
@@ -98,6 +114,7 @@
             android:id="@+id/btn2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_chainStyle="packed"
@@ -107,5 +124,6 @@
             tools:text="button 2"
             tools:textColor="@android:color/white"
             tools:visibility="visible" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+
 </RelativeLayout>

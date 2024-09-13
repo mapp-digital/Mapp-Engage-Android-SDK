@@ -18,7 +18,7 @@ data class NativeInappMessage(
     val templateBackgroundColor: String?,
     val contentColor: String?,
     val buttons: List<InappButton>,
-    val contentTemplateId: String
+    val contentTemplateId: ContentTemplates
 ) : Message(templateId, content, type, behaviour, location) {
     companion object {
         fun fromJSON(json: JSONObject): NativeInappMessage {
@@ -34,7 +34,7 @@ data class NativeInappMessage(
                 templateBackgroundColor = json.getNullableString("template_background_color"),
                 contentColor = json.getNullableString("content_color"),
                 buttons = json.arrayToList("buttons") { InappButton.fromJSON(it) },
-                contentTemplateId = json.getStringOrEmpty("content_template_id")
+                contentTemplateId = ContentTemplates.from(json.getStringOrEmpty("content_template_id"))
             )
         }
     }

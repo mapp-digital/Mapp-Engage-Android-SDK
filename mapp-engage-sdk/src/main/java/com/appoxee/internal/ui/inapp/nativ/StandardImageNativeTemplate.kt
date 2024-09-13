@@ -10,9 +10,9 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
 import coil.ImageLoader
@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
-internal class StandardNativeTemplate<T : Message>(
+internal class StandardImageNativeTemplate<T : Message>(
     private val activity: Activity,
     private val actionHandler: ActionHandler,
     private val message: T,
@@ -52,7 +52,7 @@ internal class StandardNativeTemplate<T : Message>(
     }
 
     private fun createTemplate() {
-        val layoutRes = R.layout.me_inapp_standard
+        val layoutRes = R.layout.me_inapp_background_image_standard
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = inflater.inflate(layoutRes, null)
 
@@ -68,9 +68,9 @@ internal class StandardNativeTemplate<T : Message>(
                 job?.cancel()
             }
             view.findViewById<ImageView>(R.id.ivImage)?.also {
-                it.layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    (height * 0.5f).toInt()
+                it.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    height
                 )
             }
             setView(view)

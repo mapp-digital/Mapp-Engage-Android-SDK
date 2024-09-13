@@ -29,6 +29,7 @@ internal data class PushData(
     var extraFields: Map<String, String> = emptyMap(),
     val category: String? = null,
     val language: String? = null,
+    val priority: Int? = null,
 ) : Parcelable {
 
     fun getContentUriType(): PushUriType? {
@@ -74,6 +75,7 @@ internal data class PushData(
         private const val KEY_CUSTOMER_ID = "customer_id"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_SENDOUT_ID = "sendout_id"
+        private const val PRIORITY="priority"
 
         internal fun RemoteMessage.toPushData(): PushData {
             val map = mutableMapOf<String, String?>().apply {
@@ -104,6 +106,7 @@ internal data class PushData(
                 sendoutId = map.getData(KEY_SENDOUT_ID)?.toLongOrNull(),
                 buttonList = getButtons(map),
                 extraFields = getExtraFields(map),
+                priority = this.priority
             )
         }
 

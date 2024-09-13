@@ -5,8 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="10dp"
-    android:paddingVertical="20dp">
+    android:paddingHorizontal="5dp"
+    android:paddingVertical="5dp">
 
     <ImageView
         android:id="@+id/ivImage"
@@ -65,7 +65,9 @@
         android:layout_height="wrap_content"
         android:contentDescription="@android:string/cancel"
         android:padding="0dp"
-        android:src="@drawable/me_ic_close"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:translationX="5dp"
+        android:translationY="-5dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

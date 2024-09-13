@@ -1,6 +1,9 @@
 package com.appoxee.internal.push.base
 
 import android.app.Notification
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.appoxee.internal.TestDispatchers
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
@@ -31,12 +34,16 @@ class PushManagerImplTest {
     private lateinit var storage: Storage
     private lateinit var scope: CoroutineScope
     private lateinit var notify: Notify
+    private lateinit var dispatchers: com.appoxee.internal.util.Dispatchers
+    private lateinit var context: Context
 
     private val CHANNEL_ID = "MAPP_NOTIFICATION_1"
     private val CHANNEL_NAME = "MAPP_NOTIFICATION_CHANNEL"
 
     @Before
     fun setUp() {
+        context=ApplicationProvider.getApplicationContext()
+        dispatchers=TestDispatchers()
         notify = mockk(relaxed = true, relaxUnitFun = true)
         notificationFactory = mockk<NotificationFactory>(relaxed = true) {
             coEvery { createSimpleNotification(any(), any()) } coAnswers {
@@ -51,7 +58,7 @@ class PushManagerImplTest {
 
         pushManager = spyk(
             PushManagerImpl(
-                scope,
+                dispatchers,
                 notify,
                 notificationFactory,
                 storage,
@@ -84,7 +91,7 @@ class PushManagerImplTest {
             } coAnswers { mockk(relaxUnitFun = true, relaxed = true) }
 
             // execute method to be tested
-            pushManager.handlePushMessage(remoteMessage)
+            pushManager.handlePushMessage(context,remoteMessage)
 
             // validates test results
             verify { pushManager.isPushMessageFromMapp(any()) }

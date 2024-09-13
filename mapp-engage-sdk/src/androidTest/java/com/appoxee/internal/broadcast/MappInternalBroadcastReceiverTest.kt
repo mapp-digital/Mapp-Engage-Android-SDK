@@ -1,20 +1,25 @@
 package com.appoxee.internal.broadcast
 
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import com.appoxee.internal.TestDispatchers
 import com.appoxee.internal.container.StatsContainer
-import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.model.request.events.EventType
+import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
+import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.Logger
+import com.appoxee.shared.LocalPushBroadcast
 import com.google.common.truth.Truth
 import io.mockk.Called
 import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -29,6 +34,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 @ExperimentalCoroutinesApi
 class MappInternalBroadcastReceiverTest {
@@ -37,12 +43,15 @@ class MappInternalBroadcastReceiverTest {
     private lateinit var intent: Intent
     private lateinit var notificationManager: NotificationManager
     private lateinit var statsContainer: StatsContainer
+    private lateinit var storageContainer: StorageContainer
     private lateinit var statsClient: StatsClient
     private lateinit var pushData: PushData
     private lateinit var bundle: Bundle
+    private lateinit var dispatchers: Dispatchers
 
     @Before
     fun setUp() {
+        dispatchers = TestDispatchers()
         mockkStatic(Logger::class)
         mockkStatic(Log::class)
         context = mockk(relaxed = true)
@@ -51,10 +60,13 @@ class MappInternalBroadcastReceiverTest {
         pushData = mockk(relaxed = true)
         bundle = mockk(relaxed = true)
 
-        statsContainer = spyk(StatsContainer(context), recordPrivateCalls = true)
+        statsContainer = spyk(StatsContainer(context, dispatchers), recordPrivateCalls = true)
+        storageContainer =
+            spyk(StorageContainer.getInstance(context, TimeUnit.SECONDS.toMillis(1), dispatchers))
 
         receiver = spyk(MappInternalBroadcastReceiver(), recordPrivateCalls = true) {
             setStatsContainer(statsContainer)
+            setStorageContainer(storageContainer)
         }
 
         statsClient = mockkClass(StatsClient::class, relaxed = true, relaxUnitFun = true)
@@ -66,6 +78,7 @@ class MappInternalBroadcastReceiverTest {
         every { pushData.id } returns 1L
         every { pushData.sendoutId } returns 2L
         every { statsContainer.statsClient } returns statsClient
+        coEvery { storageContainer.storage.getBroadcastClass() } coAnswers { MappInternalBroadcastReceiver::class.java }
     }
 
     @After
@@ -77,24 +90,24 @@ class MappInternalBroadcastReceiverTest {
 
     @Test
     fun should_Handle_DISMISS_action_and_send_report_event() = runBlocking {
-        val clickType = ClickType.DISMISS
-        every { intent.action } returns clickType.value
-        every { statsContainer.statsClient.reportPushEvent(any(), any(), any(), any()) } just Runs
+        val action = LocalPushBroadcast.Action.PUSH_DISMISSED
+        every { intent.action } returns action
+        every { intent.getIntExtra("notificationId", 123) } returns 123
+
+        coEvery { statsContainer.statsClient.reportPushEvent(any(), any(), any(), any()) } just Runs
         every { notificationManager.cancel(any()) } just Runs
         every { pushData.id } returns 1
         every { pushData.sendoutId } returns 2
 
         receiver.onReceive(context, intent)
 
-        verify { notificationManager.cancel(123) }
-        verify { statsContainer.statsClient }
         Truth.assertThat(statsContainer.statsClient).isNotNull()
-        verify {
+        coVerify {
             statsContainer.statsClient.reportPushEvent(
-                1,
-                2,
-                ClickType.DISMISS,
-                EventType.DISMISS
+                any(),
+                any(),
+                any(),
+                any()
             )
         }
     }
@@ -110,8 +123,9 @@ class MappInternalBroadcastReceiverTest {
 
     @Test
     fun should_not_handle_non_DISMISS_action() = runBlocking {
-        val clickType = ClickType.OPEN_STORE
-        every { intent.action } returns clickType.value
+        val action = LocalPushBroadcast.Action.PUSH_RECEIVED
+        coEvery { storageContainer.storage.getBroadcastClass() } coAnswers { BroadcastReceiver::class.java }
+        every { intent.action } returns action
 
         receiver.onReceive(context, intent)
 

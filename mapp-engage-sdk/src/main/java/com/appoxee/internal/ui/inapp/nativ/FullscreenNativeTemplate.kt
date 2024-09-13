@@ -22,21 +22,22 @@ import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.ui.inapp.ActionHandler
 import com.appoxee.internal.ui.inapp.Template
+import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.toColor
 import com.appoxee.internal.util.LibExt.toPx
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
-class FullscreenNativeTemplate<T : Message>(
+internal class FullscreenNativeTemplate<T : Message>(
     private val activity: Activity,
     private val actionHandler: ActionHandler,
     private val message: T,
     private val scope: CoroutineScope,
+    private val dispatchers: Dispatchers,
     private val onMessageClosed: ((T) -> Unit)? = null
 ) : Template {
 
@@ -69,7 +70,6 @@ class FullscreenNativeTemplate<T : Message>(
             }
             window?.setBackgroundDrawableResource(R.drawable.me_round_rect_layout)
             view.setBackgroundColor(message.templateBackgroundColor.toColor())
-            show()
         }
     }
 
@@ -150,7 +150,7 @@ class FullscreenNativeTemplate<T : Message>(
         message.behaviour?.displaySeconds?.toLong()?.let { seconds ->
             job = scope.launch {
                 delay(TimeUnit.SECONDS.toMillis(seconds))
-                withContext(Dispatchers.Main) {
+                withContext(dispatchers.mainDispatcher) {
                     onDismiss?.invoke()
                 }
             }
@@ -159,6 +159,6 @@ class FullscreenNativeTemplate<T : Message>(
 
 
     override fun show() {
-
+        alertDialog.show()
     }
 }

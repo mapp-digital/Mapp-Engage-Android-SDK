@@ -7,7 +7,7 @@ import com.appoxee.internal.push.model.PushData
 import java.net.URL
 
 internal class NotificationImageStyle(private val pushData: PushData) : NotificationStyle {
-    override suspend fun getStyle(): NotificationCompat.Style {
+    override fun getStyle(): NotificationCompat.Style {
         val bitmap = getBitmap(pushData.iosApxMedia)
         return NotificationCompat.BigPictureStyle()
             .setBigContentTitle(pushData.title)

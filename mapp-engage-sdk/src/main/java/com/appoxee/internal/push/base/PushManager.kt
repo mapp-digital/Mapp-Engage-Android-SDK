@@ -6,7 +6,7 @@ import com.appoxee.internal.push.model.PushData
 import com.google.firebase.messaging.RemoteMessage
 
 internal interface PushManager {
-    fun handlePushMessage(context: Context, remoteMessage: RemoteMessage)
+    suspend fun handlePushMessage(context: Context, remoteMessage: RemoteMessage)
 
     fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
 
