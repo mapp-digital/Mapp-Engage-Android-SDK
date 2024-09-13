@@ -12,6 +12,12 @@ internal class InMemoryStorageImpl() : Storage {
     private var initOptions: AppoxeeOptions? = null
     private var appConfigPayload: AppConfigPayload? = null
     private var clazz: Class<*>? = null
+    override suspend fun clearRegistration() {
+        devicePayload = null
+        registerDevice = null
+        initOptions = null
+        appConfigPayload = null
+    }
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
         this.devicePayload = devicePayload
@@ -46,7 +52,7 @@ internal class InMemoryStorageImpl() : Storage {
     }
 
     override suspend fun setBroadcastClass(clazz: Class<*>) {
-        this.clazz=clazz
+        this.clazz = clazz
     }
 
     override suspend fun getBroadcastClass(): Class<*>? {

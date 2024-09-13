@@ -1,5 +1,6 @@
 package com.appoxee.internal
 
+import TestDispatchers
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
@@ -16,13 +17,14 @@ import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.util.Dispatchers
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -34,12 +36,14 @@ class AppoxeeAdapterTest {
     private lateinit var appoxeeAdapter: AppoxeeAdapter
     private lateinit var engageApi: EngageApi
     private lateinit var storage: Storage
+    private lateinit var dispatchers: Dispatchers
 
     @Before
     fun setUp() {
         engageApi = mockk(relaxed = true)
         storage = mockk(relaxed = true)
-        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage))
+        dispatchers = TestDispatchers()
+        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage, dispatchers))
         coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
     }
 
@@ -52,35 +56,31 @@ class AppoxeeAdapterTest {
      * Test device registration and get successful response
      */
     @Test
-    fun `register device successful response`() {
-        runBlocking {
-            val deviceModel = mockk<RegisterDevice>()
-            coEvery { engageApi.registerDevice(any()) } answers {
-                Response.success(
-                    200,
-                    ResponseData(metadata = null, payload = mockk())
-                )
-            }
-            val response = appoxeeAdapter.register(deviceModel)
-            Truth.assertThat(response).isNotNull()
-            coVerify { engageApi.registerDevice(any()) }
+    fun `register device successful response`() = runTest {
+        val deviceModel = mockk<RegisterDevice>()
+        coEvery { engageApi.registerDevice(any()) } answers {
+            Response.success(
+                200,
+                ResponseData(metadata = null, payload = mockk())
+            )
         }
+        val response = appoxeeAdapter.register(deviceModel)
+        Truth.assertThat(response).isNotNull()
+        coVerify { engageApi.registerDevice(any()) }
     }
 
     /**
      * Test device registration and get some error
      */
     @Test
-    fun `register device error response`() {
-        runBlocking {
-            val deviceModel = mockk<RegisterDevice>()
-            coEvery { engageApi.registerDevice(any()) } answers {
-                Response.error(UnknownHostException())
-            }
-            val response = appoxeeAdapter.register(deviceModel)
-            Truth.assertThat(response).isNull()
-            coVerify { engageApi.registerDevice(any()) }
+    fun `register device error response`() = runTest {
+        val deviceModel = mockk<RegisterDevice>()
+        coEvery { engageApi.registerDevice(any()) } answers {
+            Response.error(UnknownHostException())
         }
+        val response = appoxeeAdapter.register(deviceModel)
+        Truth.assertThat(response).isNull()
+        coVerify { engageApi.registerDevice(any()) }
     }
 
     /**
@@ -89,7 +89,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `setAlias with new value successful`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.setAlias(any(String::class)) } answers {
                 Response.success(
                     200,
@@ -112,7 +112,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `setAlias with existing value successful`() {
-        runBlocking {
+        runTest {
             coEvery { storage.getDevicePayload() } coAnswers {
                 DevicePayload(
                     alias = "12345",
@@ -131,7 +131,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `setAlias with new value error`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.setAlias(any(String::class)) } answers {
                 Response.error(TimeoutException())
             }
@@ -147,7 +147,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `getAlias with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getAlias() } coAnswers {
                 Response.success(
                     200,
@@ -168,7 +168,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `getAlias with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getAlias() } coAnswers {
                 Response.error(ServerException(500, "Server error", null))
             }
@@ -181,7 +181,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `getDevice calls network with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getDevice() } coAnswers {
                 Response.success(
                     200,
@@ -201,7 +201,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `getDevice from local cache with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getDevice() } coAnswers {
                 Response.error(Throwable("Error getting data"))
             }
@@ -215,7 +215,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optIn with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.optIn(any(String::class)) } coAnswers {
                 Response.success(
                     200,
@@ -235,7 +235,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optIn with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.optIn(any(String::class)) } coAnswers {
                 Response.error(ClientException(400, "Bad request!", null))
             }
@@ -250,7 +250,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optOut with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.optOut(any(String::class)) } coAnswers {
                 Response.success(
                     200,
@@ -270,7 +270,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optOut with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.optOut(any(String::class)) } coAnswers {
                 Response.error(ClientException(400, "Bad request!", null))
             }
@@ -285,7 +285,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `getAppConfig with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getAppConfig() } coAnswers {
                 Response.success(
                     200,
@@ -305,7 +305,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `getAppConfig with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getAppConfig() } coAnswers {
                 Response.error(NotImplementedError(""))
             }
@@ -319,7 +319,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `fetchInboxMessages with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.fetchInboxMessages(any(String::class)) } coAnswers {
                 Response.success(
                     200,
@@ -339,7 +339,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `fetchInboxMessages with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.fetchInboxMessages(any(String::class)) } coAnswers {
                 Response.error(ServerException(500, "Server error!", null))
             }
@@ -355,7 +355,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `fetchInappMessages with successful response`() {
-        runBlocking {
+        runTest {
             val eventName = "app_open"
             coEvery { engageApi.fetchInApp(eventName) } coAnswers {
                 Response.success(
@@ -377,7 +377,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `fetchInappMessages with error response`() {
-        runBlocking {
+        runTest {
             val eventName = "app_open"
             coEvery { engageApi.fetchInApp(eventName) } coAnswers {
                 Response.error(NoSuchMethodException())
@@ -394,7 +394,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `addTags with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.addTags(allAny()) } coAnswers {
                 Response.success(
                     200,
@@ -412,7 +412,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `addTags with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.addTags(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
@@ -424,7 +424,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `removeTags with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.removeTags(allAny()) } coAnswers {
                 Response.success(
                     200,
@@ -442,7 +442,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `removeTags with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.removeTags(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
@@ -454,7 +454,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `addCustomAttributes with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
                 Response.success(
                     200,
@@ -472,7 +472,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `addCustomAttributes with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
@@ -484,7 +484,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `inappEvent with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.inappEvent(any(), any(), any(), any()) } coAnswers {
                 Response.success(
                     200,
@@ -505,7 +505,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `inappEvent with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.inappEvent(any(), any(), any(), any()) } coAnswers {
                 Response.error(SecurityException("Connection is not secure!"))
             }
@@ -520,7 +520,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `pushEvent with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.pushEvent(any(), any(), any(), any()) } coAnswers {
                 Response.success(
                     200,
@@ -541,7 +541,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `pushEvent with error response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.pushEvent(any(), any(), any(), any()) } coAnswers {
                 Response.error(SecurityException("Connection is not secure!"))
             }
@@ -556,7 +556,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `getRegions with successful response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.getRegions(any(), any(), any(), any()) } coAnswers {
                 Response.success(
                     200,
@@ -578,7 +578,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `eventRegions with successfull response`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.regionEvent(any(), any(), any(), any(), any()) } coAnswers {
                 Response.success(
                     200,
@@ -588,6 +588,7 @@ class AppoxeeAdapterTest {
                     )
                 )
             }
+
             val response = appoxeeAdapter.eventRegions(mockk(), 0.5, 0.5, 1, 20)
             coVerify { engageApi.regionEvent(any(), any(), any(), any(), any()) }
             Truth.assertThat(response.isSuccess()).isTrue()
@@ -597,7 +598,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `activate$mapp_engage_sdk_tstDebug`() {
-        runBlocking {
+        runTest {
             coEvery { engageApi.activate(any()) } coAnswers {
                 Response.success(
                     200,

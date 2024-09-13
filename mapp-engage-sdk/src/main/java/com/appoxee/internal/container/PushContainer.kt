@@ -16,14 +16,18 @@ import com.appoxee.internal.push.base.PushManager
 import com.appoxee.internal.push.base.PushManagerImpl
 import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.style.NotificationStyleFactory
+import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersImpl
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 internal class PushContainer(
     private val context: Context,
-    private val scope: CoroutineScope
 ) {
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
     private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
+
+    private val dispatchers: Dispatchers = DispatchersImpl()
 
     private val storageContainer: StorageContainer by lazy { StorageContainer.getInstance(context) }
 
@@ -54,7 +58,8 @@ internal class PushContainer(
             notificationStyleFactory,
             notificationBuilder,
             iconProvider,
-            pendingIntentProvider
+            pendingIntentProvider,
+            dispatchers
         )
     }
 
@@ -62,7 +67,7 @@ internal class PushContainer(
 
     internal val pushManager: PushManager by lazy {
         PushManagerImpl(
-            scope,
+            dispatchers,
             notify,
             notificationFactory,
             storageContainer.storage,

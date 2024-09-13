@@ -5,22 +5,23 @@ import com.appoxee.internal.util.Logger
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import org.jetbrains.annotations.TestOnly
 
 class MappMessagingService : FirebaseMessagingService() {
 
     private val TAG = MappMessagingService::class.java.name
 
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
     private lateinit var pushContainer: PushContainer
+
+    private val scope = CoroutineScope(SupervisorJob())
 
     override fun onCreate() {
         Logger.d(TAG, "MappMessagingService - onCreate()")
         super.onCreate()
-        pushContainer = PushContainer(this, coroutineScope)
+        pushContainer = PushContainer(this)
         instance = this
     }
 
@@ -32,16 +33,32 @@ class MappMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Logger.d(TAG, "MappMessagingService - onMessageReceived()")
-        pushContainer.pushManager.handlePushMessage(
-            context = applicationContext,
-            remoteMessage = message
-        )
+        log(message)
+        scope.launch {
+            pushContainer.pushManager.handlePushMessage(
+                context = applicationContext,
+                remoteMessage = message
+            )
+        }
     }
 
     override fun onDestroy() {
         Logger.d(TAG, "MappMessagingService - onDestroy()")
         instance = null
         super.onDestroy()
+    }
+
+    private fun log(message: RemoteMessage) {
+        val sb = StringBuilder()
+        sb.append("\"messageId\": ").append(message.messageId).append("\n")
+        sb.append("\"messageType\": ").append(message.messageType).append("\n")
+        sb.append("\"priority\": ").append(message.priority).append("\n")
+        sb.append("{").append("\n")
+        for ((k, v) in message.data) {
+            sb.append("\t").append("\"$k\"").append(" : ").append("\"$v\"").append("\n")
+        }
+        sb.append("}")
+        Logger.i(TAG, "RemoteMessage.data: $sb")
     }
 
     companion object {

@@ -6,6 +6,9 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeOptions
 
 internal interface Storage {
+
+    suspend fun clearRegistration()
+
     suspend fun saveDevicePayload(devicePayload: DevicePayload?)
 
     suspend fun getDevicePayload(): DevicePayload?

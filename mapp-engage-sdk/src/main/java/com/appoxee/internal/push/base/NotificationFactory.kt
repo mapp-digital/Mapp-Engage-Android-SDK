@@ -3,9 +3,10 @@
 package com.appoxee.internal.push.base
 
 import android.app.Notification
+import android.app.Notification.FLAG_AUTO_CANCEL
 import android.os.Build
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationCompat.FLAG_AUTO_CANCEL
 import com.appoxee.internal.Actions
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.response.Category
@@ -17,6 +18,7 @@ import com.appoxee.internal.push.model.NotificationType
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushUriType
 import com.appoxee.internal.push.style.NotificationStyleFactory
+import com.appoxee.internal.util.Dispatchers
 import com.appoxee.shared.LocalPushBroadcast
 import java.util.Objects
 
@@ -25,20 +27,23 @@ internal class NotificationFactory(
     private val notificationStyleFactory: NotificationStyleFactory,
     private val notificationBuilderFactory: NotificationBuilder,
     private val iconProvider: IconProvider,
-    private val pendingIntentProvider: PendingIntentProvider
+    private val pendingIntentProvider: PendingIntentProvider,
+    private val dispatchers: Dispatchers,
 ) {
     suspend fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
 
         val notificationStyle = notificationStyleFactory.buildNotificationStyle(pushData).getStyle()
 
-        var builder = notificationBuilderFactory
+        val builder = notificationBuilderFactory
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentTitle(pushData.title)
-            .setContentText(pushData.bigText)
-            .setLargeIcon(iconProvider.getLargeIcon())
             .setAutoCancel(true)
             .setStyle(notificationStyle)
+            .setContentTitle(pushData.title)
+            .setContentText(pushData.bigText ?: "")
 
+        iconProvider.getLargeIcon()?.let {
+            builder.setLargeIcon(it)
+        }
 
         pendingIntentProvider.createPendingIntent(pushData, LocalPushBroadcast.PUSH_OPENED)?.let {
             builder.setContentIntent(it)
@@ -48,20 +53,28 @@ internal class NotificationFactory(
             builder.setDeleteIntent(it)
         }
 
-        builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            builder.setSmallIcon(iconProvider.getSmallIconApi23())
-        } else {
-            builder.setSmallIcon(iconProvider.getSmallIcon())
-        }
+        setSmallIcon(builder)
 
         addButtons(builder, pushData, notificationId)
 
-        return builder.build().apply {
+        val notification = builder.build()
+
+        return notification.apply {
             flags = flags or FLAG_AUTO_CANCEL
         }
     }
 
-    private suspend fun addButtons(
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun setSmallIcon(builder: NotificationBuilder) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            builder.setSmallIcon(iconProvider.getSmallIconApi23())
+        } else {
+            builder.setSmallIcon(iconProvider.getSmallIcon())
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun addButtons(
         builder: NotificationBuilder,
         pushData: PushData,
         notificationId: Int

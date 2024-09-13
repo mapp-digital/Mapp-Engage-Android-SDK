@@ -10,14 +10,12 @@ import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
-import com.appoxee.shared.LocalPushBroadcast
+import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.LocalPushBroadcast
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import org.jetbrains.annotations.TestOnly
 
 /**
@@ -28,7 +26,7 @@ interface Appoxee {
     companion object {
         private val TAG = Appoxee::class.java.name
         private lateinit var mInstance: Appoxee
-        private val internalScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        private val dispatchers: com.appoxee.internal.util.Dispatchers = DispatchersImpl()
 
         /**
          * Initialization method for the SDK.
@@ -43,7 +41,7 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            mInstance = AppoxeeImpl(context.applicationContext, options, internalScope)
+            mInstance = AppoxeeImpl(context.applicationContext, options, dispatchers)
             Logger.d(TAG, "engage($context, $options)")
         }
 

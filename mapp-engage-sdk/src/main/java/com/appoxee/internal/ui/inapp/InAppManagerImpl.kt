@@ -5,12 +5,16 @@ import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.WebInappMessage
-import com.appoxee.internal.ui.inapp.nativ.NativeTemplateFactory
-import com.appoxee.internal.ui.inapp.web.WebTemplateFactory
+import com.appoxee.internal.ui.inapp.nativ.NativeFactory
+import com.appoxee.internal.ui.inapp.web.WebFactory
 
+/**
+ * Class is responsible for taking all messages (native and web) into single list of messages.
+ * After that it uses webFactory or nativeFactory to show inapp message one-by-one, ordered by templateId
+ */
 internal class InAppManagerImpl(
-    private val nativeTemplateFactory: NativeTemplateFactory,
-    private val webTemplateFactory: WebTemplateFactory
+    private val nativeFactory: NativeFactory,
+    private val webFactory: WebFactory
 ) : InAppManager {
     override fun parseResponse(response: InappResponse?): List<Message> {
         return response?.let {
@@ -37,11 +41,11 @@ internal class InAppManagerImpl(
     ) {
         when (message) {
             is NativeInappMessage -> {
-                nativeTemplateFactory.createBanner(activity, message, onMessageClosed)
+                nativeFactory.createBanner(activity, message, onMessageClosed)
             }
 
             is WebInappMessage -> {
-                webTemplateFactory.createBanner(activity, message)
+                webFactory.createBanner(activity, message, onMessageClosed)
             }
         }
     }

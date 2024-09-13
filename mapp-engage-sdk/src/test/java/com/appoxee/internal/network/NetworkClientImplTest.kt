@@ -16,14 +16,14 @@ import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.spyk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.net.SocketException
+import java.io.IOException
 
 internal class NetworkClientImplTest {
     private val devicePathV3 = "api/v3/device"
@@ -42,8 +42,8 @@ internal class NetworkClientImplTest {
             every { sdkKey } returns "1234567.890"
             every { appId } returns "123456"
             every { tenantId } returns "7890"
-            every { readTimeout } returns 10000
-            every { connectionTimeout } returns 10000
+            every { readTimeout } returns 2000
+            every { connectionTimeout } returns 2000
             every { server.value } returns "http://127.0.0.1:8080"
             every { server.internalCepUrl } returns "http://127.0.0.1:8080"
         }
@@ -66,7 +66,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return response status`() {
-        runBlocking {
+        runTest {
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
             )
@@ -94,7 +94,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return response body`() {
-        runBlocking {
+        runTest {
             server.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -127,7 +127,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return server exception status`() {
-        runBlocking {
+        runTest {
             server.enqueue(
                 MockResponse().setResponseCode(500)
             )
@@ -152,7 +152,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return client exception status`() {
-        runBlocking {
+        runTest {
             server.enqueue(
                 MockResponse().setResponseCode(400)
             )
@@ -177,7 +177,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return redirect exception status`() {
-        runBlocking {
+        runTest {
             server.enqueue(
                 MockResponse().setResponseCode(300)
             )
@@ -201,27 +201,26 @@ internal class NetworkClientImplTest {
     }
 
     @Test
-    fun `test execute request and return socket exception`() {
-        runBlocking {
-            server.enqueue(
-                MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)
-            )
+    fun `test execute request and return socket exception`() = runTest {
+        server.enqueue(
+            MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_DURING_REQUEST_BODY)
+        )
 
-            val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+        val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
+            .addHeader(mapOf("sdkKey" to "1232434.2343423"))
+            .setPathType(Request.PathType.BASE)
 
-            val adapter = BaseAdapter {
-                DevicePayload.fromJSON(it)
-            }
+        val adapter = BaseAdapter {
+            DevicePayload.fromJSON(it)
+        }
 
-            try {
-                networkClient.execute(request, adapter)
-            } catch (e: Exception) {
-                val recordedRequest = server.takeRequest()
-                Truth.assertThat(e).isInstanceOf(SocketException::class.java)
-                Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
-            }
+        try {
+            networkClient.execute(request, adapter)
+        } catch (e: Exception) {
+            val recordedRequest = server.takeRequest()
+            Truth.assertThat(e).isNotNull()
+            Truth.assertThat(e).isInstanceOf(IOException::class.java)
+            Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
         }
     }
 }

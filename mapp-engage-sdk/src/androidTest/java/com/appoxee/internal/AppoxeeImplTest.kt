@@ -15,6 +15,7 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.push.base.PushManagerImpl
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.util.Dispatchers
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappResult
@@ -29,9 +30,6 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import net.bytebuddy.utility.RandomString
 import org.junit.After
@@ -45,12 +43,14 @@ class AppoxeeImplTest {
     private lateinit var appoxee: AppoxeeImpl
     private lateinit var engageApiImpl: EngageApiImpl
     private lateinit var storage: Storage
-    private lateinit var scope: CoroutineScope
+    private lateinit var dispatchers: Dispatchers
 
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Application>()
-        scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
+
+        dispatchers = TestDispatchers()
+
         val appoxeeOptions = spyk(
             AppoxeeOptions(
                 server = AppoxeeOptions.Server.L3,
@@ -66,9 +66,9 @@ class AppoxeeImplTest {
 
         storage = mockk<InMemoryStorageImpl>(relaxed = true)
 
-        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, scope))
+        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, dispatchers))
 
-        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage)) {
+        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage, dispatchers)) {
             coEvery { this@spyk["refreshDevicePayload"]() as Unit } just Runs
         }
 

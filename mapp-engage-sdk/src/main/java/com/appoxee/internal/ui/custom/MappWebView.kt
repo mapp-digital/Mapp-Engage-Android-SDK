@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.AttributeSet
 import android.view.Gravity
+import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings.LOAD_NO_CACHE
@@ -33,11 +34,15 @@ class MappWebView private constructor(
         @Synchronized
         internal fun getInstance(context: Context): MappWebView {
             if (!::instance.isInitialized) {
-                instance = MappWebView(context)
+                instance = MappWebView(context.applicationContext)
                 instance.loadUrl("about:blank")
                 instance.webView.let {
                     it.stopLoading()
                     it.clearCache(true)
+                }
+            } else {
+                (instance.parent as? ViewGroup)?.let {
+                    it.removeView(instance)
                 }
             }
             return instance
@@ -113,5 +118,9 @@ class MappWebView private constructor(
 
     fun loadUrl(url: String) {
         webView.loadUrl(url)
+    }
+
+    fun loadData(data: String) {
+        webView.loadData(data, "text/html; charset=utf-8", "UTF-8")
     }
 }

@@ -17,12 +17,15 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.util.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Objects
 
 @SuppressLint("HardwareIds")
 internal class AppoxeeAdapter(
     private val engageApi: EngageApi,
-    private val storage: Storage
+    private val storage: Storage,
+    private val dispatchers: Dispatchers,
 ) {
     /**
      * Get device payload from server and save it to a local storage
@@ -34,82 +37,98 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun register(deviceModel: RegisterDevice): RegisterPayload? {
-        val response = engageApi.registerDevice(deviceModel)
-        return if (response.isSuccess()) response.data?.payload else null
+        return withContext(dispatchers.ioDispatcher) {
+            val response = engageApi.registerDevice(deviceModel)
+            if (response.isSuccess()) response.data?.payload else null
+        }
     }
 
     internal suspend fun setAlias(alias: String): String? {
-        val device = storage.getDevicePayload()
-        // new alias same as old alias
-        if (Objects.equals(device?.alias, alias)) {
-            return device?.dmcUserId
+        return withContext(dispatchers.ioDispatcher) {
+            val device = storage.getDevicePayload()
+            // new alias same as old alias
+            if (Objects.equals(device?.alias, alias)) {
+                return@withContext device?.dmcUserId
+            }
+            // alias has changed, update value to a server
+            val response = engageApi.setAlias(alias)
+            // get new device payload from server and save it
+            refreshDevicePayload()
+            // return result
+            response.data?.payload?.dmcUserId
         }
-        // alias has changed, update value to a server
-        val response = engageApi.setAlias(alias)
-        // get new device payload from server and save it
-        refreshDevicePayload()
-        // return result
-        return response.data?.payload?.dmcUserId
     }
 
     internal suspend fun getAlias(): String {
-        val response = engageApi.getAlias()
-        return response.data?.payload?.alias ?: ""
+        return withContext(dispatchers.ioDispatcher) {
+            val response = engageApi.getAlias()
+            response.data?.payload?.alias ?: ""
+        }
     }
 
     internal suspend fun getDevice(): DevicePayload? {
-        val result = engageApi.getDevice()
-        return result.data?.payload
+        return withContext(dispatchers.ioDispatcher) {
+            val result = engageApi.getDevice()
+            result.data?.payload
+        }
     }
 
     internal suspend fun optIn(pushToken: String): Boolean {
-        val device = storage.getDevicePayload()
-        if (Objects.equals(pushToken, device?.pushToken)) {
-            return true
+        return withContext(dispatchers.ioDispatcher) {
+            val device = storage.getDevicePayload()
+            if (Objects.equals(pushToken, device?.pushToken)) {
+                return@withContext true
+            }
+            val response = engageApi.optIn(pushToken = pushToken)
+            refreshDevicePayload()
+            return@withContext response.isSuccess()
         }
-        val response = engageApi.optIn(pushToken = pushToken)
-        refreshDevicePayload()
-        return response.isSuccess()
     }
 
     internal suspend fun optOut(pushToken: String): Boolean {
-        val device = storage.getDevicePayload()
-        if (Objects.equals(pushToken, device?.pushTokenBk)) {
-            return true
+        return withContext(dispatchers.ioDispatcher) {
+            val device = storage.getDevicePayload()
+            if (Objects.equals(pushToken, device?.pushTokenBk)) {
+                return@withContext true
+            }
+            val response = engageApi.optOut(pushTokenBk = pushToken)
+            refreshDevicePayload()
+            return@withContext response.isSuccess()
         }
-        val response = engageApi.optOut(pushTokenBk = pushToken)
-        refreshDevicePayload()
-        return response.isSuccess()
     }
 
     internal suspend fun getAppConfig(): Response<ResponseData<AppConfigPayload>> {
-        return engageApi.getAppConfig()
+        return withContext(dispatchers.ioDispatcher) { engageApi.getAppConfig() }
     }
 
     internal suspend fun fetchInboxMessages(event: String): InboxMessagesResponse? {
-        val response = engageApi.fetchInboxMessages(eventName = event)
-        return response.data
+        return withContext(dispatchers.ioDispatcher) {
+            val response = engageApi.fetchInboxMessages(eventName = event)
+            response.data
+        }
     }
 
     internal suspend fun fetchInappMessages(event: String): InappResponse? {
-        val response = engageApi.fetchInApp(eventName = event)
-        return response.data
+        return withContext(dispatchers.ioDispatcher) {
+            val response = engageApi.fetchInApp(eventName = event)
+            response.data
+        }
     }
 
     internal suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.addTags(tags)
+        return withContext(dispatchers.ioDispatcher) { engageApi.addTags(tags) }
     }
 
     internal suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.removeTags(tags)
+        return withContext(dispatchers.ioDispatcher) { engageApi.removeTags(tags) }
     }
 
     internal suspend fun addCustomAttributes(attributes: Map<String, Any?>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.addCustomAttributes(attributes)
+        return withContext(dispatchers.ioDispatcher) { engageApi.addCustomAttributes(attributes) }
     }
 
     internal suspend fun getCustomAttributes(attributes: List<String>): Response<ResponseData<Map<String, Any?>>> {
-        return engageApi.getCustomAttributes(attributes)
+        return withContext(dispatchers.ioDispatcher) { engageApi.getCustomAttributes(attributes) }
     }
 
     internal suspend fun inappEvent(
@@ -118,12 +137,14 @@ internal class AppoxeeAdapter(
         trackingKey: TrackingKey,
         trackingAttributes: Map<String, Any> = emptyMap()
     ): Response<ResponseData<Boolean>> {
-        return engageApi.inappEvent(
-            originalEventId = originalEventId,
-            templateId = templateId,
-            trackingKey = trackingKey,
-            trackingAttributes = trackingAttributes
-        )
+        return withContext(dispatchers.ioDispatcher) {
+            engageApi.inappEvent(
+                originalEventId = originalEventId,
+                templateId = templateId,
+                trackingKey = trackingKey,
+                trackingAttributes = trackingAttributes
+            )
+        }
     }
 
     internal suspend fun pushEvent(
@@ -132,7 +153,9 @@ internal class AppoxeeAdapter(
         clickType: ClickType,
         eventType: EventType
     ): Response<ResponseData<Boolean>> {
-        return engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
+        return withContext(dispatchers.ioDispatcher) {
+            engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
+        }
     }
 
     internal suspend fun getRegions(
@@ -141,7 +164,9 @@ internal class AppoxeeAdapter(
         version: Int,
         pageSize: Int
     ): Response<ResponseData<RegionsResponse>> {
-        return engageApi.getRegions(lat, lng, version, pageSize)
+        return withContext(dispatchers.ioDispatcher) {
+            engageApi.getRegions(lat, lng, version, pageSize)
+        }
     }
 
     internal suspend fun eventRegions(
@@ -151,10 +176,14 @@ internal class AppoxeeAdapter(
         regionId: Long,
         version: Int
     ): Response<ResponseData<DefaultResponse>> {
-        return engageApi.regionEvent(geoEvent, latitude, longitude, regionId, version)
+        return withContext(dispatchers.ioDispatcher) {
+            engageApi.regionEvent(geoEvent, latitude, longitude, regionId, version)
+        }
     }
 
-    internal suspend fun activate(timestamp:Long):Response<ResponseData<DefaultResponse>>{
-        return engageApi.activate(timestamp)
+    internal suspend fun activate(timestamp: Long): Response<ResponseData<DefaultResponse>> {
+        return withContext(dispatchers.ioDispatcher) {
+            engageApi.activate(timestamp)
+        }
     }
 }

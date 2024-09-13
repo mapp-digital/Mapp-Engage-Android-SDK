@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
@@ -14,7 +15,6 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappPush
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
@@ -26,21 +26,21 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
     private lateinit var statsContainer: StatsContainer
     private lateinit var storageContainer: StorageContainer
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(SupervisorJob())
 
     override fun onReceive(context: Context?, i: Intent?) {
         val action = i?.action
         Logger.d(TAG, "onReceive: $action")
 
-        context?.let {
+        context?.let { ctx ->
             i?.extras?.let { bundle ->
                 if (!::statsContainer.isInitialized) {
-                    statsContainer = StatsContainer(it)
+                    statsContainer = StatsContainer(ctx)
                 }
 
                 if (!::storageContainer.isInitialized) {
                     storageContainer =
-                        StorageContainer.getInstance(context, TimeUnit.HOURS.toMillis(1))
+                        StorageContainer.getInstance(ctx, TimeUnit.HOURS.toMillis(1))
                 }
 
                 bundle.getParcelableCompat<PushData>("pushData")?.let { pushData ->
@@ -49,20 +49,22 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
                     val notificationId = bundle.getInt("notificationId")
                     val eventType = bundle.getInt("eventType").let { EventType.entries[it] }
 
-                    // event for push received is not sent to a backend; all others are sent
-                    if (LocalPushBroadcast.actionsForReporting.contains(action)) {
-                        sendReportEvent(context, pushData, clickType, eventType)
-                    }
+                    scope.launch {
+                        // event for push received is not sent to a backend; all others are sent
+                        if (LocalPushBroadcast.actionsForReporting.contains(action)) {
+                            sendReportEvent(pushData, clickType, eventType)
+                        }
 
-                    // notify client app about push event
-                    notifyClientApp(context, pushData, action)
+                        // notify client app about push event
+                        notifyClientApp(ctx, pushData, action)
 
-                    // if event is dismiss, then try to clear notification from system status bar
-                    if (Objects.equals(clickType, ClickType.DISMISS)) {
-                        if (notificationId != 0) {
-                            val notificationManager =
-                                context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                            notificationManager?.cancel(notificationId)
+                        // if event is dismiss, then try to clear notification from system status bar
+                        if (Objects.equals(clickType, ClickType.DISMISS)) {
+                            if (notificationId != 0) {
+                                val notificationManager =
+                                    ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                                notificationManager?.cancel(notificationId)
+                            }
                         }
                     }
                 }
@@ -70,7 +72,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun notifyClientApp(
+    private suspend fun notifyClientApp(
         context: Context?,
         pushData: PushData,
         action: String?,
@@ -78,21 +80,17 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         Logger.d(TAG, "notifyClientApp() - PushData: $pushData - action: $action")
         // delegate to subscribed app event
 
-        scope.launch {
-            val clazz = storageContainer.storage.getBroadcastClass()
-            Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz?.simpleName}")
-            val intent = Intent(context, clazz).apply {
-                setPackage(context?.applicationContext?.packageName)
-                setAction(action)
-                putExtra("mappPush", MappPush(pushData))
-            }
-            context?.sendBroadcast(intent)
+        val clazz = storageContainer.storage.getBroadcastClass()
+        Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz?.simpleName}")
+        val intent = Intent(context, clazz).apply {
+            setPackage(context?.applicationContext?.packageName)
+            setAction(action)
+            putExtra("mappPush", MappPush(pushData))
         }
-
+        context?.sendBroadcast(intent)
     }
 
-    private fun sendReportEvent(
-        context: Context?,
+    private suspend fun sendReportEvent(
         pushData: PushData?,
         clickType: ClickType,
         eventType: EventType,
@@ -101,17 +99,22 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         val data = pushData ?: return
         val messageId = data.id
         val sendoutId = data.sendoutId
-        context?.let {
-            statsContainer.statsClient.reportPushEvent(
-                messageId,
-                sendoutId ?: 0L,
-                clickType,
-                eventType,
-            )
-        }
+        statsContainer.statsClient.reportPushEvent(
+            messageId,
+            sendoutId ?: 0L,
+            clickType,
+            eventType,
+        )
     }
 
     @TestOnly
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun setStorageContainer(storageContainer: StorageContainer) {
+        this.storageContainer = storageContainer
+    }
+
+    @TestOnly
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun setStatsContainer(statsContainer: StatsContainer) {
         this.statsContainer = statsContainer
     }

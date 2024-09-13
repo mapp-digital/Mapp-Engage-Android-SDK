@@ -105,7 +105,7 @@
 
         <Space
             android:id="@+id/btnSpacer"
-            android:layout_width="10dp"
+            android:layout_width="@dimen/bottom_banner_buttons_spacer"
             android:layout_height="match_parent"/>
         <Button
             android:id="@+id/btn2"
