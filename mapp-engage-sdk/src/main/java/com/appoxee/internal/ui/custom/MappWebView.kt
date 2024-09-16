@@ -8,11 +8,14 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings.LOAD_NO_CACHE
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
+import com.appoxee.internal.model.response.inapp.ActionData
+import com.appoxee.internal.model.response.inapp.InappActionType
 import com.appoxee.internal.util.Logger
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -23,6 +26,10 @@ class MappWebView private constructor(
     defStyleRes: Int
 ) :
     FrameLayout(context, attrs, defStyle, defStyleRes) {
+    private val TAG = this::class.java.name
+
+    private var onButtonClick: ((ActionData) -> Unit)? = null
+
     private constructor(context: Context) : this(context, null, 0, 0)
 
     companion object {
@@ -35,7 +42,7 @@ class MappWebView private constructor(
         internal fun getInstance(context: Context): MappWebView {
             if (!::instance.isInitialized) {
                 instance = MappWebView(context.applicationContext)
-                instance.loadUrl("about:blank")
+                instance.loadData("about:blank")
                 instance.webView.let {
                     it.stopLoading()
                     it.clearCache(true)
@@ -72,6 +79,27 @@ class MappWebView private constructor(
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
             progressBar.visibility = GONE
+        }
+
+        override fun shouldOverrideUrlLoading(
+            view: WebView?,
+            request: WebResourceRequest?
+        ): Boolean {
+            request?.url?.let { uri ->
+                val action = uri.host
+                val scheme = uri.scheme
+                val link = uri.getQueryParameter("link")
+                val openInApp = uri.getQueryParameter("openInApp")?.toInt() == 1
+                onButtonClick?.invoke(
+                    ActionData(
+                        link = link,
+                        openInApp = openInApp,
+                        actionType = InappActionType.fromAction(action),
+                        scheme = scheme
+                    )
+                )
+            }
+            return true
         }
     }
 
@@ -116,11 +144,11 @@ class MappWebView private constructor(
         super.onDetachedFromWindow()
     }
 
-    fun loadUrl(url: String) {
-        webView.loadUrl(url)
+    fun loadData(data: String) {
+        webView.loadDataWithBaseURL(null, data, "text/html; charset=utf-8", "UTF-8", null)
     }
 
-    fun loadData(data: String) {
-        webView.loadData(data, "text/html; charset=utf-8", "UTF-8")
+    fun setOnButtonClick(onButtonClick: ((ActionData) -> Unit)? = null) {
+        this.onButtonClick = onButtonClick
     }
 }

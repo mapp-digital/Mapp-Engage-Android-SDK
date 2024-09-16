@@ -2,16 +2,6 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-<!--    <WebView-->
-<!--        android:id="@+id/webView"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="match_parent"-->
-<!--        android:layout_alignParentStart="true"-->
-<!--        android:layout_alignParentTop="true"-->
-<!--        android:layout_alignParentEnd="true"-->
-<!--        android:layout_alignParentBottom="true" />-->
-
     <ImageButton
         android:id="@+id/ibClose"
         style="@style/Widget.AppCompat.Button.Borderless"

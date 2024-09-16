@@ -2,64 +2,69 @@ package com.appoxee.internal.ui.inapp
 
 import android.content.Context
 import android.widget.Toast
-import com.appoxee.internal.model.response.inapp.InappAction
+import com.appoxee.internal.model.response.inapp.ActionData
+import com.appoxee.internal.model.response.inapp.InappActionType
 import com.appoxee.internal.model.response.inapp.InappButton
 import com.appoxee.internal.util.Logger
 
 class ActionHandlerImpl(private val context: Context) : ActionHandler {
     private val TAG = this::class.java.name
-    override fun handleAction(inappButton: InappButton) {
-        when (inappButton.action) {
-            InappAction.DEEPLINK -> {
-                handleDeeplink(inappButton)
+    override fun handleAction(actionData: ActionData) {
+        when (actionData.actionType) {
+            InappActionType.DEEPLINK -> {
+                handleDeeplink(actionData)
             }
 
-            InappAction.APP_STORE -> {
-                handleAppStore(inappButton)
+            InappActionType.APP_STORE -> {
+                handleAppStore(actionData)
             }
 
-            InappAction.LANDING_PAGE -> {
-                if (inappButton.openInApp) {
-                    handleLandingPageInApp(inappButton)
+            InappActionType.LANDING_PAGE -> {
+                if (actionData.openInApp) {
+                    handleLandingPageInApp(actionData)
                 } else {
-                    handleLandingPageExternal(inappButton)
+                    handleLandingPageExternal(actionData)
                 }
             }
 
-            InappAction.DIALER -> {
-                handleDialer(inappButton)
+            InappActionType.DIALER -> {
+                handleDialer(actionData)
             }
 
             else -> {}
         }
     }
 
-    override fun handleDeeplink(inappButton: InappButton) {
-        val message = "Deeplink: ${inappButton.link}"
+    override fun handleAction(button: InappButton) {
+        handleAction(button.actionData)
+    }
+
+    override fun handleDeeplink(actionData: ActionData) {
+        val message = "Deeplink: ${actionData.link}"
         Logger.d(TAG, message)
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun handleAppStore(inappButton: InappButton) {
-        val message = "AppStore: ${inappButton.link}"
+    override fun handleAppStore(actionData: ActionData) {
+        val message = "AppStore: ${actionData.link}"
         Logger.d(TAG, message)
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun handleLandingPageInApp(inappButton: InappButton) {
-        val message = "Landing Page In App: ${inappButton.link}"
+    override fun handleLandingPageInApp(actionData: ActionData) {
+        val message = "Landing Page In App: ${actionData.link}"
         Logger.d(TAG, message)
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun handleLandingPageExternal(inappButton: InappButton) {
-        val message = "Landing Page External: ${inappButton.link}"
+    override fun handleLandingPageExternal(actionData: ActionData) {
+        val message = "Landing Page External: ${actionData.link}"
         Logger.d(TAG, message)
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun handleDialer(inappButton: InappButton) {
-        val message = "Dialer: ${inappButton.link}"
+    override fun handleDialer(actionData: ActionData) {
+        val message = "Dialer: ${actionData.link}"
         Logger.d(TAG, message)
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }

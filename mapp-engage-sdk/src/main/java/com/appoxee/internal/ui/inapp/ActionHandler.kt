@@ -1,17 +1,20 @@
 package com.appoxee.internal.ui.inapp
 
+import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappButton
 
 interface ActionHandler {
-    fun handleAction(inappButton: InappButton)
+    fun handleAction(actionData: ActionData)
 
-    fun handleDeeplink(inappButton: InappButton)
+    fun handleAction(button: InappButton)
 
-    fun handleAppStore(inappButton: InappButton)
+    fun handleDeeplink(actionData: ActionData)
 
-    fun handleLandingPageInApp(inappButton: InappButton)
+    fun handleAppStore(actionData: ActionData)
 
-    fun handleLandingPageExternal(inappButton: InappButton)
+    fun handleLandingPageInApp(actionData: ActionData)
 
-    fun handleDialer(inappButton: InappButton)
+    fun handleLandingPageExternal(actionData: ActionData)
+
+    fun handleDialer(actionData: ActionData)
 }

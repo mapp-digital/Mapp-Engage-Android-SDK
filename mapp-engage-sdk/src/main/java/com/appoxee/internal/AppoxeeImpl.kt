@@ -4,11 +4,11 @@ package com.appoxee.internal
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
 internal class AppoxeeImpl(
-    private val context: Context,
+    private val application: Application,
     private val options: AppoxeeOptions? = null,
     private val dispatchers: com.appoxee.internal.util.Dispatchers,
 ) : Appoxee, AppoxeeObservable {
@@ -67,16 +67,19 @@ internal class AppoxeeImpl(
     private val pushQueue = mutableSetOf<RemoteMessage>()
 
     private val storageContainer: StorageContainer by lazy {
-        StorageContainer.getInstance(context)
+        StorageContainer.getInstance(application.applicationContext)
     }
 
+    private val statsContainer: StatsContainer by lazy {
+        StatsContainer(application.applicationContext, dispatchers)
+    }
     private val inappContainer: InAppContainer by lazy {
-        InAppContainer(internalScope)
+        InAppContainer(internalScope, statsContainer)
     }
 
     private val appoxeeContainer by lazy {
         AppoxeeContainer(
-            context = context, storage = storage, dispatchers = dispatchers
+            context = application.applicationContext, storage = storage, dispatchers = dispatchers
         )
     }
     internal val appoxeeAdapter: AppoxeeAdapter
@@ -89,16 +92,17 @@ internal class AppoxeeImpl(
     internal val callCoroutineScope
         get() = appoxeeContainer.baseScope
 
-    internal val pushContainer: PushContainer by lazy { PushContainer(context) }
+    internal val pushContainer: PushContainer by lazy { PushContainer(application.applicationContext) }
 
-    internal val activityLifecycleCallback = ActivityLifecycleHandler(context.applicationContext)
+    internal val activityLifecycleCallback =
+        ActivityLifecycleHandler(application.applicationContext)
 
     init {
         internalScope.launch {
             withContext(dispatchers.ioDispatcher) {
-                Logger.init(context.applicationContext as Application)
+                Logger.init(application.applicationContext as Application)
 
-                (context.applicationContext as Application).registerActivityLifecycleCallbacks(
+                (application.applicationContext as Application).registerActivityLifecycleCallbacks(
                     activityLifecycleCallback
                 )
 
@@ -128,7 +132,7 @@ internal class AppoxeeImpl(
 
                 //init webview
                 withContext(dispatchers.mainDispatcher) {
-                    MappWebView.getInstance(context.applicationContext)
+                    MappWebView.getInstance(application.applicationContext)
                 }
             }
         }
@@ -294,7 +298,7 @@ internal class AppoxeeImpl(
         }
         pushQueue.forEach {
             internalScope.launch {
-                pushContainer.pushManager.handlePushMessage(context, it)
+                pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
             }
         }
     }
@@ -322,7 +326,10 @@ internal class AppoxeeImpl(
         internalScope.launch {
             mutex.withLock {
                 if (mIsReady.get()) {
-                    pushContainer.pushManager.handlePushMessage(context, remoteMessage)
+                    pushContainer.pushManager.handlePushMessage(
+                        application.applicationContext,
+                        remoteMessage
+                    )
                 } else {
                     pushQueue.add(remoteMessage)
                 }

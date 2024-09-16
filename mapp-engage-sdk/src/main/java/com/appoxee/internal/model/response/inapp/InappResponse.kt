@@ -12,14 +12,17 @@ data class InappResponse(
 ) {
     companion object {
         fun fromJSON(json: JSONObject): InappResponse {
+            val eventId = json.getStringOrEmpty("event_id")
+            val eventKey = json.getStringOrEmpty("event_key")
             return InappResponse(
-                eventId = json.getStringOrEmpty("event_id"),
-                eventKey = json.getStringOrEmpty("event_key"),
+                eventId = eventId,
+                eventKey = eventKey,
                 webMessages = json.arrayToList("web_messages") {
-                    WebInappMessage.fromJSON(it)
+                    WebInappMessage.fromJSON(it, eventId, eventKey).apply {
+                    }
                 },
                 nativeMessages = json.arrayToList("native_messages") {
-                    NativeInappMessage.fromJSON(it)
+                    NativeInappMessage.fromJSON(it, eventId, eventKey)
                 }
             )
         }

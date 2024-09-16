@@ -36,7 +36,7 @@ internal class InappEvent(
 
 internal class Tracking(
     private val trackingKey: TrackingKey,
-    private val trackingAttributes: Map<String, Any> = emptyMap()
+    private val trackingAttributes: Map<String, *> = emptyMap<String,Any>()
 ) : NetworkData {
     private lateinit var json: JSONObject
     override fun asJson(): JSONObject {

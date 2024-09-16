@@ -154,7 +154,7 @@ class FullScreenActivity : AppCompatActivity() {
             layoutParams =
                 LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             binding.root.addView(this)
-            this.loadUrl(uri.toString())
+            this.loadData(uri.toString())
         }
     }
 
