@@ -15,9 +15,6 @@ internal interface InAppManager {
         onShow: ((T) -> Unit)? = null,
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     )
-
-    suspend fun reportInappDisplayed(message: Message)
-
     suspend fun reportInappEvent(
         message: Message,
         trackingKey: TrackingKey,

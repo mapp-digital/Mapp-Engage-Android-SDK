@@ -12,10 +12,7 @@ import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.DispatchersImpl
-import com.appoxee.internal.util.Logger
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,7 +46,7 @@ internal class InAppManagerImpl(
         showMessage(activity, message,
             onShow = { msg ->
                 scope.launch {
-                    reportInappDisplayed(msg)
+                    reportInappEvent(msg, TrackingKey.IA_MSG_DISPLAYED, TrackingParams())
                 }
             },
             onMessageClosed = { msg, key, params ->
@@ -85,28 +82,15 @@ internal class InAppManagerImpl(
         }
     }
 
-    override suspend fun reportInappDisplayed(message: Message) {
-        scope.launch {
-            statsContainer.statsClient.reportInappEvent(
-                message.originalEventId,
-                message.templateId,
-                TrackingKey.IA_MSG_DISPLAYED,
-                emptyMap<String, Any>()
-            )
-        }
-    }
-
     override suspend fun reportInappEvent(
         message: Message,
         trackingKey: TrackingKey,
         trackingParams: TrackingParams,
     ) {
-        scope.launch {
-            statsContainer.statsClient.reportInappEvent(
-                message.originalEventId, message.templateId, trackingKey,
-                trackingParams.toMap()
-            )
-        }
+        statsContainer.statsClient.reportInappEvent(
+            message.originalEventId, message.templateId, trackingKey,
+            trackingParams.toMap()
+        )
     }
 
 }
