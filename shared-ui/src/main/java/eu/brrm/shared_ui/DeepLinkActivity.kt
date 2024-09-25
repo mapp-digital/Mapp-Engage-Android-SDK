@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.appoxee.internal.Actions
 import eu.brrm.shared_ui.databinding.ActivityDeepLinkBinding
 
 class DeepLinkActivity : AppCompatActivity() {
@@ -13,9 +14,21 @@ class DeepLinkActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDeepLinkBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        handleIntent(intent)
+    }
 
-        intent?.let {
-            val data = it.data ?: return@let
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val action = intent?.action ?: return
+        val packageName = intent.`package` ?: return
+        val data = intent.data ?: return
+
+        if (action == Actions.MAPP_DEEP_LINK_ACTION && packageName == this@DeepLinkActivity.packageName) {
             val scheme = data.scheme
             val authority = data.authority
             val link = data.getQueryParameter("link")
@@ -29,8 +42,9 @@ class DeepLinkActivity : AppCompatActivity() {
             }
             binding.tvDeepLinkUri.text = sb.toString()
             binding.btnOpenDeepLink.setOnClickListener {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                startActivity(intent)
+                val openingIntent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                startActivity(openingIntent)
+                this@DeepLinkActivity.finishAfterTransition()
             }
         }
     }

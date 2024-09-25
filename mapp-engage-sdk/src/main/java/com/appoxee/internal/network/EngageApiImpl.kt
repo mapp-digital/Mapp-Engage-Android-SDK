@@ -299,7 +299,7 @@ internal class EngageApiImpl(
         originalEventId: String,
         templateId: Long,
         trackingKey: TrackingKey,
-        trackingAttributes: Map<String, Any>
+        trackingAttributes: Map<String, *>
     ): Response<ResponseData<Boolean>> {
         val device =
             storage.getDevicePayload() ?: return Response.error(DeviceNotRegisteredException())

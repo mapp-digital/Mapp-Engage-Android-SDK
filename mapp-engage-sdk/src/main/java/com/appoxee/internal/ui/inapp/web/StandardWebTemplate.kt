@@ -10,46 +10,40 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebSettings.LOAD_NO_CACHE
-import android.webkit.WebView
-import android.widget.ImageButton
 import android.widget.RelativeLayout
 import com.appoxee.R
+import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.Message
+import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.ui.custom.MappWebView
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.getDisplayMetrics
 import com.appoxee.internal.util.LibExt.toPx
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 internal class StandardWebTemplate<T : Message>(
     private val activity: Activity,
-    private val actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
-    private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers,
-    private val onMessageClosed: ((T) -> Unit)? = null
-) : Template {
+    scope: CoroutineScope,
+    dispatchers: Dispatchers,
+    private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
+) : Template(inappActionHandler, scope, dispatchers) {
     private lateinit var alertDialog: AlertDialog
-    private var job: Job? = null
     private var height: Int = 0
     private var width: Int = 0
-    private var webView: WebView? = null
+    private var webView: MappWebView? = null
 
     init {
         createTemplate()
     }
 
     private fun createTemplate() {
-        val layoutRes = R.layout.me_inapp_web_standard
+        val layoutRes = R.layout.me_inapp_web_template
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = inflater.inflate(layoutRes, null)
 
@@ -58,57 +52,48 @@ internal class StandardWebTemplate<T : Message>(
         height = (activity.getDisplayMetrics().heightPixels * ((message.location?.height
             ?: 100) / 100f)).toInt()
         alertDialog = AlertDialog.Builder(activity).create().apply {
-            setupViews(activity, view, (message as WebInappMessage)) {
-                dismiss()
-                job?.cancel()
-            }
+            onViewCreated(message, view) { onDismiss() }
+            setupViews(activity, view, (message as WebInappMessage))
             setView(view)
             setCancelable(false)
             setOnDismissListener {
+                webView?.setOnButtonClick(null)
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                onMessageClosed?.invoke(message)
+                onMessageClosed?.invoke(message, trackingKeyResult, trackingParams)
             }
         }
     }
 
     @SuppressLint("SourceLockedOrientationActivity", "SetJavaScriptEnabled")
     private fun setupViews(
-        activity: Activity, view: View, message: WebInappMessage, onDismiss: (() -> Unit)? = null
+        activity: Activity, view: View, message: WebInappMessage
     ) {
         activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-        webView = WebView(activity.applicationContext).apply {
+        webView = MappWebView.getInstance(activity.applicationContext).apply {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
                 RelativeLayout.LayoutParams.MATCH_PARENT
             )
         }
         webView?.also { webView ->
-            webView.settings.also {
-                it.javaScriptEnabled = true
-                it.cacheMode = LOAD_NO_CACHE
+            webView.setOnButtonClick { actionData ->
+                handleWebButton(actionData)
+                onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)
             (message as? WebInappMessage)?.decodedHtml?.let { html ->
                 Logger.d(TAG, "HTML: $html")
-                webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                webView.loadData(html)
             }
         }
 
-        (view as? ViewGroup)?.addView(webView,1)
+        (view as? ViewGroup)?.addView(webView, 0)
+    }
 
-        view.findViewById<ImageButton>(R.id.ibClose)?.let {
-            it.setOnClickListener { onDismiss?.invoke() }
-        }
-
-        message.behaviour?.displaySeconds?.toLong()?.let { seconds ->
-            job = scope.launch {
-                delay(TimeUnit.SECONDS.toMillis(seconds))
-                withContext(dispatchers.mainDispatcher) {
-                    onDismiss?.invoke()
-                }
-            }
-        }
+    private fun onDismiss() {
+        alertDialog.dismiss()
+        job?.cancel()
     }
 
     override fun show() {
@@ -121,10 +106,5 @@ internal class StandardWebTemplate<T : Message>(
                 cornerRadius = activity.toPx(dialogRadius).toFloat()
             })
         }
-
-    }
-
-    private fun reportEvent() {
-
     }
 }

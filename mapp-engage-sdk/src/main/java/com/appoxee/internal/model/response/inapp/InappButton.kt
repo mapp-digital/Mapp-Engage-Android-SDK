@@ -8,19 +8,29 @@ data class InappButton(
     val text: String,
     val textColor: String?,
     val backgroundColor: String?,
-    val action: InappAction?,
+    val action: InappActionType?,
     val link: String?,
-    val openInApp: Boolean
+    val openInApp: Boolean,
+    val templateId: Long,
 ) {
+    val actionData: ActionData
+        get() = ActionData(
+            link = link,
+            openInApp = openInApp,
+            actionType = action,
+            messageId = templateId
+        )
+
     companion object {
-        fun fromJSON(json: JSONObject): InappButton {
+        fun fromJSON(templateId: Long, json: JSONObject): InappButton {
             return InappButton(
                 text = json.getStringOrEmpty("text"),
                 textColor = json.getNullableString("text_color"),
                 backgroundColor = json.getNullableString("background_color"),
-                action = InappAction.from(json.getNullableString("action")),
+                action = InappActionType.from(json.getNullableString("action")),
                 link = json.getNullableString("link"),
-                openInApp = json.getBoolean("open_inApp")
+                openInApp = json.getBoolean("open_inApp"),
+                templateId = templateId
             )
         }
     }

@@ -11,6 +11,7 @@ import com.appoxee.internal.network.NetworkClientImpl
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.ActivityLifecycleHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
@@ -36,6 +37,10 @@ internal class AppoxeeContainer(
             storage = storage,
             deviceProvider = deviceProvider
         )
+    }
+
+    internal val activityLifecycleHandler: ActivityLifecycleHandler by lazy {
+        ActivityLifecycleHandler(context.applicationContext)
     }
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {

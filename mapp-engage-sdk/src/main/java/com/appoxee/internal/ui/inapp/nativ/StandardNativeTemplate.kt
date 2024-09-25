@@ -10,7 +10,6 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
@@ -19,31 +18,28 @@ import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.size.Scale
 import com.appoxee.R
+import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.model.response.inapp.TrackingParams
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.getDisplayMetrics
 import com.appoxee.internal.util.LibExt.toColor
 import com.appoxee.internal.util.LibExt.toPx
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 internal class StandardNativeTemplate<T : Message>(
     private val activity: Activity,
-    private val actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
-    private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers,
-    private val onMessageClosed: ((T) -> Unit)? = null
-) : Template {
+    scope: CoroutineScope,
+    dispatchers: Dispatchers,
+    private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
+) : Template(inappActionHandler, scope, dispatchers) {
+
     private lateinit var alertDialog: AlertDialog
-    private var job: Job? = null
     private var height: Int = 0
     private var width: Int = 0
 
@@ -63,10 +59,8 @@ internal class StandardNativeTemplate<T : Message>(
             (activity.getDisplayMetrics().heightPixels * ((message.location?.height ?: 100) / 100f))
                 .toInt()
         alertDialog = AlertDialog.Builder(activity).create().apply {
-            setupViews(activity, view, (message as NativeInappMessage)) {
-                dismiss()
-                job?.cancel()
-            }
+            onViewCreated(message, view) { onDismiss() }
+            setupViews(activity, view, (message as NativeInappMessage))
             view.findViewById<ImageView>(R.id.ivImage)?.also {
                 it.layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -77,7 +71,7 @@ internal class StandardNativeTemplate<T : Message>(
             setCancelable(false)
             setOnDismissListener {
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                onMessageClosed?.invoke(message)
+                onMessageClosed?.invoke(message, trackingKeyResult, trackingParams)
             }
         }
     }
@@ -87,7 +81,6 @@ internal class StandardNativeTemplate<T : Message>(
         activity: Activity,
         view: View,
         message: NativeInappMessage,
-        onDismiss: (() -> Unit)? = null
     ) {
         activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         view.findViewById<TextView>(R.id.tvTitle)?.let {
@@ -116,54 +109,24 @@ internal class StandardNativeTemplate<T : Message>(
 
         view.findViewById<Button>(R.id.btn1)?.let {
             message.buttons.getOrNull(0)?.let { btn ->
-                it.visibility = if (btn.text.isEmpty()) View.GONE else View.VISIBLE
-                it.text = btn.text
-                it.background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = activity.toPx(buttonRadius).toFloat()
-                }
-                it.backgroundTintList = ColorStateList.valueOf(btn.backgroundColor.toColor())
-                it.setTextColor(btn.textColor.toColor())
-                it.setOnClickListener {
-                    actionHandler.handleAction(btn)
-                    onDismiss?.invoke()
-                }
+                handleNativeButton(it, btn) { onDismiss() }
             }
         }
 
         view.findViewById<Button>(R.id.btn2)?.let {
             message.buttons.getOrNull(1)?.let { btn ->
-                it.visibility = if (btn.text.isEmpty()) View.GONE else View.VISIBLE
-                it.text = btn.text
-                it.background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = activity.toPx(buttonRadius).toFloat()
-                }
-                it.backgroundTintList = ColorStateList.valueOf(btn.backgroundColor.toColor())
-                it.setTextColor(btn.textColor.toColor())
-                it.setOnClickListener {
-                    actionHandler.handleAction(btn)
-                    onDismiss?.invoke()
-                }
+                handleNativeButton(it, btn) { onDismiss() }
             }
         }
 
         view.findViewById<Space>(R.id.btnSpacer)?.let {
             if (message.buttons.size == 2) it.visibility = View.VISIBLE else View.GONE
         }
+    }
 
-        view.findViewById<ImageButton>(R.id.ibClose)?.let {
-            it.setOnClickListener { onDismiss?.invoke() }
-        }
-
-        message.behaviour?.displaySeconds?.toLong()?.let { seconds ->
-            job = scope.launch {
-                delay(TimeUnit.SECONDS.toMillis(seconds))
-                withContext(dispatchers.mainDispatcher) {
-                    onDismiss?.invoke()
-                }
-            }
-        }
+    private fun onDismiss() {
+        alertDialog.dismiss()
+        job?.cancel()
     }
 
     override fun show() {
@@ -178,9 +141,5 @@ internal class StandardNativeTemplate<T : Message>(
             it.decorView.backgroundTintList =
                 ColorStateList.valueOf((message as NativeInappMessage).templateBackgroundColor.toColor())
         }
-    }
-
-    private fun reportEvent() {
-
     }
 }

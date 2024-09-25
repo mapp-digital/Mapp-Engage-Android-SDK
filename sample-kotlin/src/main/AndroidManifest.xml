@@ -13,8 +13,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.EngageSample"
         android:usesCleartextTraffic="true"
-        tools:targetApi="m"
-        tools:ignore="DataExtractionRules">
+        tools:ignore="DataExtractionRules"
+        tools:targetApi="m">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -25,11 +25,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <receiver
-            android:name="com.mapp.engagesample.MyPushBroadcast"
+            android:name=".MyPushBroadcast"
             android:enabled="true"
-            android:exported="false">
-        </receiver>
+            android:exported="false"/>
     </application>
 
 </manifest>

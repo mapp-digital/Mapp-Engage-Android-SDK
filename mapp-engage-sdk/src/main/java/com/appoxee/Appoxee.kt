@@ -1,6 +1,7 @@
 package com.appoxee
 
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.os.Looper
 import com.appoxee.internal.AppoxeeImpl
@@ -41,7 +42,7 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            mInstance = AppoxeeImpl(context.applicationContext, options, dispatchers)
+            mInstance = AppoxeeImpl(context.applicationContext as Application, options, dispatchers)
             Logger.d(TAG, "engage($context, $options)")
         }
 
@@ -192,18 +193,6 @@ interface Appoxee {
     fun closeNotification(notificationId: Int)
 
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
-
-    @TestOnly
-    fun testCall(): Call<String>
-
-    @TestOnly
-    fun testActivate(): Call<Boolean>
-
-    @TestOnly
-    fun testInappEvent(): Call<Boolean>
-
-    @TestOnly
-    fun testPushEvent(): Call<Boolean>
 
     @TestOnly
     fun testGetRegions(

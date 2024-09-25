@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.bundles.coil)
     implementation(libs.bundles.exoplayer)
     implementation(libs.bundles.datastore)
+    implementation(libs.browser)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
 

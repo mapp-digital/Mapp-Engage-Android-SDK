@@ -50,7 +50,7 @@ internal interface EngageApi {
         originalEventId: String,
         templateId: Long,
         trackingKey: TrackingKey,
-        trackingAttributes: Map<String, Any> = emptyMap()
+        trackingAttributes: Map<String, *> = emptyMap<String,Any>()
     ): Response<ResponseData<Boolean>>
 
     suspend fun pushEvent(
