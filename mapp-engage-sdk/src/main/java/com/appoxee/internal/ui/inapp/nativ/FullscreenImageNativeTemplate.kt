@@ -115,7 +115,7 @@ internal class FullscreenImageNativeTemplate<T : Message>(
         alertDialog.dismiss()
         job?.cancel()
     }
-
+    
     override fun show() {
         alertDialog.show()
     }

@@ -26,7 +26,6 @@ internal abstract class Template(
     private val scope: CoroutineScope,
     private val dispatchers: Dispatchers
 ) {
-
     val TAG
         get() = this::class.java.name
 
