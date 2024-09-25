@@ -10,6 +10,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.appoxee.Appoxee
+import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.shared.AppoxeeObserver
+import com.appoxee.shared.MappResult
 import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.camelCaseToWords
@@ -43,6 +46,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val appoxeeObserver = object : AppoxeeObserver {
+        override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
+            if (status && mappResult.isSuccess()) {
+                requestPostNotificationPermission()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -51,15 +62,15 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
         navigate(HomeFragment())
-        requestPostNotificationPermission()
         Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
+        Appoxee.instance().subscribe(appoxeeObserver)
     }
 
     fun <T : Fragment> navigate(fragment: T) {
-        supportFragmentManager.beginTransaction()
-            .addToBackStack(fragment.javaClass.simpleName)
-            .replace(binding.fragmentContainerView.id, fragment)
-            .commit()
+        supportFragmentManager.beginTransaction().apply {
+            addToBackStack(fragment.javaClass.simpleName)
+            replace(binding.fragmentContainerView.id, fragment)
+        }.commit()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -82,11 +93,17 @@ class MainActivity : AppCompatActivity() {
                     "Permission(s) granted: \n" + Util.permissionsToString(result),
                     Toast.LENGTH_SHORT
                 ).show()
+                Appoxee.instance().enablePush(true)
             }
+        }else{
+            Appoxee.instance().enablePush(true)
         }
     }
 
+
+
     override fun onDestroy() {
+        Appoxee.instance().unsubscribe(appoxeeObserver)
         supportFragmentManager.removeOnBackStackChangedListener(onBackStackChangedListener)
         super.onDestroy()
     }

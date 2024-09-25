@@ -117,6 +117,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Get custom attributes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Regions" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEventRegions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Trigger Enter Geolocation" />
         </LinearLayout>
     </ScrollView>
 
