@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.mapp.engagesample"
-    compileSdk = 34
-
+    compileSdk = 35
+    buildToolsVersion="35.0.0"
     defaultConfig {
         applicationId = "com.mapp.engagesample"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -72,7 +72,7 @@ dependencies {
     implementation(project(mapOf("path" to ":shared-ui")))
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.activity:activity:1.8.0")
+    implementation("androidx.activity:activity:1.9.2")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -154,8 +154,4 @@ class MappWebView private constructor(
     fun setOnButtonClick(onButtonClick: ((ActionData) -> Unit)? = null) {
         this.onButtonClick = onButtonClick
     }
-
-    fun loadData(data: String) {
-        webView.loadData(data, "text/html; charset=utf-8", "UTF-8")
-    }
 }
