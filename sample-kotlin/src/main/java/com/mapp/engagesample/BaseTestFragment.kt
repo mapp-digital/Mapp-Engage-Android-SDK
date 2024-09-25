@@ -102,40 +102,8 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
 
         binding.btnFetchInappMessages.setOnClickListener {
             lifecycleScope.launch {
-//                val result = Appoxee.instance().fetchInappMessages("app_open").asSuspend()
-//                Util.showDialog(
-//                    requireContext(),
-//                    "Inapp Messages",
-//                    if (result.isSuccess()) result.getData().toString()
-//                    else result.getError().toString()
-//                )
                 Appoxee.instance().triggerInApp(requireActivity(), "app_open")
             }
-        }
-
-        binding.btnTestCallExecute.setOnClickListener {
-            lifecycleScope.launch {
-                val result = Appoxee.instance().testCall().asSuspend()
-                Util.showDialog(
-                    requireContext(),
-                    "Test Call (execute)",
-                    if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-            }
-        }
-
-        binding.btnTestCallEnqueue.setOnClickListener {
-            Appoxee.instance().testCall().enqueue(object : MappCallback<String> {
-                override fun onResult(result: MappResult<String>) {
-                    Util.showDialog(
-                        requireContext(),
-                        "Test Call (enqueue)",
-                        if (result.isSuccess()) result.getData().toString()
-                        else result.getError().toString()
-                    )
-                }
-            })
         }
     }
 

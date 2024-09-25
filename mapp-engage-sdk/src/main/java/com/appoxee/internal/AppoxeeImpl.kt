@@ -4,11 +4,12 @@ package com.appoxee.internal
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
+import androidx.annotation.VisibleForTesting
 import com.appoxee.Appoxee
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
@@ -20,9 +21,7 @@ import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
-import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.ui.ActivityLifecycleHandler
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -44,7 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
 internal class AppoxeeImpl(
-    private val context: Context,
+    private val application: Application,
     private val options: AppoxeeOptions? = null,
     private val dispatchers: com.appoxee.internal.util.Dispatchers,
 ) : Appoxee, AppoxeeObservable {
@@ -53,12 +52,10 @@ internal class AppoxeeImpl(
 
     private val mutex = Mutex()
 
-    private val coroutineContext: CoroutineContext =
-        SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+    private val internalScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(TAG, "exception in sdk init: $throwable")
-        }
-
-    private val internalScope: CoroutineScope = CoroutineScope(coroutineContext)
+        })
 
     private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
 
@@ -67,39 +64,41 @@ internal class AppoxeeImpl(
     private val pushQueue = mutableSetOf<RemoteMessage>()
 
     private val storageContainer: StorageContainer by lazy {
-        StorageContainer.getInstance(context)
+        StorageContainer.getInstance(application.applicationContext)
     }
 
+    private val statsContainer: StatsContainer by lazy {
+        StatsContainer(application.applicationContext, dispatchers)
+    }
     private val inappContainer: InAppContainer by lazy {
-        InAppContainer(internalScope)
+        InAppContainer(internalScope, statsContainer)
     }
 
-    private val appoxeeContainer by lazy {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val appoxeeContainer by lazy {
         AppoxeeContainer(
-            context = context, storage = storage, dispatchers = dispatchers
+            context = application.applicationContext, storage = storage, dispatchers = dispatchers
         )
     }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val appoxeeAdapter: AppoxeeAdapter
         get() = appoxeeContainer.appoxeeAdapter
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val storage: Storage
         get() = storageContainer.storage
-    internal val deviceProvider: DeviceProvider
-        get() = appoxeeContainer.deviceProvider
 
-    internal val callCoroutineScope
-        get() = appoxeeContainer.baseScope
-
-    internal val pushContainer: PushContainer by lazy { PushContainer(context) }
-
-    internal val activityLifecycleCallback = ActivityLifecycleHandler(context.applicationContext)
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val pushContainer: PushContainer by lazy { PushContainer(application.applicationContext) }
 
     init {
         internalScope.launch {
             withContext(dispatchers.ioDispatcher) {
-                Logger.init(context.applicationContext as Application)
+                Logger.init(application.applicationContext as Application)
 
-                (context.applicationContext as Application).registerActivityLifecycleCallbacks(
-                    activityLifecycleCallback
+                (application.applicationContext as Application).registerActivityLifecycleCallbacks(
+                    appoxeeContainer.activityLifecycleHandler
                 )
 
                 println("OPTIONS: $options")
@@ -128,7 +127,7 @@ internal class AppoxeeImpl(
 
                 //init webview
                 withContext(dispatchers.mainDispatcher) {
-                    MappWebView.getInstance(context.applicationContext)
+                    MappWebView.getInstance(application.applicationContext)
                 }
             }
         }
@@ -142,7 +141,7 @@ internal class AppoxeeImpl(
         val savedRegisterPayload = storage.getRegistrationDevice()
 
         // calculate current registration data of device
-        val newRegisterPayload = deviceProvider.generateRegistrationDevice()
+        val newRegisterPayload = appoxeeContainer.deviceProvider.generateRegistrationDevice()
 
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
@@ -232,7 +231,7 @@ internal class AppoxeeImpl(
     }
 
     override fun triggerInApp(context: Activity, eventName: String) {
-        callCoroutineScope.launch {
+        appoxeeContainer.baseScope.launch {
             withContext(dispatchers.ioDispatcher) {
                 val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
                 inappContainer.inappManager.let { inappManager ->
@@ -294,7 +293,7 @@ internal class AppoxeeImpl(
         }
         pushQueue.forEach {
             internalScope.launch {
-                pushContainer.pushManager.handlePushMessage(context, it)
+                pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
             }
         }
     }
@@ -322,7 +321,10 @@ internal class AppoxeeImpl(
         internalScope.launch {
             mutex.withLock {
                 if (mIsReady.get()) {
-                    pushContainer.pushManager.handlePushMessage(context, remoteMessage)
+                    pushContainer.pushManager.handlePushMessage(
+                        application.applicationContext,
+                        remoteMessage
+                    )
                 } else {
                     pushQueue.add(remoteMessage)
                 }
@@ -332,32 +334,6 @@ internal class AppoxeeImpl(
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
-    }
-
-    override fun testCall(): Call<String> = buildHttpCall {
-        val start = System.currentTimeMillis()
-        delay(5000)
-        return@buildHttpCall "Response from testCall after delay of ${System.currentTimeMillis() - start} ms."
-    }
-
-    override fun testActivate(): Call<Boolean> = buildHttpCall {
-        appoxeeAdapter.activate(3000).isSuccess()
-    }
-
-    override fun testInappEvent(): Call<Boolean> = buildHttpCall {
-        val response = appoxeeAdapter.inappEvent(
-            originalEventId = "b3852abb-e519-47fd-96da-babc8a3a7cd4",
-            templateId = 124640L,
-            trackingKey = TrackingKey.IA_MSG_DISPLAYED
-        )
-        response.isSuccess()
-    }
-
-    override fun testPushEvent(): Call<Boolean> = buildHttpCall {
-        val response = appoxeeAdapter.pushEvent(
-            124852, 233861, ClickType.OPEN_DIALER, EventType.CLICK
-        )
-        response.isSuccess()
     }
 
     override fun testGetRegions(
@@ -414,7 +390,7 @@ internal class AppoxeeImpl(
     private fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope = callCoroutineScope, call)
+        return HttpCall(coroutineScope = appoxeeContainer.baseScope, call)
     }
 
     private suspend fun <T> safeCall(

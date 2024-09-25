@@ -7,7 +7,9 @@ import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
 data class NativeInappMessage(
-    override val templateId: String,
+    override val originalEventId: String,
+    override val originalEventKey: String,
+    override val templateId: Long,
     override val content: String,
     override val type: InappType,
     override val behaviour: Behaviour?,
@@ -19,11 +21,14 @@ data class NativeInappMessage(
     val contentColor: String?,
     val buttons: List<InappButton>,
     val contentTemplateId: ContentTemplates
-) : Message(templateId, content, type, behaviour, location) {
+) : Message(originalEventId, originalEventKey, templateId, content, type, behaviour, location) {
     companion object {
-        fun fromJSON(json: JSONObject): NativeInappMessage {
+        fun fromJSON(json: JSONObject, eventId: String, eventKey: String): NativeInappMessage {
+            val templateId = json.getLongOrDefault("template_id")
             return NativeInappMessage(
-                templateId = json.getStringOrEmpty("template_id"),
+                originalEventId = eventId,
+                originalEventKey = eventKey,
+                templateId = json.getLongOrDefault("template_id"),
                 content = json.getStringOrEmpty("content"),
                 type = InappType.from(json.getLongOrDefault("type", 0).toInt()),
                 behaviour = json.getJSONObject("behaviour")?.let { Behaviour.fromJSON(it) },
@@ -33,7 +38,7 @@ data class NativeInappMessage(
                 titleColor = json.getNullableString("title_color"),
                 templateBackgroundColor = json.getNullableString("template_background_color"),
                 contentColor = json.getNullableString("content_color"),
-                buttons = json.arrayToList("buttons") { InappButton.fromJSON(it) },
+                buttons = json.arrayToList("buttons") { InappButton.fromJSON(templateId, it) },
                 contentTemplateId = ContentTemplates.from(json.getStringOrEmpty("content_template_id"))
             )
         }
