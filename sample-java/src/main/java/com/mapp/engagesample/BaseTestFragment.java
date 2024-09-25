@@ -114,19 +114,6 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
             });
         });
 
-        binding.btnTestCallExecute.setOnClickListener(v -> {
-            executor.execute(() -> {
-                MappResult<String> response = Appoxee.instance().testCall().execute();
-                mainExecutor.post(() -> Util.showDialog(requireContext(), "Response", response.getData()));
-            });
-        });
-
-        binding.btnTestCallEnqueue.setOnClickListener(v -> {
-            Appoxee.instance().testCall().enqueue(mappResult -> {
-                Util.showDialog(requireContext(), "Response", mappResult.getData());
-            });
-        });
-
         binding.btnSetTags.setOnClickListener(v -> {
             Appoxee.instance().addTags(List.of("female", "makeup", "fashion")).enqueue(result -> {
                 Util.showDialog(requireContext(), "Set Tags", String.valueOf(result.getData()));
@@ -147,18 +134,6 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
             });
         });
 
-        binding.btnTestInappEvent.setOnClickListener(v -> {
-            Appoxee.instance().testInappEvent().enqueue(result -> {
-                Util.showDialog(requireContext(), "Test Inapp Event", String.valueOf(result.getData()));
-            });
-        });
-
-        binding.btnTestPushEvent.setOnClickListener(v -> {
-            Appoxee.instance().testPushEvent().enqueue(result -> {
-                Util.showDialog(requireContext(), "Test Push Event", String.valueOf(result.getData()));
-            });
-        });
-
         binding.btnGetRegions.setOnClickListener(v -> {
             Appoxee.instance().testGetRegions(43.1407, 20.5181, 0, 50).enqueue(result -> {
                 List<Region> regions = result.getData() != null ? result.getData().getRegions() : Collections.emptyList();
@@ -174,13 +149,6 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
         binding.btnEventRegions.setOnClickListener(v -> {
             Appoxee.instance().testRegionEvent(GeoEvent.ENTER, 43.1407, 20.5181, 91, 0).enqueue(result -> {
                 Util.showDialog(requireContext(), "Trigger Enter Geolocation", String.valueOf(result.getData()));
-            });
-        });
-
-        binding.btnTestActivate.setOnClickListener(v -> {
-            Call<Boolean> call = Appoxee.instance().testActivate();
-            call.enqueue(result -> {
-                Util.showDialog(requireContext(), "Activate", String.valueOf(result.getData()));
             });
         });
 

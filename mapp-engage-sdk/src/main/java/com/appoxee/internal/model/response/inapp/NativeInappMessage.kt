@@ -24,6 +24,7 @@ data class NativeInappMessage(
 ) : Message(originalEventId, originalEventKey, templateId, content, type, behaviour, location) {
     companion object {
         fun fromJSON(json: JSONObject, eventId: String, eventKey: String): NativeInappMessage {
+            val templateId = json.getLongOrDefault("template_id")
             return NativeInappMessage(
                 originalEventId = eventId,
                 originalEventKey = eventKey,
@@ -37,7 +38,7 @@ data class NativeInappMessage(
                 titleColor = json.getNullableString("title_color"),
                 templateBackgroundColor = json.getNullableString("template_background_color"),
                 contentColor = json.getNullableString("content_color"),
-                buttons = json.arrayToList("buttons") { InappButton.fromJSON(it) },
+                buttons = json.arrayToList("buttons") { InappButton.fromJSON(templateId, it) },
                 contentTemplateId = ContentTemplates.from(json.getStringOrEmpty("content_template_id"))
             )
         }

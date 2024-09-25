@@ -4,9 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
-import android.content.res.ColorStateList
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -22,25 +20,23 @@ import coil.size.Scale
 import com.appoxee.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.BannerPosition
-import com.appoxee.internal.model.response.inapp.InappButton
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.toColor
-import com.appoxee.internal.util.LibExt.toPx
 import kotlinx.coroutines.CoroutineScope
 
 internal class BannerNativeTemplate<T : Message>(
     private val activity: Activity,
-    actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
     scope: CoroutineScope,
     dispatchers: Dispatchers,
     private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
-) : Template(actionHandler, scope, dispatchers) {
+) : Template(inappActionHandler, scope, dispatchers) {
 
     private lateinit var windowManager: WindowManager
     private lateinit var layoutParams: LayoutParams

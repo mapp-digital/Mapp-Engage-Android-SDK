@@ -22,7 +22,7 @@ import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.getDisplayMetrics
@@ -32,12 +32,12 @@ import kotlinx.coroutines.CoroutineScope
 
 internal class StandardImageNativeTemplate<T : Message>(
     private val activity: Activity,
-    actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
     scope: CoroutineScope,
     dispatchers: Dispatchers,
     private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
-) : Template(actionHandler, scope, dispatchers) {
+) : Template(inappActionHandler, scope, dispatchers) {
 
     private lateinit var alertDialog: AlertDialog
     private var height: Int = 0

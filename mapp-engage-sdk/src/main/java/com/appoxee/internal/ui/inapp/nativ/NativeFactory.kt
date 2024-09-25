@@ -7,7 +7,7 @@ import com.appoxee.internal.model.response.inapp.ContentTemplates
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.ui.inapp.ActionHandlerImpl
+import com.appoxee.internal.ui.inapp.InappActionHandlerImpl
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +31,7 @@ internal class NativeFactory(
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
         val delaySeconds = message.behaviour?.delaySeconds?.toLong() ?: 0
-        val actionHandler = ActionHandlerImpl(context)
+        val actionHandler = InappActionHandlerImpl(context)
         var template: Template
         job = scope.launch {
             delay(TimeUnit.SECONDS.toMillis(delaySeconds))

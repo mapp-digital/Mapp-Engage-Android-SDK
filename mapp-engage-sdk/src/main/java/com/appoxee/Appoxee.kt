@@ -195,18 +195,6 @@ interface Appoxee {
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
 
     @TestOnly
-    fun testCall(): Call<String>
-
-    @TestOnly
-    fun testActivate(): Call<Boolean>
-
-    @TestOnly
-    fun testInappEvent(): Call<Boolean>
-
-    @TestOnly
-    fun testPushEvent(): Call<Boolean>
-
-    @TestOnly
     fun testGetRegions(
         lat: Double,
         lng: Double,

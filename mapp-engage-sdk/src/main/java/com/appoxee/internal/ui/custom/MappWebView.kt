@@ -17,6 +17,7 @@ import android.widget.ProgressBar
 import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappActionType
 import com.appoxee.internal.util.Logger
+import okhttp3.internal.toLongOrDefault
 
 @SuppressLint("SetJavaScriptEnabled")
 class MappWebView private constructor(
@@ -89,13 +90,15 @@ class MappWebView private constructor(
                 val action = uri.host
                 val scheme = uri.scheme
                 val link = uri.getQueryParameter("link")
+                val messageId=uri.getQueryParameter("messageId")?.toLongOrDefault(-1) ?: -1
                 val openInApp = uri.getQueryParameter("openInApp")?.toInt() == 1
                 onButtonClick?.invoke(
                     ActionData(
                         link = link,
                         openInApp = openInApp,
                         actionType = InappActionType.fromAction(action),
-                        scheme = scheme
+                        scheme = scheme,
+                        messageId = messageId
                     )
                 )
             }

@@ -6,7 +6,8 @@ data class ActionData(
     val link: String?,
     val openInApp: Boolean,
     val actionType: InappActionType?,
-    val scheme: String? = null
+    val scheme: String? = null,
+    val messageId:Long,
 ) {
 
     internal fun toTrackingKey(): TrackingKey {

@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 internal abstract class Template(
-    private val actionHandler: ActionHandler,
+    private val inappActionHandler: InappActionHandler,
     private val scope: CoroutineScope,
     private val dispatchers: Dispatchers
 ) {
@@ -40,12 +40,12 @@ internal abstract class Template(
     private val startingTime: Long = System.currentTimeMillis()
 
 
-    protected open fun handleButton(actionData: ActionData) {
+    protected open fun handleWebButton(actionData: ActionData) {
         trackingParams.link = actionData.link
         trackingParams.timeSinceLastDisplay = System.currentTimeMillis() - startingTime
         trackingParams.reason = null
         trackingKeyResult = actionData.toTrackingKey()
-        actionHandler.handleAction(actionData)
+        inappActionHandler.handleAction(actionData)
     }
 
     protected open fun handleNativeButton(
@@ -65,7 +65,7 @@ internal abstract class Template(
             trackingParams.reason = null
             trackingParams.timeSinceLastDisplay = System.currentTimeMillis() - startingTime
             trackingParams.link = inappButton.link
-            actionHandler.handleAction(inappButton)
+            inappActionHandler.handleAction(inappButton)
             trackingKeyResult = inappButton.actionData.toTrackingKey()
             onDismiss?.invoke()
         }

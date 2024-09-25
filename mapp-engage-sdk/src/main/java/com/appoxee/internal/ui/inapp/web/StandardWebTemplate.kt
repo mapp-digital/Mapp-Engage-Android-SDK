@@ -10,7 +10,6 @@ import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.RelativeLayout
 import com.appoxee.R
 import com.appoxee.internal.model.request.events.TrackingKey
@@ -18,26 +17,22 @@ import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
 import com.appoxee.internal.ui.custom.MappWebView
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibExt.getDisplayMetrics
 import com.appoxee.internal.util.LibExt.toPx
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 internal class StandardWebTemplate<T : Message>(
     private val activity: Activity,
-    actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
     scope: CoroutineScope,
     dispatchers: Dispatchers,
     private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
-) : Template(actionHandler, scope, dispatchers) {
+) : Template(inappActionHandler, scope, dispatchers) {
     private lateinit var alertDialog: AlertDialog
     private var height: Int = 0
     private var width: Int = 0
@@ -83,7 +78,7 @@ internal class StandardWebTemplate<T : Message>(
         }
         webView?.also { webView ->
             webView.setOnButtonClick { actionData ->
-                handleButton(actionData)
+                handleWebButton(actionData)
                 onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)

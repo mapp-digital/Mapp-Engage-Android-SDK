@@ -16,7 +16,7 @@ import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
 import com.appoxee.internal.ui.custom.MappWebView
-import com.appoxee.internal.ui.inapp.ActionHandler
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.Logger
@@ -24,12 +24,12 @@ import kotlinx.coroutines.CoroutineScope
 
 internal class FullscreenWebTemplate<T : Message>(
     private val activity: Activity,
-    actionHandler: ActionHandler,
+    inappActionHandler: InappActionHandler,
     private val message: T,
     scope: CoroutineScope,
     dispatchers: Dispatchers,
     private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
-) : Template(actionHandler, scope, dispatchers) {
+) : Template(inappActionHandler, scope, dispatchers) {
     private lateinit var alertDialog: AlertDialog
     private var webView: MappWebView? = null
 
@@ -80,7 +80,7 @@ internal class FullscreenWebTemplate<T : Message>(
 
         webView?.also { webView ->
             webView.setOnButtonClick { actionData ->
-                handleButton(actionData)
+                handleWebButton(actionData)
                 onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)

@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.FrameLayout.LayoutParams
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.databinding.ActivityFullScreenBinding
 import com.appoxee.internal.Actions
@@ -131,7 +130,7 @@ class FullScreenActivity : AppCompatActivity() {
     }
 
     private fun createDeepLink(pushData: PushData?, it: Intent): Intent {
-        return Intent(Actions.MAPP_DEEP_LINK).apply {
+        return Intent(Actions.MAPP_DEEP_LINK_ACTION).apply {
             setPackage(this@FullScreenActivity.packageName)
             val uriBuilder = Uri.Builder()
                 .scheme(Actions.MAPP_DEEP_LINK_SCHEME)
@@ -160,7 +159,7 @@ class FullScreenActivity : AppCompatActivity() {
 
     private fun showGif(intent: Intent) {
         intent.extras?.getParcelableCompat<PushData>("pushData")?.let {
-            (Appoxee.instance() as AppoxeeImpl?)?.activityLifecycleCallback?.handleRichPush(
+            (Appoxee.instance() as AppoxeeImpl?)?.appoxeeContainer?.activityLifecycleHandler?.handleRichPush(
                 this@FullScreenActivity,
                 it
             )

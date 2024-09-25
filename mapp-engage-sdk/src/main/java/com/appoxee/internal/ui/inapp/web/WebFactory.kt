@@ -6,7 +6,7 @@ import com.appoxee.internal.model.response.inapp.InappType
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
-import com.appoxee.internal.ui.inapp.ActionHandlerImpl
+import com.appoxee.internal.ui.inapp.InappActionHandlerImpl
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.Logger
@@ -31,7 +31,7 @@ internal class WebFactory(
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
         val delaySeconds = message.behaviour?.delaySeconds?.toLong() ?: 0
-        val actionHandler = ActionHandlerImpl(context)
+        val actionHandler = InappActionHandlerImpl(context)
         val webMessage = (message as? WebInappMessage) ?: return
         var template: Template
         job = scope.launch {

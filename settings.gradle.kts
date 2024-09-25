@@ -25,6 +25,9 @@ dependencyResolutionManagement {
             library("lifecycle-runtime-ktx","androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
             library("coroutines-ktx","org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+            // chrome tabs - browser
+            library("browser","androidx.browser:browser:1.5.0")
+
             // ui components
             library("recycler","androidx.recyclerview:recyclerview:1.3.2")
             library("constraintlayout","androidx.constraintlayout:constraintlayout:2.1.4")
