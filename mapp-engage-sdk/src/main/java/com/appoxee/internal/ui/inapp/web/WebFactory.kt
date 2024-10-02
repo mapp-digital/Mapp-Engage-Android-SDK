@@ -1,11 +1,13 @@
 package com.appoxee.internal.ui.inapp.web
 
 import android.app.Activity
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappType
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.model.response.inapp.WebInappMessage
+import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.InappActionHandlerImpl
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
@@ -30,52 +32,69 @@ internal class WebFactory(
         onShow: ((T) -> Unit)? = null,
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
-        val delaySeconds = message.behaviour?.delaySeconds?.toLong() ?: 0
-        val actionHandler = InappActionHandlerImpl(context)
-        val webMessage = (message as? WebInappMessage) ?: return
+        val actionHandler = getActionHandler(context)
+        val delaySeconds = getDelay(message)
         var template: Template
         job = scope.launch {
             Logger.d(TAG, "createBanner: ${message.type.name}")
             delay(TimeUnit.SECONDS.toMillis(delaySeconds))
             withContext(dispatchers.mainDispatcher) {
-                when (webMessage.type) {
-                    InappType.FULLSCREEN -> {
-                        template = FullscreenWebTemplate(
-                            context,
-                            actionHandler,
-                            message,
-                            scope,
-                            dispatchers,
-                            onMessageClosed
-                        )
-                    }
-
-                    InappType.BANNER -> {
-                        template =
-                            BannerWebTemplate(
-                                context,
-                                actionHandler,
-                                message,
-                                scope,
-                                dispatchers,
-                                onMessageClosed
-                            )
-                    }
-
-                    InappType.DIALOG -> {
-                        template = StandardWebTemplate(
-                            context,
-                            actionHandler,
-                            message,
-                            scope,
-                            dispatchers,
-                            onMessageClosed
-                        )
-                    }
-                }
+                template = createTemplate(context, actionHandler, message, onMessageClosed)
                 template.show()
                 onShow?.invoke(message)
             }
         }
+    }
+
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun <T : Message> createTemplate(
+        context: Activity,
+        actionHandler: InappActionHandler,
+        message: T,
+        onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
+    ): Template {
+        return when (message.type) {
+            InappType.FULLSCREEN -> {
+                FullscreenWebTemplate(
+                    context,
+                    actionHandler,
+                    message,
+                    scope,
+                    dispatchers,
+                    onMessageClosed
+                )
+            }
+
+            InappType.BANNER -> {
+                BannerWebTemplate(
+                    context,
+                    actionHandler,
+                    message,
+                    scope,
+                    dispatchers,
+                    onMessageClosed
+                )
+            }
+
+            InappType.DIALOG -> {
+                StandardWebTemplate(
+                    context,
+                    actionHandler,
+                    message,
+                    scope,
+                    dispatchers,
+                    onMessageClosed
+                )
+            }
+        }
+    }
+
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun getActionHandler(context: Activity): InappActionHandler = InappActionHandlerImpl(context)
+
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun getDelay(message: Message): Long {
+        val seconds = (message.behaviour?.delaySeconds ?: 0).toLong()
+        return TimeUnit.SECONDS.toMillis(seconds)
     }
 }

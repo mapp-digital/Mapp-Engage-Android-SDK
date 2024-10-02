@@ -11,9 +11,6 @@ import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
@@ -33,14 +30,12 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.coroutines.CoroutineContext
 
 internal class AppoxeeImpl(
     private val application: Application,
@@ -75,11 +70,9 @@ internal class AppoxeeImpl(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val appoxeeContainer by lazy {
-        AppoxeeContainer(
-            context = application.applicationContext, storage = storage, dispatchers = dispatchers
-        )
-    }
+    internal val appoxeeContainer = AppoxeeContainer.getInstance(
+        context = application.applicationContext, storage = storage, dispatchers = dispatchers
+    )
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val appoxeeAdapter: AppoxeeAdapter

@@ -11,13 +11,12 @@ internal class StatsContainer(
     dispatchers: Dispatchers = DispatchersImpl(),
 ) {
     val storageContainer: StorageContainer by lazy { StorageContainer.getInstance(context) }
-    val appoxeeContainer: AppoxeeContainer by lazy {
-        AppoxeeContainer(
-            context,
-            storageContainer.storage,
-            dispatchers,
-        )
-    }
+    val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
+        context,
+        storageContainer.storage,
+        dispatchers,
+    )
+
     val statsClient: StatsClient by lazy {
         StatsClientImpl(appoxeeContainer.engageApi, dispatchers)
     }

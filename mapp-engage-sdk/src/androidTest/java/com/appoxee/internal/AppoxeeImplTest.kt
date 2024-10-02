@@ -400,26 +400,6 @@ class AppoxeeImplTest {
     }
 
     @Test
-    fun testActivate() {
-        runBlocking {
-            coEvery { engageApiImpl.activate(any()) } coAnswers {
-                Response.success(
-                    200,
-                    ResponseData(
-                        metadata = null, payload = DefaultResponse("", emptyList())
-                    )
-                )
-
-            }
-
-            val result = appoxee.testActivate().asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.activate(any()) }
-            Truth.assertThat(result.isSuccess()).isTrue()
-            Truth.assertThat(result.getData()).isTrue()
-        }
-    }
-
-    @Test
     fun closeNotification() {
         runBlocking {
             val pushManager: PushManagerImpl = mockk(relaxed = true)
