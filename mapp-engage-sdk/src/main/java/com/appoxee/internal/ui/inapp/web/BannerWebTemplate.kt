@@ -47,7 +47,7 @@ internal class BannerWebTemplate<T : Message>(
     private fun createTemplate() {
         val layoutRes = R.layout.me_inapp_web_banner
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val position = BannerPosition.fromValue(message.location?.position?.value ?: 0)
+        val position = BannerPosition.fromValue(message.location?.bannerPosition?.position ?: 0)
         val width =
             (activity.getDisplayMetrics().widthPixels * ((message.location?.width ?: 100) / 100f))
                 .toInt()

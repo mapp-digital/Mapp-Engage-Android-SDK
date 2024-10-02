@@ -55,7 +55,7 @@ dependencyResolutionManagement {
             library("truth","com.google.truth:truth:1.2.0")
             library("json","org.json:json:20180813")
             library("okhttp3-mockwebserver","com.squareup.okhttp3:mockwebserver:4.11.0")
-            library( "kotlinx-coroutines-test","org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+            library( "kotlinx-coroutines-test","org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 
             //androidTest
             library("androidx-test-junit","androidx.test.ext:junit:1.1.5")
@@ -70,7 +70,7 @@ dependencyResolutionManagement {
             bundle("coil", listOf("coil","coil-gif"))
             bundle("exoplayer", listOf("media3-exoplayer","media3-exoplayer-dash","media3-ui"))
             bundle("test", listOf("junit4","jupiter","mockk","truth","json","okhttp3-mockwebserver", "kotlinx-coroutines-test"))
-            bundle("androidTest", listOf("androidx-test-junit","androidx-test-espresso","androidx-test-core", "androidx-test-mockk", "truth","jupiter"))
+            bundle("androidTest", listOf("androidx-test-junit","androidx-test-espresso","androidx-test-core", "androidx-test-mockk", "truth","jupiter", "kotlinx-coroutines-test"))
         }
     }
 }
