@@ -12,14 +12,34 @@ import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.ActivityLifecycleHandler
+import com.appoxee.internal.util.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.Mutex
 
-internal class AppoxeeContainer(
+internal class AppoxeeContainer private constructor(
     context: Context,
     storage: Storage,
-    dispatchers: com.appoxee.internal.util.Dispatchers,
+    dispatchers: Dispatchers,
 ) {
+    companion object {
+        private lateinit var instance: AppoxeeContainer
+        private val mutex = Mutex()
+        fun getInstance(
+            context: Context,
+            storage: Storage,
+            dispatchers: Dispatchers
+        ): AppoxeeContainer {
+            if (!::instance.isInitialized) {
+                synchronized(mutex) {
+                    if (!::instance.isInitialized) {
+                        instance = AppoxeeContainer(context, storage, dispatchers)
+                    }
+                }
+            }
+            return instance
+        }
+    }
 
     internal var localPushBroadcast: Class<*>? = null
 

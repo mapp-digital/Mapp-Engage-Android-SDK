@@ -14,6 +14,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.Space
 import android.widget.TextView
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.size.Scale
@@ -46,10 +48,11 @@ internal class BannerNativeTemplate<T : Message>(
         createTemplate()
     }
 
-    private fun createTemplate() {
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun createTemplate() {
         val layoutRes = R.layout.me_inapp_banner_top_bottom
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val position = BannerPosition.fromValue(message.location?.position?.value ?: 0)
+        val position = getPosition((message as NativeInappMessage))
 
         view = inflater.inflate(layoutRes, null)
         windowManager = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -122,6 +125,11 @@ internal class BannerNativeTemplate<T : Message>(
         view.findViewById<Space>(R.id.btnSpacer)?.let {
             if (message.buttons.size == 2) it.visibility = View.VISIBLE else View.GONE
         }
+    }
+
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun getPosition(message: NativeInappMessage): BannerPosition {
+        return BannerPosition.fromValue(message.location?.bannerPosition?.position ?: 0)
     }
 
     override fun show() {

@@ -158,7 +158,11 @@ class InappActionHandlerImpl(private val context: Context) : InappActionHandler 
         actionData.link?.let { telephoneNumber ->
             if (telephoneNumber.startsWith("tel")) {
                 val intent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse(telephoneNumber)
+                    val phoneNumber = telephoneNumber
+                        .replace(" ", "")
+                        .replace("tel:", "tel:+")
+                        .trim()
+                    data = Uri.parse(phoneNumber)
                 }
                 context.startActivity(intent)
             }

@@ -14,6 +14,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.size.Scale
@@ -47,7 +49,8 @@ internal class StandardNativeTemplate<T : Message>(
         createTemplate()
     }
 
-    private fun createTemplate() {
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun createTemplate() {
         val layoutRes = R.layout.me_inapp_standard
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = inflater.inflate(layoutRes, null)

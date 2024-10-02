@@ -114,12 +114,14 @@ class MappWebView private constructor(
         webView = WebView(context.applicationContext).apply {
             settings.apply {
                 javaScriptEnabled = true
-                setLayerType(LAYER_TYPE_HARDWARE, null)
+                setLayerType(LAYER_TYPE_NONE, null)
+                isHorizontalScrollBarEnabled=true
+                isVerticalScrollBarEnabled=true
                 javaScriptCanOpenWindowsAutomatically = true
                 defaultTextEncodingName = Charsets.UTF_8.name()
                 webChromeClient = mappChromeClient
                 webViewClient = mappWebClient
-                useWideViewPort = true
+                //useWideViewPort = true
                 textZoom = 100
                 domStorageEnabled = false
                 cacheMode = LOAD_NO_CACHE
