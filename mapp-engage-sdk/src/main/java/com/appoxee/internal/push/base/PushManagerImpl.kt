@@ -69,10 +69,7 @@ internal class PushManagerImpl(
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
         return try {
-            val id = remoteMessage.data["p"]
-            val userId = remoteMessage.data["user_id"]
-            val customerId = remoteMessage.data["customer_id"]
-            id != null && userId != null && customerId != null
+            !remoteMessage.data["p"].isNullOrBlank()
         } catch (e: Exception) {
             false
         }

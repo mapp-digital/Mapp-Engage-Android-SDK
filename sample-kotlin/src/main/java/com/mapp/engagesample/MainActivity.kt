@@ -61,9 +61,9 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
-        navigate(HomeFragment())
         Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
         Appoxee.instance().subscribe(appoxeeObserver)
+        navigate(HomeFragment())
     }
 
     fun <T : Fragment> navigate(fragment: T) {

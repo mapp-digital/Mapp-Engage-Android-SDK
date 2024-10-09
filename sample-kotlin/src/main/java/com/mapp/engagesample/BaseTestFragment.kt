@@ -1,15 +1,12 @@
 package com.mapp.engagesample
 
-import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.Toast
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
@@ -17,22 +14,40 @@ import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
-import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
-import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
-import eu.brrm.shared_ui.Util.permissionsToString
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class BaseTestFragment : Fragment(), AppoxeeObserver {
+class BaseTestFragment : Fragment() {
 
+    private val TAG = this::class.java.simpleName
     private var _binding: FragmentBaseTestBinding? = null
 
     private val binding: FragmentBaseTestBinding
         get() = _binding!!
+
+
+    private val appoxeeObserver = object : AppoxeeObserver {
+        override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                binding.switchReady.apply {
+                    isEnabled = false
+                    isChecked = status
+                }
+
+                val devicePayload = mappResult.getData()
+                isPushEnabled(devicePayload)
+
+                devicePayload?.let {
+                    val device = "UDIDHashed\n${it.udidHashed}"
+                    binding.tvDevice.text = device
+                }
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -109,7 +124,7 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
 
     override fun onResume() {
         super.onResume()
-        Appoxee.instance().subscribe(this)
+        Appoxee.instance().subscribe(appoxeeObserver)
         binding.llInnerContainer.children.forEach {
             (it as? MaterialButton)?.let { btn ->
                 btn.isEnabled = btn.hasOnClickListeners()
@@ -117,27 +132,9 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         }
     }
 
-    override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            binding.switchReady.apply {
-                isEnabled = false
-                isChecked = status
-            }
-
-            isPushEnabled()
-
-            mappResult.getData()?.let {
-                val device = "UDIDHashed\n${it.udidHashed}"
-                binding.tvDevice.text = device
-            }
-
-
-        }
-    }
-
     private fun pushEnable(enabled: Boolean) {
         lifecycleScope.launch {
-            val call = Appoxee.instance().enablePush(enabled, null)
+            val call = Appoxee.instance().enablePush(enabled)
             val result = call.asSuspend()
             val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
             Util.showDialog(
@@ -148,19 +145,13 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
         }
     }
 
-    private fun isPushEnabled() {
-        lifecycleScope.launch {
-            val call = Appoxee.instance().isPushEnabled()
-            val result = call.asSuspend()
-            if (result.isSuccess()) {
-                val enabled = result.getData() ?: false
-                binding.switchPushEnabled.also {
-                    it.setOnCheckedChangeListener(null)
-                    it.isChecked = enabled
-                    it.setOnCheckedChangeListener { _, isChecked ->
-                        pushEnable(isChecked)
-                    }
-                }
+    private fun isPushEnabled(devicePayload: DevicePayload?) {
+        val enabled = !devicePayload?.pushToken.isNullOrEmpty()
+        binding.switchPushEnabled.also {
+            it.setOnCheckedChangeListener(null)
+            it.isChecked = enabled
+            it.setOnCheckedChangeListener { _, isChecked ->
+                pushEnable(isChecked)
             }
         }
     }
@@ -178,6 +169,7 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
                     val clip = ClipData.newPlainText("token", it)
                     clipboard.setPrimaryClip(clip)
 
+                    Log.d(TAG, "FIREBASE TOKEN: $it")
                     // show dialog with token value
                     Util.showDialog(requireContext(), "Firebase token", it)
                 }
@@ -186,7 +178,7 @@ class BaseTestFragment : Fragment(), AppoxeeObserver {
     }
 
     override fun onPause() {
-        Appoxee.instance().unsubscribe(this)
+        Appoxee.instance().unsubscribe(appoxeeObserver)
         super.onPause()
     }
 
