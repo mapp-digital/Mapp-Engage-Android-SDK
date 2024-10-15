@@ -1,9 +1,7 @@
 package com.mapp.engagesample;
 
-import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,7 +10,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,36 +20,41 @@ import com.appoxee.Appoxee;
 import com.appoxee.internal.model.request.geo.GeoEvent;
 import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.model.response.geo.Region;
-import com.appoxee.internal.model.response.inapp.InappResponse;
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import eu.brrm.shared_ui.PermissionHelper;
 import eu.brrm.shared_ui.Util;
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding;
 
-public class BaseTestFragment extends Fragment implements AppoxeeObserver {
+public class BaseTestFragment extends Fragment {
     private static final String TAG = BaseTestFragment.class.getName();
     private final String alias = "abc1@maptest.com";
     private final Executor executor = Executors.newCachedThreadPool();
     private final Handler mainExecutor = new Handler(Looper.getMainLooper());
     private FragmentBaseTestBinding binding;
 
+
+    private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
+        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
+        if (status) {
+            updateUI(status, mappResult.getData());
+        }
+    };
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentBaseTestBinding.inflate(getLayoutInflater());
-        Appoxee.instance().subscribe(this);
+        Appoxee.instance().subscribe(appoxeeObserver);
         return binding.getRoot();
     }
 
@@ -60,44 +62,18 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        requestPostNotificationPermission();
-
         binding.switchReady.setEnabled(false);
 
         binding.btnSetAlias.setOnClickListener(v -> {
-            Editable alias = binding.editTextAlias.getText();
-            if (alias == null || alias.toString().isEmpty()) {
-                Util.showDialog(requireContext(), "Set alias", "Alias can not be empty!");
-                return;
-            }
-
-            Appoxee.instance().setAlias(alias.toString()).enqueue(mappResult -> {
-                if (mappResult.isSuccess()) {
-                    alias.clear();
-                }
-                String dmcUserId = mappResult.getData();
-                Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
-            });
+            setAlias();
         });
 
         binding.btnGetAlias.setOnClickListener(v -> {
-            executor.execute(() -> {
-                MappResult<String> mappResult = Appoxee.instance().getAlias().execute();
-                String alias = mappResult.getData();
-                mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
-            });
+            getAlias();
         });
 
         binding.btnGetDevice.setOnClickListener(v -> {
-            Appoxee.instance().getDevice().enqueue(mappResult -> {
-                DevicePayload device = mappResult.getData();
-                Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
-            });
-//            executor.execute(() -> {
-//                MappResult<DevicePayload> mappResult = Appoxee.instance().getDevice().execute();
-//                String device=mappResult.getData()!=null ? mappResult.getData().toString() : "";
-//                mainExecutor.post(() -> Util.showDialog(requireContext(), "Device", device));
-//            });
+            getDevice();
         });
 
         binding.btnFetchInboxMessages.setOnClickListener(v -> {
@@ -108,10 +84,7 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
         });
 
         binding.btnFetchInappMessages.setOnClickListener(v -> {
-            Appoxee.instance().fetchInappMessages("app_open").enqueue(mappResult -> {
-                InappResponse response = mappResult.getData();
-                Util.showDialog(requireContext(), "Inapp Messages", response != null ? response.toString() : "");
-            });
+            Appoxee.instance().triggerInApp(requireActivity(), "app_open");
         });
 
         binding.btnSetTags.setOnClickListener(v -> {
@@ -157,6 +130,7 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
                 if (!result.isSuccess() || result.getData() == null) return;
 
                 String token = result.getData();
+                Log.d(TAG, "FIREBASE TOKEN: " + token);
                 // copy token to clipboard
                 ClipboardManager clipboard = ContextCompat.getSystemService(
                         requireContext(),
@@ -176,7 +150,6 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     @Override
     public void onResume() {
         super.onResume();
-        Appoxee.instance().subscribe(this);
         for (int i = 0; i < binding.llInnerContainer.getChildCount(); i++) {
             View child = binding.llInnerContainer.getChildAt(i);
             if (child instanceof MaterialButton) {
@@ -185,32 +158,12 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
         }
     }
 
-    private void requestPostNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionHelper permissionHelper = new PermissionHelper(requireActivity().getActivityResultRegistry());
-            List<String> permissions = new ArrayList<>();
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
-            permissionHelper.requestPermissions(requireContext(), permissions, result -> {
-                Toast.makeText(requireContext(), "Permission(s) granted: \n" + Util.permissionsToString(result), Toast.LENGTH_SHORT).show();
-            });
-        }
-    }
-
     @Override
     public void onDestroyView() {
         binding = null;
-        Appoxee.instance().unsubscribe(this);
+        Appoxee.instance().unsubscribe(appoxeeObserver);
         super.onDestroyView();
     }
-
-    @Override
-    public void onReadyStatusChanged(boolean status, @NonNull MappResult<DevicePayload> mappResult) {
-        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
-        if (status) {
-            updateUI(status, mappResult.getData());
-        }
-    }
-
 
     private void updateUI(boolean status, @Nullable DevicePayload payload) {
         Log.d(TAG, "UI Updating - Is Ready: " + status + "; Payload: " + payload);
@@ -220,7 +173,7 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
             sb.append("UDIDHashed: ").append("\n").append(payload.getUdidHashed());
         }
 
-        isPushEnabled();
+        isPushEnabled(payload);
 
         mainExecutor.post(() -> {
             binding.switchReady.setChecked(status);
@@ -229,13 +182,27 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     }
 
     private void setAlias() {
-        executor.execute(() -> {
-            MappResult<String> result = Appoxee.instance().setAlias(alias).execute();
-            if (result.isSuccess()) {
-                getDevice();
-            }
-        });
+        Editable alias = binding.editTextAlias.getText();
+        if (alias == null || alias.toString().isEmpty()) {
+            Util.showDialog(requireContext(), "Set alias", "Alias can not be empty!");
+            return;
+        }
 
+        Appoxee.instance().setAlias(alias.toString()).enqueue(mappResult -> {
+            if (mappResult.isSuccess()) {
+                alias.clear();
+            }
+            String dmcUserId = mappResult.getData();
+            Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+        });
+    }
+
+    private void getAlias() {
+        executor.execute(() -> {
+            MappResult<String> mappResult = Appoxee.instance().getAlias().execute();
+            String alias = mappResult.getData();
+            mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
+        });
     }
 
     private void pushEnable(boolean enabled) {
@@ -247,27 +214,19 @@ public class BaseTestFragment extends Fragment implements AppoxeeObserver {
     }
 
     private void getDevice() {
-        MappResult<DevicePayload> result = Appoxee.instance().getDevice().execute();
-        if (result.isSuccess()) {
-            DevicePayload payload = result.getData();
-            boolean ready = Appoxee.instance().isReady();
-            mainExecutor.post(() -> updateUI(ready, payload));
-        } else {
-            Log.e(TAG, "ERROR IN MAIN ACTIVITY: " + result.getError());
-        }
+        Appoxee.instance().getDevice().enqueue(mappResult -> {
+            DevicePayload device = mappResult.getData();
+            Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+        });
     }
 
-    private void isPushEnabled() {
-        Call<Boolean> call = Appoxee.instance().isPushEnabled();
-        call.enqueue(result -> {
-            if (result.isSuccess()) {
-                Boolean enabled = result.getData();
-                binding.switchPushEnabled.setOnCheckedChangeListener(null);
-                binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
-                binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    pushEnable(isChecked);
-                });
-            }
+    private void isPushEnabled(@Nullable DevicePayload payload) {
+        String pushToken = payload != null ? payload.getPushToken() : null;
+        Boolean enabled = pushToken != null && !pushToken.isEmpty();
+        binding.switchPushEnabled.setOnCheckedChangeListener(null);
+        binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
+        binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            pushEnable(isChecked);
         });
     }
 
