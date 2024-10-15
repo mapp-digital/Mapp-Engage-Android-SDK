@@ -21,11 +21,10 @@ public class SampleApplication extends Application {
                 "206974",
                 "5963"
         );
-        //options.setConnectionTimeout(5000);
-        //options.setReadTimeout(5000);
-        //options.setCepUrl("https://jamie.m.shortest-route.com");
+        options.setConnectionTimeout(5000);
+        options.setReadTimeout(5000);
+        options.setLogType(AppoxeeOptions.LogLevel.DEBUG);
         options.setNotificationMode(NotificationMode.BACKGROUND_AND_FOREGROUND);
         Appoxee.engage(this, options);
-        Log.d(TAG, "onCreate() END");
     }
 }

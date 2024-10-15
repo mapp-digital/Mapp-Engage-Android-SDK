@@ -88,12 +88,14 @@ class MainActivity : AppCompatActivity() {
             val permissions: MutableList<String> = ArrayList()
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
             permissionHelper.requestPermissions(this@MainActivity, permissions) { result ->
-                Toast.makeText(
-                    this@MainActivity,
-                    "Permission(s) granted: \n" + Util.permissionsToString(result),
-                    Toast.LENGTH_SHORT
-                ).show()
-                Appoxee.instance().enablePush(true)
+                if (java.lang.Boolean.TRUE == result[Manifest.permission.POST_NOTIFICATIONS]) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Permission(s) granted: \n" + Util.permissionsToString(result),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Appoxee.instance().enablePush(true, null)
+                }
             }
         }else{
             Appoxee.instance().enablePush(true)
