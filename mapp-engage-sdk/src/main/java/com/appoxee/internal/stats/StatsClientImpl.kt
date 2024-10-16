@@ -14,9 +14,6 @@ import kotlinx.coroutines.withContext
 internal class StatsClientImpl(
     private val engageApi: EngageApi,
     private val dispatchers: Dispatchers,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
-        Logger.e(StatsClientImpl::class.java.name, "Error in sending report: ${throwable.message}")
-    })
 ) : StatsClient {
     private val TAG = StatsClientImpl::class.java.name
     override suspend fun reportPushEvent(

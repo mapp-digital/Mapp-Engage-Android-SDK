@@ -9,7 +9,7 @@ import com.appoxee.internal.push.model.PushUriType
 
 
 internal interface PendingIntentProvider {
-    fun createPendingIntent(pushData: PushData, action: String?): PendingIntent?
+    fun createPendingIntent(pushData: PushData, notificationId: Int, action: String?): PendingIntent?
     fun createDismissPendingIntent(notificationId: Int, pushData: PushData?): PendingIntent
     fun createCustomPendingIntent(
         uriType: PushUriType?,

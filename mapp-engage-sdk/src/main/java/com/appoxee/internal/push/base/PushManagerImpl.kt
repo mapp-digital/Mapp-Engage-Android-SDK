@@ -55,8 +55,8 @@ internal class PushManagerImpl(
                 }
 
                 else -> {
-                    Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData")
-                    val notificationId = Random.nextInt(1, 100_000)
+                    val notificationId = (System.currentTimeMillis()/100).toInt()
+                    Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId")
                     val notification = createNotification(pushData, notificationId)
                     withContext(dispatchers.mainDispatcher) {
                         showNotification(notification, notificationId)
