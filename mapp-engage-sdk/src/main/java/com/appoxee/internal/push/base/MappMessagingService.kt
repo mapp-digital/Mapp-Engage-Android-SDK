@@ -1,5 +1,7 @@
 package com.appoxee.internal.push.base
 
+import android.annotation.SuppressLint
+import com.appoxee.Appoxee
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.util.Logger
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -10,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import org.jetbrains.annotations.TestOnly
 
+@SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MappMessagingService : FirebaseMessagingService() {
 
     private val TAG = MappMessagingService::class.java.name
@@ -23,11 +26,6 @@ class MappMessagingService : FirebaseMessagingService() {
         super.onCreate()
         pushContainer = PushContainer(this)
         instance = this
-    }
-
-    override fun onNewToken(token: String) {
-        super.onNewToken(token)
-        Logger.d(TAG, "MappMessagingService - onNewToken()")
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

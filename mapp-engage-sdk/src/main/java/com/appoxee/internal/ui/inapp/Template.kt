@@ -64,7 +64,7 @@ internal abstract class Template(
             trackingParams.reason = null
             trackingParams.timeSinceLastDisplay = System.currentTimeMillis() - startingTime
             trackingParams.link = inappButton.link
-            inappActionHandler.handleAction(inappButton)
+            inappActionHandler.handleAction(inappButton.actionData)
             trackingKeyResult = inappButton.actionData.toTrackingKey()
             onDismiss?.invoke()
         }

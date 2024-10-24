@@ -6,8 +6,6 @@ import com.appoxee.internal.model.response.inapp.InappButton
 interface InappActionHandler {
     fun handleAction(actionData: ActionData)
 
-    fun handleAction(button: InappButton)
-
     fun handleDeeplink(actionData: ActionData)
 
     fun handleAppStore(actionData: ActionData)

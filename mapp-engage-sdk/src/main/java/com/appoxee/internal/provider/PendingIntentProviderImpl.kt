@@ -16,23 +16,25 @@ import com.appoxee.shared.LocalPushBroadcast
 import kotlin.random.Random
 
 internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
-
-    private val random = Random(10000)
-    override fun createPendingIntent(pushData: PushData, actionData: String?): PendingIntent? {
+    override fun createPendingIntent(
+        pushData: PushData,
+        notificationId: Int,
+        action: String?
+    ): PendingIntent? {
         val pushUriType = pushData.getContentUriType()
         val intent = if (pushUriType == null) {
             context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                addCategory(Intent.CATEGORY_LAUNCHER)
+                this.action = Intent.ACTION_MAIN
                 setPackage(context.packageName)
-                action = Intent.ACTION_MAIN
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                 putExtra("pushData", pushData)
                 putExtra("eventType", EventType.CLICK.ordinal)
                 putExtra("buttonPosition", -1)
             }
         } else {
             FullScreenActivity.getIntent(context).apply {
-                setAction(action)
+                this.action = action
                 putExtra("clickType", pushUriType.toPushAction().value)
                 putExtra("pushData", pushData)
                 putExtra("eventType", EventType.CLICK.ordinal)
@@ -44,7 +46,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         return intent?.let {
             PendingIntent.getActivity(
                 context,
-                random.nextInt(100, 10000),
+                notificationId,
                 it,
                 CompatExt.PENDING_INTENT_CANCEL_FLAGS
             )
@@ -55,18 +57,17 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         notificationId: Int,
         pushData: PushData?
     ): PendingIntent {
-        val intent = Intent().apply {
+        val intent = Intent(LocalPushBroadcast.PUSH_DISMISSED).apply {
             setPackage(context.packageName)
             putExtra("notificationId", notificationId)
             putExtra("eventType", EventType.DISMISS.ordinal)
             pushData?.let { putExtra("pushData", it) }
             putExtra("buttonPosition", -1)
             setClass(context, MappInternalBroadcastReceiver::class.java)
-            action = LocalPushBroadcast.PUSH_DISMISSED
         }
         return PendingIntent.getBroadcast(
             context,
-            random.nextInt(100, 10000),
+            notificationId,
             intent,
             CompatExt.PENDING_INTENT_CANCEL_FLAGS
         )
@@ -93,7 +94,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
             }
             return PendingIntent.getActivity(
                 context,
-                random.nextInt(100, 10000),
+                notificationId,
                 intent,
                 CompatExt.PENDING_INTENT_CANCEL_FLAGS
             )

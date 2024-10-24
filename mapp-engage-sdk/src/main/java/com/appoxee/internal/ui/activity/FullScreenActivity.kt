@@ -159,7 +159,7 @@ class FullScreenActivity : AppCompatActivity() {
 
     private fun showGif(intent: Intent) {
         intent.extras?.getParcelableCompat<PushData>("pushData")?.let {
-            (Appoxee.instance() as AppoxeeImpl?)?.appoxeeContainer?.activityLifecycleHandler?.handleRichPush(
+            (Appoxee.instance() as AppoxeeImpl?)?.activityLifecycleHandler?.handleRichPush(
                 this@FullScreenActivity,
                 it
             )

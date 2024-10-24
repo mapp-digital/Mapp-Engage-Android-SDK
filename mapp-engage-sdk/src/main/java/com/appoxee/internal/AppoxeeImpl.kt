@@ -19,6 +19,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.ActivityLifecycleHandler
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -85,13 +86,21 @@ internal class AppoxeeImpl(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer by lazy { PushContainer(application.applicationContext) }
 
+    internal val activityLifecycleHandler: ActivityLifecycleHandler by lazy {
+        ActivityLifecycleHandler(
+            application,
+            statsContainer.statsClient,
+            appoxeeContainer.baseScope
+        )
+    }
+
     init {
         internalScope.launch {
             withContext(dispatchers.ioDispatcher) {
                 Logger.init(application.applicationContext as Application)
 
                 (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-                    appoxeeContainer.activityLifecycleHandler
+                    activityLifecycleHandler
                 )
 
                 println("OPTIONS: $options")
@@ -144,12 +153,14 @@ internal class AppoxeeImpl(
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // get device payload from server after new registration
+                Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
                 devicePayload = appoxeeAdapter.getDevice()
             }
         } else {
-            // device payload doesn't exist or expired
+            // cached device payload doesn't exist or expired
             // get new device payload from server
-            devicePayload = safeCall { appoxeeAdapter.getDevice() }.getData()
+            Logger.d(TAG, "validateRegistration - cached udidHashed == null")
+            devicePayload = appoxeeAdapter.getDevice()
 
             // check if device payload from server exist or not
             if (devicePayload?.udidHashed == null) {
@@ -157,6 +168,7 @@ internal class AppoxeeImpl(
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // get device payload from server after new registration
+                Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
                 devicePayload = appoxeeAdapter.getDevice()
             }
         }
@@ -173,32 +185,31 @@ internal class AppoxeeImpl(
 
 
     private suspend fun updateOptStatus() {
-        withContext(dispatchers.ioDispatcher) {
-            Logger.d(TAG, "updateOptStatus()")
-            var devicePayload = storage.getDevicePayload()
-            val pushToken = FirebaseMessaging.getInstance().token.await()
-            Logger.d(TAG, "PUSH TOKEN: $pushToken")
-            var modified: Boolean = false
-            // if device opted Out and optOut token is expired, update optOut token
-            if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
-                appoxeeAdapter.optOut(pushToken)
-                modified = true
-            }
-
-            // if device opted In and optIn token is expired, update optIn token
-            if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
-                appoxeeAdapter.optIn(pushToken)
-                modified = true
-            }
-
-            if (modified) {
-                // get fresh device data from server
-                devicePayload = appoxeeAdapter.getDevice()
-                storage.saveDevicePayload(devicePayload)
-            }
-
-            Logger.d(TAG, "updateOptStatus() - Finished")
+        Logger.d(TAG, "updateOptStatus()")
+        var devicePayload = storage.getDevicePayload()
+        val pushToken = FirebaseMessaging.getInstance().token.await()
+        Logger.d(TAG, "PUSH TOKEN: $pushToken")
+        var modified = false
+        // if device opted Out and optOut token is expired, update optOut token
+        if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
+            appoxeeAdapter.optOut(pushToken)
+            modified = true
         }
+
+        // if device opted In and optIn token is expired, update optIn token
+        if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
+            appoxeeAdapter.optIn(pushToken)
+            modified = true
+        }
+
+//        if (modified) {
+//            // get fresh device data from server
+//            Logger.d(TAG, "updateOptStatus - modified")
+//            devicePayload = appoxeeAdapter.getDevice()
+//            storage.saveDevicePayload(devicePayload)
+//        }
+
+        Logger.d(TAG, "updateOptStatus() - Finished")
     }
 
     override fun isReady(): Boolean {

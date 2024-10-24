@@ -18,8 +18,6 @@ import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.style.NotificationStyleFactory
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.DispatchersImpl
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 
 internal class PushContainer(
     private val context: Context,
@@ -33,40 +31,36 @@ internal class PushContainer(
 
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
-    private val categoriesFactory by lazy { CategoriesFactory(storage = storageContainer.storage) }
+    private val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
 
-    private val notificationStyleFactory: NotificationStyleFactory by lazy { NotificationStyleFactory() }
+    private val categoriesFactory:CategoriesFactory
+        get() = CategoriesFactory(storage = storageContainer.storage)
 
-    internal val iconProvider: IconProvider by lazy { IconProviderImpl(context) }
+    private val notificationStyleFactory: NotificationStyleFactory
+        get() = NotificationStyleFactory()
 
-    internal val pendingIntentProvider: PendingIntentProvider by lazy {
-        PendingIntentProviderImpl(
-            context
-        )
-    }
+    private val iconProvider: IconProvider
+        get() = IconProviderImpl(context)
 
-    private val notificationBuilder: NotificationBuilder by lazy {
-        NotificationBuilderImpl(
+    internal val pendingIntentProvider: PendingIntentProvider
+        get() = PendingIntentProviderImpl(context)
+
+    private val notificationBuilder: NotificationBuilder
+        get() = NotificationBuilderImpl(
             NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
         )
-    }
 
-
-    private val notificationFactory: NotificationFactory by lazy {
-        NotificationFactory(
+    private val notificationFactory: NotificationFactory
+        get() = NotificationFactory(
             categoriesFactory,
             notificationStyleFactory,
             notificationBuilder,
             iconProvider,
-            pendingIntentProvider,
-            dispatchers
+            pendingIntentProvider
         )
-    }
 
-    internal val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
-
-    internal val pushManager: PushManager by lazy {
-        PushManagerImpl(
+    internal val pushManager: PushManager
+        get() = PushManagerImpl(
             dispatchers,
             notify,
             notificationFactory,
@@ -76,5 +70,4 @@ internal class PushContainer(
         ).also {
             it.createNotificationChannel()
         }
-    }
 }
