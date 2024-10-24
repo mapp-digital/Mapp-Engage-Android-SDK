@@ -6,9 +6,6 @@ import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.Logger
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 
 internal class StatsClientImpl(
@@ -51,6 +48,20 @@ internal class StatsClientImpl(
                 )
             } else {
                 Logger.e(TAG, "InApp Event sending error: ${response.error?.message}")
+            }
+        }
+    }
+
+    override suspend fun reportActivation(seconds: Int) {
+        withContext(dispatchers.ioDispatcher) {
+            val response = engageApi.activate(seconds.toLong())
+            if (response.isSuccess()) {
+                Logger.d(
+                    TAG,
+                    "Application was active: $seconds seconds"
+                )
+            } else {
+                Logger.e(TAG, "Error sending activation event: ${response.error?.message}")
             }
         }
     }

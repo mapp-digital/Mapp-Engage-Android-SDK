@@ -19,6 +19,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.ActivityLifecycleHandler
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
@@ -85,13 +86,21 @@ internal class AppoxeeImpl(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer by lazy { PushContainer(application.applicationContext) }
 
+    internal val activityLifecycleHandler: ActivityLifecycleHandler by lazy {
+        ActivityLifecycleHandler(
+            application,
+            statsContainer.statsClient,
+            appoxeeContainer.baseScope
+        )
+    }
+
     init {
         internalScope.launch {
             withContext(dispatchers.ioDispatcher) {
                 Logger.init(application.applicationContext as Application)
 
                 (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-                    appoxeeContainer.activityLifecycleHandler
+                    activityLifecycleHandler
                 )
 
                 println("OPTIONS: $options")
