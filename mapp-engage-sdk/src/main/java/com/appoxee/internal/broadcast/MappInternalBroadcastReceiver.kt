@@ -59,7 +59,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
                         notifyClientApp(ctx, pushData, action)
 
                         // if event is dismiss, then try to clear notification from system status bar
-                        if (Objects.equals(clickType, ClickType.DISMISS)) {
+                        if (Objects.equals(eventType, EventType.DISMISS)) {
                             if (notificationId != 0) {
                                 val notificationManager =
                                     ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

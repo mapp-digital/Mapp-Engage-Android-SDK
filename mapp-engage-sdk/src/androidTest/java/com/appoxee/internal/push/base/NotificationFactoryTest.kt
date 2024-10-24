@@ -1,7 +1,6 @@
 package com.appoxee.internal.push.base
 
 import android.app.Notification
-import com.appoxee.internal.TestDispatchers
 import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.PendingIntentProvider
 import com.appoxee.internal.push.model.CategoriesFactory
@@ -14,8 +13,6 @@ import io.mockk.coVerifyAll
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
-import io.mockk.verify
-import io.mockk.verifyAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -53,6 +50,7 @@ class NotificationFactoryTest {
 
         every {
             pendingIntentProvider.createPendingIntent(
+                any(),
                 any(),
                 any()
             )
@@ -97,8 +95,7 @@ class NotificationFactoryTest {
                 notificationStyleFactory,
                 notificationBuilderFactory,
                 iconProvider,
-                pendingIntentProvider,
-                dispatchers = TestDispatchers()
+                pendingIntentProvider
             )
         )
 

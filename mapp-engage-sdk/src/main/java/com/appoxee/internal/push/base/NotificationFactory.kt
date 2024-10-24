@@ -28,7 +28,6 @@ internal class NotificationFactory(
     private val notificationBuilderFactory: NotificationBuilder,
     private val iconProvider: IconProvider,
     private val pendingIntentProvider: PendingIntentProvider,
-    private val dispatchers: Dispatchers,
 ) {
     suspend fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
 
@@ -45,7 +44,7 @@ internal class NotificationFactory(
             builder.setLargeIcon(it)
         }
 
-        pendingIntentProvider.createPendingIntent(pushData, LocalPushBroadcast.PUSH_OPENED)?.let {
+        pendingIntentProvider.createPendingIntent(pushData,notificationId, LocalPushBroadcast.PUSH_OPENED)?.let {
             builder.setContentIntent(it)
         }
 

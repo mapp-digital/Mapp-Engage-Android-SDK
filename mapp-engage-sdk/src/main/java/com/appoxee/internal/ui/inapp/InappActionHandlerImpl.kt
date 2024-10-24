@@ -45,10 +45,6 @@ class InappActionHandlerImpl(private val context: Context) : InappActionHandler 
         }
     }
 
-    override fun handleAction(button: InappButton) {
-        handleAction(button.actionData)
-    }
-
     override fun handleDeeplink(actionData: ActionData) {
         val message = "Deeplink: ${actionData.link}"
         Logger.d(TAG, message)

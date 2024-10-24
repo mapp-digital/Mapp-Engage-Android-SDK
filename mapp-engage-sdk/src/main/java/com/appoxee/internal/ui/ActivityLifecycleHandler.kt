@@ -8,13 +8,21 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MediaDialog
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.LibExt.startMainActivity
 import com.appoxee.internal.util.Logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.util.Objects
+import java.util.concurrent.atomic.AtomicLong
 
-internal class ActivityLifecycleHandler(context: Context) : Application.ActivityLifecycleCallbacks {
+internal class ActivityLifecycleHandler(
+    context: Context,
+    private val statsClient: StatsClient,
+    private val scope: CoroutineScope
+) : Application.ActivityLifecycleCallbacks {
 
     private val TAG = ActivityLifecycleHandler::class.java.name
 
@@ -23,10 +31,14 @@ internal class ActivityLifecycleHandler(context: Context) : Application.Activity
 
     private var launchingActivity: Activity? = null
 
+    private var startingTimestamp = AtomicLong()
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+        Logger.d(TAG, "CREATED ACTIVITY: ${activity::class.java.name}")
     }
 
     override fun onActivityStarted(activity: Activity) {
+        Logger.d(TAG, "STARTED ACTIVITY: ${activity::class.java.name}")
         setLaunchingActivity(activity)
     }
 
@@ -37,21 +49,33 @@ internal class ActivityLifecycleHandler(context: Context) : Application.Activity
     }
 
     override fun onActivityStopped(activity: Activity) {
-        if (activity.componentName == launchingIntent?.component) {
-            launchingActivity = null
-        }
+        Logger.d(TAG, "STOPPED ACTIVITY: ${activity::class.java.name}")
+        clearLaunchingActivity(activity)
     }
 
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
     }
 
     override fun onActivityDestroyed(activity: Activity) {
+        Logger.d(TAG, "DESTROYED ACTIVITY: ${activity::class.java.name}")
+    }
+
+    private fun clearLaunchingActivity(activity: Activity) {
+        if (activity.componentName == launchingIntent?.component) {
+            scope.launch {
+                val activeTimeSeconds =
+                    ((System.currentTimeMillis() - startingTimestamp.get()) / 1000).toInt()
+                statsClient.reportActivation(activeTimeSeconds)
+            }
+            launchingActivity = null
+        }
     }
 
     private fun setLaunchingActivity(activity: Activity) {
         val launchingClassName = launchingIntent?.component?.className
-        Logger.d(TAG, "LAUNCHING CLASS NAME: $launchingClassName")
         if (activity.componentName == launchingIntent?.component) {
+            Logger.d(TAG, "LAUNCHING CLASS NAME: $launchingClassName")
+            startingTimestamp.set(System.currentTimeMillis())
             launchingActivity = activity
             activity.intent?.extras?.getParcelableCompat<PushData>("pushData")?.let { pushData ->
                 ClickType.fromString(activity.intent.action).let { action ->

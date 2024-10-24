@@ -18,4 +18,6 @@ internal interface StatsClient {
         trackingKey: TrackingKey,
         trackingAttributes: Map<String, *> = emptyMap<String,Any>()
     )
+
+    suspend fun reportActivation(seconds:Int)
 }
