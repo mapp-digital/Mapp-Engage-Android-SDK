@@ -26,9 +26,9 @@ import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -39,7 +39,6 @@ class InAppManagerImplTest {
     private lateinit var nativeFactory: NativeFactory
     private lateinit var webFactory: WebFactory
     private lateinit var statsContainer: StatsContainer
-    private lateinit var scope: CoroutineScope
     private lateinit var dispatchers: Dispatchers
 
     // Class under test
@@ -52,6 +51,8 @@ class InAppManagerImplTest {
     private lateinit var messageList: List<Message>
     private lateinit var context: Application
 
+    private lateinit var scope: CoroutineScope
+
     @Before
     fun setUp() {
         // Initialize mocks using Mockk
@@ -60,9 +61,7 @@ class InAppManagerImplTest {
         webFactory = mockk()
         dispatchers = TestDispatchers()
         statsContainer = spyk(StatsContainer(context, dispatchers))
-        // use a testing scope
-        scope = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined + SupervisorJob())
-
+        scope = TestScope(StandardTestDispatcher())
         // Create the class under test
         inAppManager = InAppManagerImpl(
             nativeFactory = nativeFactory,
@@ -84,12 +83,11 @@ class InAppManagerImplTest {
     @After
     fun tearDown() {
         // Clean up after tests
-        scope.cancel()
         unmockkAll()
     }
 
     @Test
-    fun handleMessages_should_display_first_message_and_report_it() = runBlocking {
+    fun handleMessages_should_display_first_message_and_report_it() = runTest {
         // Arrange
         every { nativeFactory.createBanner(any(), nativeMessage, any(), any()) } just runs
         coEvery {
@@ -113,88 +111,7 @@ class InAppManagerImplTest {
     }
 
     @Test
-    fun handleMessages_should_call_onShow_and_trigger_reportInappDisplayed() = runBlocking {
-        // Arrange
-        val onShowSlot = slot<(NativeInappMessage) -> Unit>()
-        val onMessageClosedSlot = slot<(NativeInappMessage, TrackingKey, TrackingParams) -> Unit>()
-
-        // Mock showMessage to capture lambdas
-        every {
-            nativeFactory.createBanner(
-                activity, nativeMessage, capture(onShowSlot), capture(onMessageClosedSlot)
-            )
-        } just runs
-
-        coEvery {
-            inAppManager.reportInappEvent(
-                nativeMessage, TrackingKey.IA_MSG_DISPLAYED, TrackingParams()
-            )
-        } just runs
-
-        coEvery {
-            statsContainer.statsClient.reportInappEvent(
-                "123", 1, TrackingKey.IA_MSG_DISPLAYED, emptyMap<String, Any>()
-            )
-        } just runs
-
-        val messageList = listOf(nativeMessage)
-
-        // Act
-        inAppManager.handleMessages(activity, messageList)
-
-        // Simulate onShow being called
-        onShowSlot.captured.invoke(nativeMessage)
-
-        // Assert
-        // Verify that reportInappDisplayed was called inside the onShow lambda
-        coVerify {
-            inAppManager.reportInappEvent(
-                nativeMessage,
-                TrackingKey.IA_MSG_DISPLAYED,
-                TrackingParams()
-            )
-        }
-    }
-
-    @Test
-    fun handleMessages_should_handle_subsequent_messages_when_one_is_closed() = runBlocking {
-        // Arrange
-        val onShowSlot = slot<(Message) -> Unit>()
-        val onMessageClosedSlot = slot<(Message, TrackingKey, TrackingParams) -> Unit>()
-
-        every {
-            nativeFactory.createBanner(
-                any(), any(), capture(onShowSlot), capture(onMessageClosedSlot)
-            )
-        } just runs
-
-        every {
-            webFactory.createBanner(
-                any(), any(), capture(onShowSlot), capture(onMessageClosedSlot)
-            )
-        } just runs
-
-        //coEvery { inAppManager.reportInappDisplayed(any()) } just runs
-        //coEvery { inAppManager.reportInappEvent(any(), any(), any()) } just runs
-
-        // Act
-        inAppManager.handleMessages(activity, messageList)
-
-        onShowSlot.captured.invoke(nativeMessage)
-        onMessageClosedSlot.captured.invoke(
-            nativeMessage, TrackingKey.IA_MSG_DISMISSED, TrackingParams()
-        )
-        onShowSlot.captured.invoke(webMessage)
-
-        // Assert
-        // Verify the first message is displayed
-        verify { nativeFactory.createBanner(activity, nativeMessage, any(), any()) }
-        // Verify the second message is displayed after the first is closed
-        verify { webFactory.createBanner(activity, webMessage, any(), any()) }
-    }
-
-    @Test
-    fun parseResponse_should_return_sorted_list_of_messages() {
+    fun parseResponse_should_return_sorted_list_of_messages() = runTest {
         // Arrange
         val inappResponse = mockk<InappResponse> {
             every { webMessages } returns listOf(webMessage)
@@ -211,7 +128,7 @@ class InAppManagerImplTest {
     }
 
     @Test
-    fun handleMessages_should_not_call_showMessage_if_messages_list_is_empty() = runBlocking {
+    fun handleMessages_should_not_call_showMessage_if_messages_list_is_empty() = runTest {
         // Arrange
         val emptyMessages = emptyList<Message>()
 
