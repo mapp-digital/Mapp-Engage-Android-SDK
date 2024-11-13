@@ -13,10 +13,10 @@ import com.appoxee.internal.model.request.SetAlias
 import com.appoxee.internal.model.request.SetAttributes
 import com.appoxee.internal.model.request.Tags
 import com.appoxee.internal.model.request.TagsAction
+import com.appoxee.internal.model.request.events.ClickType
+import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.InappEvent
 import com.appoxee.internal.model.request.events.MessageContext
-import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.PushEvent
 import com.appoxee.internal.model.request.events.Tracking
 import com.appoxee.internal.model.request.events.TrackingKey
@@ -40,7 +40,6 @@ import com.appoxee.internal.network.response.StatusAdapter
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.toMap
-import com.appoxee.shared.AppoxeeOptions
 import java.util.Date
 import java.util.TimeZone
 import java.util.UUID
@@ -59,27 +58,19 @@ internal class EngageApiImpl(
 
     //private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
-    private var options: AppoxeeOptions? = null
 
     private suspend fun getSdkKeyHeader(): Map<String, String> {
-        return (options ?: storage.getInitOptions())?.let {
-            this.options = it
+        return storage.getInitOptions()?.let {
             mapOf("X_KEY" to it.sdkKey)
         } ?: throw DeviceNotRegisteredException()
     }
 
     private suspend fun getAppId(): String {
-        return (options ?: storage.getInitOptions())?.let {
-            this.options = it
-            it.appId
-        } ?: throw DeviceNotRegisteredException()
+        return storage.getInitOptions()?.appId ?: throw DeviceNotRegisteredException()
     }
 
     private suspend fun getTenantId(): String {
-        return (options ?: storage.getInitOptions())?.let {
-            this.options = it
-            it.tenantId
-        } ?: throw DeviceNotRegisteredException()
+        return storage.getInitOptions()?.tenantId ?: throw DeviceNotRegisteredException()
     }
 
     override suspend fun registerDevice(

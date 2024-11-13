@@ -1,5 +1,6 @@
 package com.appoxee.internal.network
 
+import android.util.Log
 import com.appoxee.internal.model.request.GetDevice
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.network.exceptions.ClientException
@@ -14,6 +15,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkClass
+import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
@@ -37,6 +39,13 @@ internal class NetworkClientImplTest {
 
     @Before
     fun setUp() {
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } answers { 0 }
+        every { Log.e(any(), any(), any()) } answers { 0 }
+        every { Log.w(any(), any(), any()) } answers { 0 }
+        every { Log.i(any(), any(), any()) } answers { 0 }
+        every { Log.v(any(), any()) } answers { 0 }
+
         val options = mockk<AppoxeeOptions>() {
             every { server } returns AppoxeeOptions.Server.L3
             every { sdkKey } returns "1234567.890"
@@ -72,8 +81,7 @@ internal class NetworkClientImplTest {
             )
 
             val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+                .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
             val adapter = BaseAdapter {
                 DevicePayload.fromJSON(it)
@@ -93,36 +101,31 @@ internal class NetworkClientImplTest {
     }
 
     @Test
-    fun `test execute request and return response body`() {
-        runTest {
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setBody(MockData.GET_DEVICE_RESPONSE)
-            )
+    fun `test execute request and return response body`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
+        )
 
-            val request = Request.Put(path = "api/v3/device", requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+        val request = Request.Put(path = "api/v3/device", requestBody = GetDevice())
+            .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
-            val adapter = BaseAdapter {
-                DevicePayload.fromJSON(it.getJSONObject("get"))
-            }
-
-            val response = networkClient.execute(request, adapter)
-
-            val responseData = response.data
-
-            val recordedRequest = server.takeRequest()
-
-            coVerify { networkClient.execute(request, adapter) }
-
-            Truth.assertThat(responseData?.payload).isNotNull()
-
-            Truth.assertThat(response.statusCode).isEqualTo(200)
-
-            Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
+        val adapter = BaseAdapter {
+            DevicePayload.fromJSON(it.getJSONObject("get"))
         }
+
+        val response = networkClient.execute(request, adapter)
+
+        val responseData = response.data
+
+        val recordedRequest = server.takeRequest()
+
+        coVerify { networkClient.execute(request, adapter) }
+
+        Truth.assertThat(responseData?.payload).isNotNull()
+
+        Truth.assertThat(response.statusCode).isEqualTo(200)
+
+        Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
     }
 
     @Test
@@ -133,8 +136,7 @@ internal class NetworkClientImplTest {
             )
 
             val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+                .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
             val adapter = BaseAdapter {
                 DevicePayload.fromJSON(it)
@@ -158,8 +160,7 @@ internal class NetworkClientImplTest {
             )
 
             val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+                .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
             val adapter = BaseAdapter {
                 DevicePayload.fromJSON(it)
@@ -183,8 +184,7 @@ internal class NetworkClientImplTest {
             )
 
             val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-                .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-                .setPathType(Request.PathType.BASE)
+                .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
             val adapter = BaseAdapter {
                 DevicePayload.fromJSON(it)
@@ -207,8 +207,7 @@ internal class NetworkClientImplTest {
         )
 
         val request = Request.Put(path = devicePathV3, requestBody = GetDevice())
-            .addHeader(mapOf("sdkKey" to "1232434.2343423"))
-            .setPathType(Request.PathType.BASE)
+            .addHeader(mapOf("sdkKey" to "1232434.2343423")).setPathType(Request.PathType.BASE)
 
         val adapter = BaseAdapter {
             DevicePayload.fromJSON(it)

@@ -20,6 +20,8 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.network.response.ResponseAdapter
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
+import com.appoxee.internal.storage.InMemoryStorageImpl
+import com.appoxee.internal.storage.Storage
 import com.appoxee.shared.AppoxeeOptions
 import com.google.common.truth.Truth
 import io.mockk.coEvery
@@ -27,8 +29,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
+import io.mockk.spyk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -50,34 +53,43 @@ internal class EngageApiImplTest {
 
     private lateinit var registerPayload: RegisterPayload
 
+    private lateinit var devicePayload: DevicePayload
+
     private lateinit var metadata: Metadata
+
+    private lateinit var storage: Storage
 
     @Before
     fun setUp() {
         mockkConstructor(Request.Put::class)
         mockkConstructor(Response.Error::class)
 
+        options = mockk<AppoxeeOptions>()
+        every { options.appId } returns "603123"
+        every { options.tenantId } returns "2345"
+        every { options.server } returns AppoxeeOptions.Server.TEST
+        every { options.sdkKey } returns "23490834290328.3432434"
+
+        storage = spyk(InMemoryStorageImpl())
+        coEvery { storage.getInitOptions() } coAnswers { options }
+
         request = mockk() {
             every { anyConstructed<Request.Put>().path } answers { "/v3/device" }
         }
 
-        registerPayload = mockk() {
-            every { dmcUserId } returns "24342309"
-            every { alias } returns "user1@mapp.com"
-            every { toJSON() } answers { callOriginal() }
-        }
+        registerPayload = mockk<RegisterPayload>()
+        every { registerPayload.dmcUserId } returns "24342309"
+        every { registerPayload.alias } returns "user1@mapp.com"
+        every { registerPayload.toJSON() } answers { callOriginal() }
 
-        metadata = mockk() {
-            every { statusCode } returns 200
-            every { error } returns false
-        }
+        devicePayload = mockk<DevicePayload>()
+        every { devicePayload.dmcUserId } returns "24342309"
+        every { devicePayload.alias } returns "user1@mapp.com"
+        every { devicePayload.toJSON() } answers { callOriginal() }
 
-        options = mockk(relaxed = true) {
-            every { appId } returns "603123"
-            every { tenantId } returns "2345"
-            every { server } returns AppoxeeOptions.Server.TEST
-            every { sdkKey } returns "23490834290328.3432434"
-        }
+        metadata = mockk<Metadata>()
+        every { metadata.statusCode } returns 200
+        every { metadata.error } returns false
 
         networkClient = mockk(relaxed = true)
 
@@ -96,11 +108,11 @@ internal class EngageApiImplTest {
             every { generateRegistrationDevice() } answers { callOriginal() }
         }
 
-        registerDevice = mockk(relaxed = true) {
-            every { deviceProvider.generateRegistrationDevice() } answers { callOriginal() }
-        }
+        registerDevice = mockk<RegisterDevice>(relaxed = true)
 
-        engageApi = mockk()
+        every { deviceProvider.generateRegistrationDevice() } answers { callOriginal() }
+
+        engageApi = spyk(EngageApiImpl(networkClient, storage, deviceProvider))
     }
 
     @After
@@ -109,7 +121,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `register devices successful`() = runBlocking {
+    fun `register devices successful`() = runTest {
         val registerAdapter = mockk<BaseAdapter<RegisterPayload>> {}
 
         coEvery { networkClient.execute(request, registerAdapter) } coAnswers {
@@ -132,7 +144,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `register device error`() = runBlocking {
+    fun `register device error`() = runTest {
         val registerAdapter = mockk<BaseAdapter<RegisterPayload>>()
 
         coEvery { networkClient.execute(request, registerAdapter) } coAnswers {
@@ -153,7 +165,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get device successful`() = runBlocking {
+    fun `get device successful`() = runTest {
         val adapter = mockk<BaseAdapter<DevicePayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -178,7 +190,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get device error`() = runBlocking {
+    fun `get device error`() = runTest {
         val adapter = mockk<BaseAdapter<DevicePayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -201,7 +213,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `activate successful`() = runBlocking {
+    fun `activate successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -226,7 +238,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `activate error`() = runBlocking {
+    fun `activate error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -249,7 +261,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `set alias successful`() = runBlocking {
+    fun `set alias successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -274,7 +286,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `set alias error`() = runBlocking {
+    fun `set alias error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -297,7 +309,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get alias successful`() = runBlocking {
+    fun `get alias successful`() = runTest {
         val adapter = mockk<BaseAdapter<DevicePayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -322,7 +334,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get alias error`() = runBlocking {
+    fun `get alias error`() = runTest {
         val adapter = mockk<BaseAdapter<DevicePayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -345,7 +357,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `optIn successful`() = runBlocking {
+    fun `optIn successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -370,7 +382,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `optIn error`() = runBlocking {
+    fun `optIn error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -393,7 +405,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `optOut successful`() = runBlocking {
+    fun `optOut successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -418,7 +430,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `optOut error`() = runBlocking {
+    fun `optOut error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -441,7 +453,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get App Config successful`() = runBlocking {
+    fun `get App Config successful`() = runTest {
         val adapter = mockk<BaseAdapter<AppConfigPayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -466,7 +478,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get App Config error`() = runBlocking {
+    fun `get App Config error`() = runTest {
         val adapter = mockk<BaseAdapter<AppConfigPayload>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -489,7 +501,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `fetch inbox messages successful`() = runBlocking {
+    fun `fetch inbox messages successful`() = runTest {
         val adapter = mockk<InboxAdapter> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -512,7 +524,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `fetch inbox messages error`() = runBlocking {
+    fun `fetch inbox messages error`() = runTest {
         val adapter = mockk<InboxAdapter> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -535,7 +547,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `fetch inapp successful`() = runBlocking {
+    fun `fetch inapp successful`() = runTest {
         val adapter = mockk<InappAdapter> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -558,7 +570,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `fetch inapp error`() = runBlocking {
+    fun `fetch inapp error`() = runTest {
         val adapter = mockk<InappAdapter> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -581,7 +593,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `add tags successful`() = runBlocking {
+    fun `add tags successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -606,7 +618,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `add tags error`() = runBlocking {
+    fun `add tags error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -629,7 +641,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `remove tags successful`() = runBlocking {
+    fun `remove tags successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -654,7 +666,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `remove tags error`() = runBlocking {
+    fun `remove tags error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -677,7 +689,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `add custom attributes successful`() = runBlocking {
+    fun `add custom attributes successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -702,7 +714,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `add custom attributes error`() = runBlocking {
+    fun `add custom attributes error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -725,7 +737,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get custom attributes successful`() = runBlocking {
+    fun `get custom attributes successful`() = runTest {
         val adapter = mockk<BaseAdapter<Map<String, Any?>>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -750,7 +762,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get custom attributes error`() = runBlocking {
+    fun `get custom attributes error`() = runTest {
         val adapter = mockk<BaseAdapter<Map<String, Any?>>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -773,7 +785,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send inapp event successful`() = runBlocking {
+    fun `send inapp event successful`() = runTest {
         val adapter = mockk<BaseAdapter<Boolean>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -798,7 +810,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send inapp event error`() = runBlocking {
+    fun `send inapp event error`() = runTest {
         val adapter = mockk<BaseAdapter<Boolean>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -821,7 +833,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send push event successful`() = runBlocking {
+    fun `send push event successful`() = runTest {
         val adapter = mockk<BaseAdapter<Boolean>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -855,7 +867,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send push event error`() = runBlocking {
+    fun `send push event error`() = runTest {
         val adapter = mockk<BaseAdapter<Boolean>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -887,7 +899,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get regions successful`() = runBlocking {
+    fun `get regions successful`() = runTest {
         val adapter = mockk<ResponseAdapter<ResponseData<RegionsResponse>>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -910,7 +922,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `get regions error`() = runBlocking {
+    fun `get regions error`() = runTest {
         val adapter = mockk<ResponseAdapter<ResponseData<RegionsResponse>>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -933,7 +945,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send regions event successful`() = runBlocking {
+    fun `send regions event successful`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {
@@ -956,7 +968,7 @@ internal class EngageApiImplTest {
     }
 
     @Test
-    fun `send regions event error`() = runBlocking {
+    fun `send regions event error`() = runTest {
         val adapter = mockk<BaseAdapter<DefaultResponse>> {}
 
         coEvery { networkClient.execute(request, adapter) } coAnswers {

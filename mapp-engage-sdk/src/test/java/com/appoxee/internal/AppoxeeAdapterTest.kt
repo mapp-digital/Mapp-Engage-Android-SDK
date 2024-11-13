@@ -597,7 +597,7 @@ class AppoxeeAdapterTest {
     }
 
     @Test
-    fun `activate$mapp_engage_sdk_tstDebug`() {
+    fun `activate mapp_engage_sdk`() {
         runTest {
             coEvery { engageApi.activate(any()) } coAnswers {
                 Response.success(
