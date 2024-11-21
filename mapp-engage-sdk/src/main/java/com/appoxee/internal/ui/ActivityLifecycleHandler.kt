@@ -11,7 +11,7 @@ import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MediaDialog
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
-import com.appoxee.internal.util.LibExt.startMainActivity
+import com.appoxee.internal.util.LibraryExtensions.startMainActivity
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

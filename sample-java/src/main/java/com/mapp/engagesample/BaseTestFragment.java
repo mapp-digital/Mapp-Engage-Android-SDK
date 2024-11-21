@@ -2,6 +2,7 @@ package com.mapp.engagesample;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -77,7 +78,7 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnFetchInboxMessages.setOnClickListener(v -> {
-            Appoxee.instance().fetchInboxMessages("app_inbox").enqueue(mappResult -> {
+            Appoxee.instance().fetchInboxMessages().enqueue(mappResult -> {
                 InboxMessagesResponse response = mappResult.getData();
                 Util.showDialog(requireContext(), "Inbox Messages", response != null ? response.toString() : "");
             });

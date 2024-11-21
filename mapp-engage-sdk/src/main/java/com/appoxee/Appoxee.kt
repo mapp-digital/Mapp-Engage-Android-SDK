@@ -9,6 +9,7 @@ import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
+import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.util.DispatchersImpl
@@ -110,12 +111,16 @@ interface Appoxee {
 
     /**
      * Get list of active inbox messages
-     * @param eventName to filter inbox messages
      * @return [InboxMessagesResponse] that holds list of inbox messages
      */
     fun fetchInboxMessages(
-        eventName: String,
     ): Call<InboxMessagesResponse?>
+
+    /**
+     * Get latest inbox message
+     * @return [InboxMessage] the latest inbox message
+     */
+    fun fetchLatestInboxMessage():Call<InboxMessage?>
 
     /**
      * Get list of active inapp messages

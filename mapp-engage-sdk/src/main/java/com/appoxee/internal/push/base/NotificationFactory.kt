@@ -18,7 +18,6 @@ import com.appoxee.internal.push.model.NotificationType
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushUriType
 import com.appoxee.internal.push.style.NotificationStyleFactory
-import com.appoxee.internal.util.Dispatchers
 import com.appoxee.shared.LocalPushBroadcast
 import java.util.Objects
 
@@ -44,7 +43,11 @@ internal class NotificationFactory(
             builder.setLargeIcon(it)
         }
 
-        pendingIntentProvider.createPendingIntent(pushData,notificationId, LocalPushBroadcast.PUSH_OPENED)?.let {
+        pendingIntentProvider.createPendingIntent(
+            pushData,
+            notificationId,
+            LocalPushBroadcast.PUSH_OPENED
+        )?.let {
             builder.setContentIntent(it)
         }
 
@@ -78,38 +81,66 @@ internal class NotificationFactory(
         pushData: PushData,
         notificationId: Int
     ) {
-        val categories = categoriesFactory.getCategories()
-        val category = categories.firstOrNull { Objects.equals(pushData.category, it.name?.value) }
         val language = pushData.language
         val notificationType = NotificationType.fromString(pushData.type)
 
-        pushData.buttonList.flatMap { it?.fgActions ?: emptyList() }
-            .forEachIndexed { index, fgAction ->
-                val eventType = when (index) {
-                    1 -> EventType.BUTTON2
-                    2 -> EventType.BUTTON3
-                    else -> EventType.BUTTON1
-                }
-                val pendingIntent = if (fgAction.isDestroyAction()) {
-                    pendingIntentProvider.createDismissPendingIntent(notificationId, pushData)
-                } else {
-                    pendingIntentProvider.createCustomPendingIntent(
-                        fgAction.getUriType(),
-                        fgAction.getAction(),
-                        LocalPushBroadcast.PUSH_BUTTON_CLICKED,
-                        pushData,
-                        notificationId,
-                        eventType,
-                    )
-                }
-                pendingIntent.let { pi ->
-                    val title = category?.buttons?.get(index)?.getLocalizedTitle(language)
-                    val action = NotificationCompat.Action(0, title, pi)
-                    builder.addAction(action)
-                }
+        pushData.category?.buttons?.forEachIndexed { index, button ->
+            val fgAction = pushData.buttonList
+                .flatMap { it?.fgActions ?: emptyList() }
+                .getOrNull(index)
+                ?.copy(isDestructive = button.isDestructive)
+
+            val eventType = when (index) {
+                1 -> EventType.BUTTON2
+                2 -> EventType.BUTTON3
+                else -> EventType.BUTTON1
             }
+            val pendingIntent = if (button.isDestructive) {
+                pendingIntentProvider.createDismissPendingIntent(notificationId, pushData)
+            } else {
+                pendingIntentProvider.createCustomPendingIntent(
+                    fgAction?.getUriType(),
+                    fgAction?.getAction(),
+                    LocalPushBroadcast.PUSH_BUTTON_CLICKED,
+                    pushData,
+                    notificationId,
+                    eventType,
+                )
+            }
+            pendingIntent.let { pi ->
+                val title = button.getLocalizedTitle(language)
+                val action = NotificationCompat.Action(0, title, pi)
+                builder.addAction(action)
+            }
+        }
+//        pushData.buttonList.flatMap { it?.fgActions ?: emptyList() }
+//            .forEachIndexed { index, fgAction ->
+//                val eventType = when (index) {
+//                    1 -> EventType.BUTTON2
+//                    2 -> EventType.BUTTON3
+//                    else -> EventType.BUTTON1
+//                }
+//                val pendingIntent = if (fgAction.isDestroyAction()) {
+//                    pendingIntentProvider.createDismissPendingIntent(notificationId, pushData)
+//                } else {
+//                    pendingIntentProvider.createCustomPendingIntent(
+//                        fgAction.getUriType(),
+//                        fgAction.getAction(),
+//                        LocalPushBroadcast.PUSH_BUTTON_CLICKED,
+//                        pushData,
+//                        notificationId,
+//                        eventType,
+//                    )
+//                }
+//                pendingIntent.let { pi ->
+//                    val title = category?.buttons?.get(index)?.getLocalizedTitle(language)
+//                    val action = NotificationCompat.Action(0, title, pi)
+//                    builder.addAction(action)
+//                }
+//            }
 
         if (listOf(NotificationType.GIF, NotificationType.VIDEO).contains(notificationType)) {
+            val categories = categoriesFactory.getCategories()
             categories.firstOrNull { CategoryType.APX_SPECIFIC_ANDROID == it.name }
                 ?.let { specificCategory ->
                     addSpecificButtons(

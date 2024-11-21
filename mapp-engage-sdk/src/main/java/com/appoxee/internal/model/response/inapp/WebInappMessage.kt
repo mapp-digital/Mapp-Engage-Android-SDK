@@ -1,11 +1,9 @@
 package com.appoxee.internal.model.response.inapp
 
+import com.appoxee.internal.util.LibraryExtensions.decode
 import com.appoxee.internal.util.getLongOrDefault
-import com.appoxee.internal.util.getNullableLong
 import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 data class WebInappMessage(
     override val originalEventId: String,
@@ -17,17 +15,13 @@ data class WebInappMessage(
     override val location: Location?
 ) : Message(originalEventId, originalEventKey, templateId, content, type, behaviour, location) {
 
-    @OptIn(ExperimentalEncodingApi::class)
-    val decodedHtml: String
-        get() = Base64.decode(content, 0, content.length).decodeToString()
-
     companion object {
         fun fromJSON(json: JSONObject, eventId: String, eventKey: String): WebInappMessage {
             return WebInappMessage(
                 originalEventId = eventId,
                 originalEventKey = eventKey,
                 templateId = json.getLongOrDefault("template_id"),
-                content = json.getStringOrEmpty("content"),
+                content = json.getStringOrEmpty("content").decode(),
                 type = InappType.from(json.getLongOrDefault("type", 0).toInt()),
                 behaviour = json.getJSONObject("behaviour")?.let { Behaviour.fromJSON(it) },
                 location = json.getJSONObject("location")?.let { Location.fromJSON(it) },

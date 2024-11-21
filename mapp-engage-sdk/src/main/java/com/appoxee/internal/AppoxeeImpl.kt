@@ -15,6 +15,7 @@ import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
+import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
@@ -224,9 +225,15 @@ internal class AppoxeeImpl(
         appoxeeAdapter.getAlias()
     }
 
-    override fun fetchInboxMessages(eventName: String): Call<InboxMessagesResponse?> =
+    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> =
         buildHttpCall {
-            appoxeeAdapter.fetchInboxMessages(eventName)
+            appoxeeAdapter.fetchInboxMessages("app_inbox")
+        }
+
+    override fun fetchLatestInboxMessage(): Call<InboxMessage?> =
+        buildHttpCall {
+            val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
+            response?.messages?.maxByOrNull { it.templateId }
         }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {

@@ -7,12 +7,14 @@ import org.json.JSONObject
 data class InboxMessagesResponse(val eventId: String, val messages: List<InboxMessage>) {
 
     companion object {
-        fun fromJSON(json: JSONObject): InboxMessagesResponse {
+        fun fromJSON(json: JSONObject, eventKey: String): InboxMessagesResponse {
+            val eventId = json.getStringOrEmpty("event_id")
+            val messages = json.arrayToList("messages") {
+                InboxMessage.fromJSON(it, eventId, eventKey)
+            }
             return InboxMessagesResponse(
-                eventId = json.getStringOrEmpty("event_id"),
-                messages = json.arrayToList("messages") {
-                    InboxMessage.fromJSON(it)
-                }
+                eventId = eventId,
+                messages = messages.sortedByDescending { it.templateId }
             )
         }
     }
