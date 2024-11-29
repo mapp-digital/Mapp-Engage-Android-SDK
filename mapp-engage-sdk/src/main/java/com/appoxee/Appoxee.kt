@@ -11,6 +11,7 @@ import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
+import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.Logger
@@ -120,7 +121,22 @@ interface Appoxee {
      * Get latest inbox message
      * @return [InboxMessage] the latest inbox message
      */
-    fun fetchLatestInboxMessage():Call<InboxMessage?>
+    fun fetchLatestInboxMessage(): Call<InboxMessage?>
+
+    /**
+     * Update status of an inbox message
+     * @param message [InboxMessage] instance of Inbox Message to be updated
+     * @status [MessageStatus] status to update to a message
+     * @return if update was successful
+     */
+    fun updateInboxMessageStatus(message: InboxMessage, status: MessageStatus): Call<Boolean>
+
+    /**
+     * Show inbox message as banner, dialog or fullscreen page
+     * For native templates it will show type set in the Inapp message.
+     * For web templates it will show Inapp message as dialog
+     */
+    fun showInboxMessage(context: Activity, message: InboxMessage)
 
     /**
      * Get list of active inapp messages

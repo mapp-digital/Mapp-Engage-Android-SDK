@@ -7,3 +7,4 @@ data class InboxStateUI(
     val isLoading: Boolean = false,
     val error: String? = null
 )
+

@@ -17,6 +17,7 @@ import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
+import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.storage.Storage
@@ -96,42 +97,40 @@ internal class AppoxeeImpl(
     }
 
     init {
-        internalScope.launch {
-            withContext(dispatchers.ioDispatcher) {
-                Logger.init(application.applicationContext as Application)
+        internalScope.launch(dispatchers.ioDispatcher) {
+            Logger.init(application.applicationContext as Application)
 
-                (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-                    activityLifecycleHandler
-                )
+            (application.applicationContext as Application).registerActivityLifecycleCallbacks(
+                activityLifecycleHandler
+            )
 
-                println("OPTIONS: $options")
-                // save config to local storage if not null
-                options?.let {
-                    if (it != storage.getInitOptions()) {
-                        storage.clearRegistration()
-                        storage.saveInitOptions(it)
-                    }
+            println("OPTIONS: $options")
+            // save config to local storage if not null
+            options?.let {
+                if (it != storage.getInitOptions()) {
+                    storage.clearRegistration()
+                    storage.saveInitOptions(it)
                 }
+            }
 
-                // check device registration
-                // update if exist or register new device
-                validateRegistration()?.let {
-                    withContext(dispatchers.mainDispatcher) {
-                        updateReadyStatus(true, MappResult.Success(it))
-                    }
-                }
-
-                // when registration is validated
-                // update optIn or optOut status with firebase token
-                updateOptStatus()
-
-                // fetch InApp Configuration parameters
-                getAppConfig()
-
-                //init webview
+            // check device registration
+            // update if exist or register new device
+            validateRegistration()?.let {
                 withContext(dispatchers.mainDispatcher) {
-                    MappWebView.getInstance(application.applicationContext)
+                    updateReadyStatus(true, MappResult.Success(it))
                 }
+            }
+
+            // when registration is validated
+            // update optIn or optOut status with firebase token
+            updateOptStatus()
+
+            // fetch InApp Configuration parameters
+            getAppConfig()
+
+            //init webview
+            withContext(dispatchers.mainDispatcher) {
+                MappWebView.getInstance(application.applicationContext)
             }
         }
     }
@@ -187,28 +186,19 @@ internal class AppoxeeImpl(
 
     private suspend fun updateOptStatus() {
         Logger.d(TAG, "updateOptStatus()")
-        var devicePayload = storage.getDevicePayload()
+        val devicePayload = storage.getDevicePayload()
         val pushToken = FirebaseMessaging.getInstance().token.await()
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
-        var modified = false
+
         // if device opted Out and optOut token is expired, update optOut token
         if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
             appoxeeAdapter.optOut(pushToken)
-            modified = true
         }
 
         // if device opted In and optIn token is expired, update optIn token
         if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
             appoxeeAdapter.optIn(pushToken)
-            modified = true
         }
-
-//        if (modified) {
-//            // get fresh device data from server
-//            Logger.d(TAG, "updateOptStatus - modified")
-//            devicePayload = appoxeeAdapter.getDevice()
-//            storage.saveDevicePayload(devicePayload)
-//        }
 
         Logger.d(TAG, "updateOptStatus() - Finished")
     }
@@ -235,6 +225,17 @@ internal class AppoxeeImpl(
             val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
             response?.messages?.maxByOrNull { it.templateId }
         }
+
+    override fun updateInboxMessageStatus(
+        message: InboxMessage,
+        status: MessageStatus
+    ): Call<Boolean> = buildHttpCall {
+        statsContainer.statsClient.markInboxMessageStatus(message, status)
+    }
+
+    override fun showInboxMessage(context: Activity, message: InboxMessage) {
+        inappContainer.inappManager.showMessage(activity = context, message = message.getInappMessage())
+    }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
         val response = appoxeeAdapter.fetchInappMessages(eventName)

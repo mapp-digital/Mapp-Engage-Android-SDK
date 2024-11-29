@@ -21,11 +21,11 @@ import com.appoxee.Appoxee;
 import com.appoxee.internal.model.request.geo.GeoEvent;
 import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.model.response.geo.Region;
-import com.appoxee.internal.model.response.inbox.InboxMessagesResponse;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
+import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
 import java.util.Collections;
 import java.util.List;
@@ -78,10 +78,8 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnFetchInboxMessages.setOnClickListener(v -> {
-            Appoxee.instance().fetchInboxMessages().enqueue(mappResult -> {
-                InboxMessagesResponse response = mappResult.getData();
-                Util.showDialog(requireContext(), "Inbox Messages", response != null ? response.toString() : "");
-            });
+            Intent intent = new Intent(requireContext(), InboxMessagesActivity.class);
+            startActivity(intent);
         });
 
         binding.btnFetchInappMessages.setOnClickListener(v -> {

@@ -1,3 +1,4 @@
 <resources>
     <string name="inbox">Inbox Messages</string>
+    <string name="total_message_count">Total message count: </string>
 </resources>

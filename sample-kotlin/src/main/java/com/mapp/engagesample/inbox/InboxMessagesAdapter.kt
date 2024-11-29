@@ -10,7 +10,10 @@ import coil.transform.RoundedCornersTransformation
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import eu.brrm.shared_ui.databinding.RowInboxMessageBinding
 
-class InboxMessagesAdapter :
+class InboxMessagesAdapter(
+    private val onClick: ((InboxMessage, Int) -> Unit)? = null,
+    private val onLongClick: ((InboxMessage, Int) -> Unit)? = null
+) :
     ListAdapter<InboxMessage, MessageViewHolder>(InboxMessageDiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
         return MessageViewHolder.create(parent)
@@ -18,17 +21,24 @@ class InboxMessagesAdapter :
 
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
         holder.bind(getItem(position))
+        holder.itemView.setOnClickListener {
+            onClick?.invoke(getItem(position), position)
+        }
+        holder.itemView.setOnLongClickListener {
+            onLongClick?.invoke(getItem(position), position)
+            false
+        }
     }
 }
 
 
 class InboxMessageDiffCallback() : DiffUtil.ItemCallback<InboxMessage>() {
     override fun areItemsTheSame(oldItem: InboxMessage, newItem: InboxMessage): Boolean {
-        return oldItem == newItem
+        return oldItem.templateId == newItem.templateId && oldItem.status == newItem.status
     }
 
     override fun areContentsTheSame(oldItem: InboxMessage, newItem: InboxMessage): Boolean {
-        return oldItem.templateId == newItem.templateId && oldItem.status == newItem.status
+        return oldItem == newItem
     }
 }
 
