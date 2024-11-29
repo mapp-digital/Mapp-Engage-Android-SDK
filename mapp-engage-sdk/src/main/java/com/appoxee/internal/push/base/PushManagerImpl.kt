@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
+import com.appoxee.internal.push.model.CategoriesFactory
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
@@ -23,6 +24,7 @@ internal class PushManagerImpl(
     private val notify: Notify,
     private val notificationFactory: NotificationFactory,
     private val storage: Storage,
+    private val categoriesFactory: CategoriesFactory,
     private val notificationChannelId: String,
     private val notificationChannelName: String,
 ) : PushManager {
@@ -44,7 +46,7 @@ internal class PushManagerImpl(
         withContext(dispatchers.ioDispatcher) {
             if (!isPushMessageFromMapp(remoteMessage)) return@withContext
 
-            val pushData = remoteMessage.toPushData()
+            val pushData = remoteMessage.toPushData(categoriesFactory.getCategories())
             when (getNotificationMode()) {
                 NotificationMode.SILENT_ONLY -> {
                     Logger.d(TAG, "SILENT ONLY $pushData")

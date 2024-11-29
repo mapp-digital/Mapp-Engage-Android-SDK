@@ -19,7 +19,8 @@ import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.DispatchersImpl
-import com.appoxee.internal.util.LibExt.startIntentOrDefault
+import com.appoxee.internal.util.LibraryExtensions.getLaunchingIntent
+import com.appoxee.internal.util.LibraryExtensions.startIntentOrDefault
 import com.appoxee.internal.util.Logger
 
 class FullScreenActivity : AppCompatActivity() {
@@ -117,6 +118,12 @@ class FullScreenActivity : AppCompatActivity() {
                         val deepLinkIntent = createDeepLink(pushData, intent)
                         this@FullScreenActivity.startIntentOrDefault(deepLinkIntent)
                         finish()
+                    }
+                }
+
+                ClickType.LAUNCH_APP->{
+                    this.getLaunchingIntent(startNew = false)?.let {
+                        startActivity(it)
                     }
                 }
 

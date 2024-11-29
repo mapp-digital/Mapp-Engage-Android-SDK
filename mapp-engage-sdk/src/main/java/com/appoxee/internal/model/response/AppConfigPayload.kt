@@ -1,11 +1,13 @@
 package com.appoxee.internal.model.response
 
+import android.os.Parcelable
 import com.appoxee.internal.push.model.CategoryType
 import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.arrayToList
 import com.appoxee.internal.util.getLongOrDefault
 import com.appoxee.internal.util.getStringOrEmpty
 import com.appoxee.internal.util.toMap
+import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -54,7 +56,7 @@ data class AppConfigPayload constructor(
     companion object {
         fun fromJson(json: JSONObject): AppConfigPayload {
             try {
-                val appConfig= AppConfigPayload(
+                val appConfig = AppConfigPayload(
                     id = json.getLong("id"),
                     mailboxTitle = json.getStringOrEmpty("mailboxTitle"),
                     rtl = json.getStringOrEmpty("RTL"),
@@ -74,7 +76,7 @@ data class AppConfigPayload constructor(
                 )
 
                 return appConfig
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 Logger.e(AppConfigPayload::class.java.name, e.message ?: "", e)
                 throw e
             }
@@ -82,6 +84,7 @@ data class AppConfigPayload constructor(
     }
 }
 
+@Parcelize
 data class Category(
     val buttons: List<Button> = emptyList(),
     val categoryId: Long = 0,
@@ -90,7 +93,7 @@ data class Category(
     val name: CategoryType?,
     val title: String? = null,
     val type: Long = 0,
-) {
+) : Parcelable {
     fun toJSON(): JSONObject {
         return JSONObject().apply {
             put("categoryId", categoryId)
@@ -123,6 +126,7 @@ data class Category(
     }
 }
 
+@Parcelize
 data class Button(
     val index: Long = 1,
     val title: String,
@@ -132,7 +136,7 @@ data class Button(
     val bgActionMandatory: Boolean = false,
     val id: Long = 0,
     val localizedTitle: Map<String, String> = emptyMap(),
-) {
+) : Parcelable {
     fun toJSON(): JSONObject {
         return JSONObject().apply {
             put("bgActionMandatory", bgActionMandatory)
@@ -144,7 +148,7 @@ data class Button(
             put("title", title)
             put("localizedTitle", JSONObject().apply {
                 localizedTitle.keys.forEach {
-                    put(it,localizedTitle.getValue(it))
+                    put(it, localizedTitle.getValue(it))
                 }
             })
         }

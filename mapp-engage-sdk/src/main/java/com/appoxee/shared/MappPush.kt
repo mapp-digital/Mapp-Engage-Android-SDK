@@ -29,7 +29,7 @@ data class MappPush internal constructor(
         type = pushData.type,
         userId = pushData.userId,
         customerId = pushData.customerId,
-        category = pushData.category,
+        category = pushData.category?.title,
         language = pushData.language,
         actionButtons = pushData.buttonList.map { buttonList ->
             val data = mutableListOf<ActionButton>()

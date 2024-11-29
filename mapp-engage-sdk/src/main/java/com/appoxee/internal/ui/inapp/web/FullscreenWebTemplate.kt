@@ -84,7 +84,7 @@ internal class FullscreenWebTemplate<T : Message>(
                 onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)
-            (message as? WebInappMessage)?.decodedHtml?.let { html ->
+            (message as? WebInappMessage)?.content?.let { html ->
                 Logger.d(TAG, "HTML: $html")
                 webView.loadData(html)
             }

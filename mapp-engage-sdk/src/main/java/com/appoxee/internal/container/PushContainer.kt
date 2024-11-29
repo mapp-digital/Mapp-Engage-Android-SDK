@@ -65,6 +65,7 @@ internal class PushContainer(
             notify,
             notificationFactory,
             storageContainer.storage,
+            categoriesFactory,
             NOTIFICATION_CHANNEL_ID,
             NOTIFICATION_CHANNEL_NAME
         ).also {

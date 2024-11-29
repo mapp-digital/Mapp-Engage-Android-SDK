@@ -12,8 +12,8 @@ import com.appoxee.internal.model.response.inapp.InappButton
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.LibExt.toColor
-import com.appoxee.internal.util.LibExt.toPx
+import com.appoxee.internal.util.LibraryExtensions.toColor
+import com.appoxee.internal.util.LibraryExtensions.toPx
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

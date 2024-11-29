@@ -12,7 +12,8 @@ enum class PushUriType(val value: String) {
     KEY_DIALER("tel:"),
     KEY_APP_DESTROY_PUSH("push_destroy"),
     KEY_PLAY("play"),
-    KEY_TURN_OFF("turn_off");
+    KEY_TURN_OFF("turn_off"),
+    KEY_LAUNCH_APP("launch_app");
 
     companion object {
         internal fun PushUriType?.toPushAction(): ClickType {
@@ -22,8 +23,8 @@ enum class PushUriType(val value: String) {
                 KEY_DEEP_LINK -> ClickType.OPEN_DEEP_LINK
                 KEY_DIALER -> ClickType.OPEN_DIALER
                 KEY_PLAY -> ClickType.OPEN_RICH_PUSH
-                KEY_TURN_OFF -> ClickType.DISMISS
-                else -> ClickType.LAUNCH_APP
+                KEY_LAUNCH_APP->ClickType.LAUNCH_APP
+                else -> ClickType.DISMISS
             }
         }
     }
