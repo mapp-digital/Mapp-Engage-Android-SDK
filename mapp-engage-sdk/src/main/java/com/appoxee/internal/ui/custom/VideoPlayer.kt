@@ -20,7 +20,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.PlayerView
-import com.appoxee.internal.util.LibExt.toPx
+import com.appoxee.internal.util.LibraryExtensions.toPx
 
 /**
  * Video player is custom class to show video content from some Uri source

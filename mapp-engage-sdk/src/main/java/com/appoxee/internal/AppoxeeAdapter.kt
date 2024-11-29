@@ -131,33 +131,6 @@ internal class AppoxeeAdapter(
         return withContext(dispatchers.ioDispatcher) { engageApi.getCustomAttributes(attributes) }
     }
 
-    internal suspend fun inappEvent(
-        originalEventId: String,
-        templateId: Long,
-        trackingKey: TrackingKey,
-        trackingAttributes: Map<String, Any> = emptyMap()
-    ): Response<ResponseData<Boolean>> {
-        return withContext(dispatchers.ioDispatcher) {
-            engageApi.inappEvent(
-                originalEventId = originalEventId,
-                templateId = templateId,
-                trackingKey = trackingKey,
-                trackingAttributes = trackingAttributes
-            )
-        }
-    }
-
-    internal suspend fun pushEvent(
-        messageId: Long,
-        sendoutId: Long,
-        clickType: ClickType,
-        eventType: EventType
-    ): Response<ResponseData<Boolean>> {
-        return withContext(dispatchers.ioDispatcher) {
-            engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
-        }
-    }
-
     internal suspend fun getRegions(
         lat: Double,
         lng: Double,

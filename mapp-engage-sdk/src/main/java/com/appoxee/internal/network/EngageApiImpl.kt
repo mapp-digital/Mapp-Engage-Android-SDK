@@ -201,7 +201,7 @@ internal class EngageApiImpl(
             .addHeader(mapOf("tenant_id" to getTenantId()))
             .addHeader(mapOf("app_id" to getAppId()))
 
-        return networkClient.execute(request, InboxAdapter())
+        return networkClient.execute(request, InboxAdapter(eventKey = eventName))
     }
 
     override suspend fun fetchInApp(eventName: String): Response<InappResponse> {

@@ -2,6 +2,7 @@ package com.mapp.engagesample
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -16,6 +17,7 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
+import com.mapp.engagesample.inbox.InboxMessagesActivity
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
 import kotlinx.coroutines.Dispatchers
@@ -104,15 +106,17 @@ class BaseTestFragment : Fragment() {
         }
 
         binding.btnFetchInboxMessages.setOnClickListener {
-            lifecycleScope.launch {
-                val result = Appoxee.instance().fetchInboxMessages("app_inbox").asSuspend()
-                Util.showDialog(
-                    requireContext(),
-                    "Inbox Messages",
-                    if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-            }
+//            lifecycleScope.launch {
+//                val result = Appoxee.instance().fetchInboxMessages("app_inbox").asSuspend()
+//                Util.showDialog(
+//                    requireContext(),
+//                    "Inbox Messages",
+//                    if (result.isSuccess()) result.getData().toString()
+//                    else result.getError().toString()
+//                )
+//            }
+            val intent = Intent(requireContext(), InboxMessagesActivity::class.java)
+            startActivity(intent)
         }
 
         binding.btnFetchInappMessages.setOnClickListener {

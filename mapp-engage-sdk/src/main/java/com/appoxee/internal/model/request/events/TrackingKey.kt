@@ -10,4 +10,9 @@ internal enum class TrackingKey(val key: String) {
     IA_MSG_LANDING_PAGE_INTERNAL("ia_message_landing_page_internal"),
     IA_MSG_LANDING_PAGE_EXTERNAL("ia_message_landing_page_external"),
     IA_MSG_DIAL_NUMBER("ia_message_dial_number"),
+
+    INBOX_MESSAGE_UNREAD("inbox_message_unread"),
+    INBOX_MESSAGE_READ("inbox_message_read"),
+    INBOX_MESSAGE_DELETED("inbox_message_deleted"),
+
 }

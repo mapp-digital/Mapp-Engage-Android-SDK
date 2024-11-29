@@ -20,7 +20,7 @@ import com.appoxee.R
 import com.appoxee.internal.push.model.NotificationType
 import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
-import com.appoxee.internal.util.LibExt.toPx
+import com.appoxee.internal.util.LibraryExtensions.toPx
 
 internal class MediaDialog : DialogFragment() {
     companion object {

@@ -20,8 +20,8 @@ import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.LibExt.getDisplayMetrics
-import com.appoxee.internal.util.LibExt.toPx
+import com.appoxee.internal.util.LibraryExtensions.getDisplayMetrics
+import com.appoxee.internal.util.LibraryExtensions.toPx
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 
@@ -82,7 +82,7 @@ internal class StandardWebTemplate<T : Message>(
                 onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)
-            (message as? WebInappMessage)?.decodedHtml?.let { html ->
+            (message as? WebInappMessage)?.content?.let { html ->
                 Logger.d(TAG, "HTML: $html")
                 webView.loadData(html)
             }

@@ -19,7 +19,7 @@ interface Call<T> {
      * Execute method and get result via callback [MappCallback]<[T]>
      * Method should be executed from a Main [Thread]
      */
-    fun enqueue(callback: MappCallback<T>)
+    fun enqueue(callback: MappCallback<T>?)
 
     /**
      * Execute methods and get [MappResult]<[T]> result as a return value

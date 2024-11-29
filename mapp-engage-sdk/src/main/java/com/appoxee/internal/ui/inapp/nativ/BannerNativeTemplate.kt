@@ -28,7 +28,7 @@ import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.LibExt.toColor
+import com.appoxee.internal.util.LibraryExtensions.toColor
 import kotlinx.coroutines.CoroutineScope
 
 internal class BannerNativeTemplate<T : Message>(

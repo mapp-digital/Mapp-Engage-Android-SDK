@@ -20,6 +20,7 @@ data class ActionData(
                     if (openInApp) TrackingKey.IA_MSG_LANDING_PAGE_INTERNAL
                     else TrackingKey.IA_MSG_LANDING_PAGE_EXTERNAL
                 }
+                InappActionType.CUSTOM-> TrackingKey.IA_MSG_CUSTOM_ACTION
             }
         } ?: TrackingKey.IA_MSG_NOT_DISPLAYED
     }

@@ -13,12 +13,17 @@ internal data class FgAction(
     val apxInbox: String? = null,
     val apxUrlInternal: String? = null,
     val apxDpl: String? = null,
-    val apxDestroyPush: String? = null
+    val isDestructive: Boolean = false,
 ) : Parcelable {
+
     fun isDestroyAction(): Boolean {
-        return apxUrl.isNullOrEmpty() && apxAid.isNullOrEmpty() && apxVc.isNullOrEmpty() &&
-                apxInbox.isNullOrEmpty() && apxUrlInternal.isNullOrEmpty() && apxDpl.isNullOrEmpty() &&
-                apxDestroyPush.isNullOrEmpty()
+        return isDestructive &&
+                apxUrl.isNullOrEmpty() &&
+                apxAid.isNullOrEmpty() &&
+                apxVc.isNullOrEmpty() &&
+                apxInbox.isNullOrEmpty() &&
+                apxUrlInternal.isNullOrEmpty() &&
+                apxDpl.isNullOrEmpty()
     }
 
     @Synchronized
@@ -29,7 +34,7 @@ internal data class FgAction(
         if (!apxInbox.isNullOrEmpty()) return PushUriType.KEY_INBOX
         if (!apxUrlInternal.isNullOrEmpty()) return PushUriType.KEY_URL_INTERNAL
         if (!apxDpl.isNullOrEmpty()) return PushUriType.KEY_DEEP_LINK
-        return PushUriType.KEY_APP_DESTROY_PUSH
+        return if (isDestructive) PushUriType.KEY_APP_DESTROY_PUSH else PushUriType.KEY_LAUNCH_APP
     }
 
     @Synchronized
@@ -41,6 +46,7 @@ internal data class FgAction(
             PushUriType.KEY_INBOX -> apxInbox!!
             PushUriType.KEY_URL_INTERNAL -> apxUrlInternal!!
             PushUriType.KEY_DEEP_LINK -> apxDpl!!
+            PushUriType.KEY_LAUNCH_APP -> PushUriType.KEY_LAUNCH_APP.value
             else -> PushUriType.KEY_APP_DESTROY_PUSH.value
         }
     }
@@ -52,8 +58,7 @@ internal data class FgAction(
         private const val APX_INBOX = "apx_inbox"
         private const val APX_URL_INTERNAL = "apx_url_internal"
         private const val APX_DPL = "apx_dpl"
-        private const val APX_DESTROY_PUSH = "apx_destroy_push"
-        fun fromJSON(json: JSONObject): FgAction {
+        fun fromJSON(json: JSONObject, isDestructive: Boolean = false): FgAction {
             return FgAction(
                 apxUrl = json.getNullableString(APX_URL),
                 apxAid = json.getNullableString(APX_AID),
@@ -61,7 +66,7 @@ internal data class FgAction(
                 apxInbox = json.getNullableString(APX_INBOX),
                 apxUrlInternal = json.getNullableString(APX_URL_INTERNAL),
                 apxDpl = json.getNullableString(APX_DPL),
-                apxDestroyPush = json.getNullableString(APX_DESTROY_PUSH),
+                isDestructive = isDestructive
             )
         }
     }

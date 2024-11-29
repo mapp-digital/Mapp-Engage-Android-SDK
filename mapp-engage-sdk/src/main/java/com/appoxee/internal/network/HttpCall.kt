@@ -38,12 +38,12 @@ internal class HttpCall<T>(
         return@withContext executeWithErrorHandling()
     }
 
-    override fun enqueue(callback: MappCallback<T>) {
+    override fun enqueue(callback: MappCallback<T>?) {
         if (isExecuted()) throw CallConsumedException()
         coroutineScope.launch {
             val result = executeWithErrorHandling()
             withContext(Dispatchers.Main) {
-                callback.onResult(result)
+                callback?.onResult(result)
             }
         }
     }

@@ -127,7 +127,7 @@ class AppoxeeImplTest {
                 )
             }
 
-            val result = appoxee.fetchInboxMessages("").asSuspend()
+            val result = appoxee.fetchInboxMessages().asSuspend()
             coVerify(exactly = 1) { engageApiImpl.fetchInboxMessages(any()) }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()?.messages).hasSize(1)

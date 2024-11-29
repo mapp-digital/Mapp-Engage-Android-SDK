@@ -2,9 +2,11 @@ package com.appoxee.internal.push.model
 
 import android.net.Uri
 import android.os.Parcelable
+import com.appoxee.internal.model.response.Category
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
+import java.util.Objects
 
 @Parcelize
 internal data class PushData(
@@ -27,7 +29,7 @@ internal data class PushData(
     val buttonList: List<PushButton?> = emptyList(),
     val sendoutId: Long? = null,
     var extraFields: Map<String, String> = emptyMap(),
-    val category: String? = null,
+    val category: Category? = null,
     val language: String? = null,
     val priority: Int? = null,
 ) : Parcelable {
@@ -75,15 +77,21 @@ internal data class PushData(
         private const val KEY_CUSTOMER_ID = "customer_id"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_SENDOUT_ID = "sendout_id"
-        private const val PRIORITY="priority"
+        private const val PRIORITY = "priority"
 
-        internal fun RemoteMessage.toPushData(): PushData {
+        internal fun RemoteMessage.toPushData(categories: List<Category>): PushData {
             val map = mutableMapOf<String, String?>().apply {
                 putAll(this@toPushData.data)
             }
             val uriType = getUriType(map)
             val actionUriPath = getPushOpenUriString(map)
-
+            val categoryName = map.getData(CATEGORY)
+            val category = categories.firstOrNull {
+                Objects.equals(
+                    categoryName?.lowercase(),
+                    it.name?.name?.lowercase()
+                )
+            }
             return PushData(
                 id = map.getData(KEY_MESSAGE_ID)?.toLongOrNull() ?: 0L,
                 title = map.getData(KEY_TITLE),
@@ -99,20 +107,23 @@ internal data class PushData(
                 contentAvailable = map.getData(CONTENT_AVAILABLE).toBoolean(),
                 silentType = map.getData(SILENT_TYPE),
                 silentData = map.getData(SILENT_DATA),
-                category = map.getData(CATEGORY),
+                category = category,
                 language = map.getData(LANGUAGE),
                 userId = map.getData(KEY_USER_ID),
                 customerId = map.getData(KEY_CUSTOMER_ID),
                 sendoutId = map.getData(KEY_SENDOUT_ID)?.toLongOrNull(),
-                buttonList = getButtons(map),
+                buttonList = getButtons(map, category),
                 extraFields = getExtraFields(map),
                 priority = this.priority
             )
         }
 
-        private fun getButtons(map: MutableMap<String, String?>): List<PushButton> {
+        private fun getButtons(
+            map: MutableMap<String, String?>,
+            category: Category?
+        ): List<PushButton> {
             val array = map.getData(BUTTONS)?.let { JSONArray(it) }
-            return if (array != null) PushButton.fromJSON(array) else emptyList()
+            return if (array != null) PushButton.fromJSON(array, category) else emptyList()
         }
 
         private fun getExtraFields(map: MutableMap<String, String?>): Map<String, String> {
@@ -126,7 +137,7 @@ internal data class PushData(
         }
 
         private fun MutableMap<String, String?>.getData(key: String): String? {
-            val value = this[key]
+            val value = this.getOrElse(key) { null }
             this.remove(key)
             return value
         }
