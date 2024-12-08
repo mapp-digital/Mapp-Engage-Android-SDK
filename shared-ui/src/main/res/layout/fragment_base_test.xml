@@ -119,16 +119,16 @@
                 android:text="Get custom attributes" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnGetRegions"
+                android:id="@+id/btnStartGeofencing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Get Regions" />
+                android:text="Start Geofencing" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEventRegions"
+                android:id="@+id/btnStopGeofencing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Trigger Enter Geolocation" />
+                android:text="Stop Geofencing" />
         </LinearLayout>
     </ScrollView>
 

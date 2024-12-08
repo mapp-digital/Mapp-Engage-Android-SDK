@@ -12,13 +12,14 @@ import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
 
 internal class AppoxeeContainer private constructor(
     context: Context,
-    storage: Storage,
+    storage: Storage ,
     dispatchers: Dispatchers,
 ) {
     companion object {
@@ -26,8 +27,8 @@ internal class AppoxeeContainer private constructor(
         private val mutex = Mutex()
         fun getInstance(
             context: Context,
-            storage: Storage,
-            dispatchers: Dispatchers
+            storage: Storage = StorageContainer.getInstance(context).storage,
+            dispatchers: Dispatchers = DispatchersImpl()
         ): AppoxeeContainer {
             if (!::instance.isInitialized) {
                 synchronized(mutex) {
@@ -56,6 +57,10 @@ internal class AppoxeeContainer private constructor(
             storage = storage,
             deviceProvider = deviceProvider
         )
+    }
+
+    internal val geoContainer: GeoContainer by lazy {
+        GeoContainer(context, engageApi)
     }
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {

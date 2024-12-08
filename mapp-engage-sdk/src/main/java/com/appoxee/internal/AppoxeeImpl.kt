@@ -26,6 +26,7 @@ import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
@@ -71,6 +72,7 @@ internal class AppoxeeImpl(
     private val inappContainer: InAppContainer by lazy {
         InAppContainer(internalScope, statsContainer)
     }
+
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val appoxeeContainer = AppoxeeContainer.getInstance(
@@ -220,6 +222,13 @@ internal class AppoxeeImpl(
             appoxeeAdapter.fetchInboxMessages("app_inbox")
         }
 
+    override fun fetchInboxMessage(templateId: Long): Call<InboxMessage?> =
+        buildHttpCall {
+            val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
+            response?.messages?.firstOrNull { it.templateId == templateId }
+        }
+
+
     override fun fetchLatestInboxMessage(): Call<InboxMessage?> =
         buildHttpCall {
             val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
@@ -234,7 +243,10 @@ internal class AppoxeeImpl(
     }
 
     override fun showInboxMessage(context: Activity, message: InboxMessage) {
-        inappContainer.inappManager.showMessage(activity = context, message = message.getInappMessage())
+        inappContainer.inappManager.showMessage(
+            activity = context,
+            message = message.getInappMessage()
+        )
     }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
@@ -254,6 +266,17 @@ internal class AppoxeeImpl(
                 }
             }
         }
+    }
+
+    override fun <T : GeoStatus> startGeofencing(): T {
+        appoxeeContainer.geoContainer.locationUpdateScheduler.schedule()
+        return GeoStatus.GeoStartedOk() as T
+    }
+
+    override fun <T : GeoStatus> stopGeofencing(): T {
+        appoxeeContainer.geoContainer.locationUpdateScheduler.cancel()
+        appoxeeContainer.geoContainer.geofencingClientWrapper.removeGeofences({}, {})
+        return GeoStatus.GeoStoppedOk() as T
     }
 
 

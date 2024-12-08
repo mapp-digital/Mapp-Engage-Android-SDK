@@ -18,16 +18,13 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.appoxee.Appoxee;
-import com.appoxee.internal.model.request.geo.GeoEvent;
 import com.appoxee.internal.model.response.DevicePayload;
-import com.appoxee.internal.model.response.geo.Region;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -106,22 +103,12 @@ public class BaseTestFragment extends Fragment {
             });
         });
 
-        binding.btnGetRegions.setOnClickListener(v -> {
-            Appoxee.instance().testGetRegions(43.1407, 20.5181, 0, 50).enqueue(result -> {
-                List<Region> regions = result.getData() != null ? result.getData().getRegions() : Collections.emptyList();
-                StringBuilder sb = new StringBuilder();
-                for (Region r : regions) {
-                    sb.append("(").append(r.getId()).append(") ");
-                    sb.append(r.getName()).append("\n(").append(r.getLat()).append("/").append(r.getLng()).append(")\n\n");
-                }
-                Util.showDialog(requireContext(), "Regions", sb.toString());
-            });
+        binding.btnStartGeofencing.setOnClickListener(v -> {
+            Appoxee.instance().startGeofencing();
         });
 
-        binding.btnEventRegions.setOnClickListener(v -> {
-            Appoxee.instance().testRegionEvent(GeoEvent.ENTER, 43.1407, 20.5181, 91, 0).enqueue(result -> {
-                Util.showDialog(requireContext(), "Trigger Enter Geolocation", String.valueOf(result.getData()));
-            });
+        binding.btnStopGeofencing.setOnClickListener(v -> {
+            Appoxee.instance().stopGeofencing();
         });
 
         binding.btnGetFbToken.setOnClickListener(v -> {

@@ -21,8 +21,8 @@ public class SampleApplication extends Application {
                 "206974",
                 "5963"
         );
-        options.setConnectionTimeout(5000);
-        options.setReadTimeout(5000);
+        options.setConnectionTimeout(20_000);
+        options.setReadTimeout(20_000);
         options.setLogType(AppoxeeOptions.LogLevel.DEBUG);
         options.setNotificationMode(NotificationMode.BACKGROUND_AND_FOREGROUND);
         Appoxee.engage(this, options);

@@ -22,6 +22,7 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@android:color/system_primary_light"
             tools:targetApi="upside_down_cake" />
+
         <receiver
             android:name="com.appoxee.internal.broadcast.MappInternalBroadcastReceiver"
             android:enabled="true"
@@ -30,6 +31,7 @@
                 <category android:name="${applicationId}" />
             </intent-filter>
         </receiver>
+        <receiver android:name="com.appoxee.internal.geo.GeofenceBroadcastReceiver" />
 
         <activity
             android:name="com.appoxee.internal.ui.activity.FullScreenActivity"

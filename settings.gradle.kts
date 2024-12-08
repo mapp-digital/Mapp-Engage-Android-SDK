@@ -48,6 +48,9 @@ dependencyResolutionManagement {
             library("media3-exoplayer-dash","androidx.media3:media3-exoplayer-dash:1.2.0")
             library("media3-ui","androidx.media3:media3-ui:1.2.0")
 
+            library("work-runtime-ktx","androidx.work:work-runtime-ktx:2.9.1")
+            library("gms-location","com.google.android.gms:play-services-location:21.0.1")
+
             //test
             library("junit4","junit:junit:4.13.2")
             library("jupiter","org.junit.jupiter:junit-jupiter:5.10.1")

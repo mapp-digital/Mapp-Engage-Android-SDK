@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.browser)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.gms.location)
 
     testImplementation(libs.bundles.test)
 

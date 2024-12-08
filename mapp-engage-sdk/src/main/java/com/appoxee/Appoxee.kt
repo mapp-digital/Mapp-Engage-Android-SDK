@@ -17,6 +17,7 @@ import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
 import com.google.firebase.messaging.RemoteMessage
 import org.jetbrains.annotations.TestOnly
@@ -118,6 +119,13 @@ interface Appoxee {
     ): Call<InboxMessagesResponse?>
 
     /**
+     * Get inbox messages of requested templateId
+     * @param templateId to filter inbox messages
+     * @return [InboxMessage] the inbox message with a requested templateId
+     */
+    fun fetchInboxMessage(templateId: Long): Call<InboxMessage?>
+
+    /**
      * Get latest inbox message
      * @return [InboxMessage] the latest inbox message
      */
@@ -151,6 +159,10 @@ interface Appoxee {
      * Get list of inapp messages from server and show them as proper dialog or fullscreen page
      */
     fun triggerInApp(context: Activity, eventName: String)
+
+    fun <T : GeoStatus> startGeofencing(): T
+
+    fun <T : GeoStatus> stopGeofencing(): T
 
     /**
      * Add list of tags on a device

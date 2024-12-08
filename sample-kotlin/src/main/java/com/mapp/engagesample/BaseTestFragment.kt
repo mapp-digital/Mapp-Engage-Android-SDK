@@ -106,15 +106,6 @@ class BaseTestFragment : Fragment() {
         }
 
         binding.btnFetchInboxMessages.setOnClickListener {
-//            lifecycleScope.launch {
-//                val result = Appoxee.instance().fetchInboxMessages("app_inbox").asSuspend()
-//                Util.showDialog(
-//                    requireContext(),
-//                    "Inbox Messages",
-//                    if (result.isSuccess()) result.getData().toString()
-//                    else result.getError().toString()
-//                )
-//            }
             val intent = Intent(requireContext(), InboxMessagesActivity::class.java)
             startActivity(intent)
         }
