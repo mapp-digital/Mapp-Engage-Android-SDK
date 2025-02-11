@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.base
+package com.appoxee.internal.ui.push.base
 
 import android.annotation.SuppressLint
 import com.appoxee.Appoxee
@@ -15,7 +15,7 @@ import org.jetbrains.annotations.TestOnly
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MappMessagingService : FirebaseMessagingService() {
 
-    private val TAG = MappMessagingService::class.java.name
+    private val TAG = com.appoxee.internal.ui.push.base.MappMessagingService::class.java.name
 
     private lateinit var pushContainer: PushContainer
 
@@ -25,7 +25,7 @@ class MappMessagingService : FirebaseMessagingService() {
         Logger.d(TAG, "MappMessagingService - onCreate()")
         super.onCreate()
         pushContainer = PushContainer(this)
-        instance = this
+        com.appoxee.internal.ui.push.base.MappMessagingService.Companion.instance = this
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -42,7 +42,7 @@ class MappMessagingService : FirebaseMessagingService() {
 
     override fun onDestroy() {
         Logger.d(TAG, "MappMessagingService - onDestroy()")
-        instance = null
+        com.appoxee.internal.ui.push.base.MappMessagingService.Companion.instance = null
         super.onDestroy()
     }
 
@@ -63,7 +63,7 @@ class MappMessagingService : FirebaseMessagingService() {
         @Volatile
         @JvmStatic
         @TestOnly
-        var instance: MappMessagingService? = null
+        var instance: com.appoxee.internal.ui.push.base.MappMessagingService? = null
             private set
     }
 }

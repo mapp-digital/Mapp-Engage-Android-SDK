@@ -5,12 +5,15 @@ package com.appoxee.internal
 import android.app.Activity
 import android.app.Application
 import androidx.annotation.VisibleForTesting
+import androidx.work.Data
 import com.appoxee.Appoxee
+import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
+import com.appoxee.internal.geo.GeofenceException
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
@@ -66,12 +69,15 @@ internal class AppoxeeImpl(
         StorageContainer.getInstance(application.applicationContext)
     }
 
-    private val statsContainer: StatsContainer by lazy {
-        StatsContainer(application.applicationContext, dispatchers)
-    }
-    private val inappContainer: InAppContainer by lazy {
-        InAppContainer(internalScope, statsContainer)
-    }
+    private val actionContainer: ActionContainer
+        get() = ActionContainer(application)
+
+    private val statsContainer: StatsContainer
+        get() = StatsContainer(application.applicationContext, dispatchers)
+
+
+    private val inappContainer: InAppContainer
+        get() = InAppContainer(internalScope, statsContainer, actionContainer)
 
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -88,7 +94,8 @@ internal class AppoxeeImpl(
         get() = storageContainer.storage
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val pushContainer: PushContainer by lazy { PushContainer(application.applicationContext) }
+    internal val pushContainer: PushContainer
+        get() = PushContainer(application.applicationContext)
 
     internal val activityLifecycleHandler: ActivityLifecycleHandler by lazy {
         ActivityLifecycleHandler(
@@ -256,27 +263,39 @@ internal class AppoxeeImpl(
 
     override fun triggerInApp(context: Activity, eventName: String) {
         appoxeeContainer.baseScope.launch {
-            withContext(dispatchers.ioDispatcher) {
-                val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
-                inappContainer.inappManager.let { inappManager ->
-                    val sortedMessages = inappManager.parseResponse(inappResponse)
-                    withContext(dispatchers.mainDispatcher) {
-                        inappManager.handleMessages(context, sortedMessages)
-                    }
+            val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
+            inappContainer.inappManager.let { inappManager ->
+                val sortedMessages = inappManager.parseResponse(inappResponse)
+                withContext(dispatchers.mainDispatcher) {
+                    inappManager.handleMessages(context, sortedMessages)
                 }
             }
         }
     }
 
-    override fun <T : GeoStatus> startGeofencing(): T {
-        appoxeeContainer.geoContainer.locationUpdateScheduler.schedule()
-        return GeoStatus.GeoStartedOk() as T
+    override fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int): Call<T> = buildHttpCall {
+        try {
+            val data = Data.Builder().putInt("enterDelaySeconds", enterDelaySeconds).build()
+            appoxeeContainer.geoContainer.locationUpdateScheduler.schedule(data = data)
+            GeoStatus.GeoStartedOk()
+        } catch (e: GeofenceException) {
+            e.geoStatus
+        } catch (e: Exception) {
+            GeoStatus.GeoGeneralError()
+        } as T
     }
 
-    override fun <T : GeoStatus> stopGeofencing(): T {
+    override fun <T : GeoStatus> stopGeofencing(): Call<T> = buildHttpCall {
         appoxeeContainer.geoContainer.locationUpdateScheduler.cancel()
-        appoxeeContainer.geoContainer.geofencingClientWrapper.removeGeofences({}, {})
-        return GeoStatus.GeoStoppedOk() as T
+        appoxeeContainer.geoContainer.geofencingClientWrapper.removeGeofences()
+        GeoStatus.GeoStoppedOk() as T
+    }
+
+    override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
+        val device = appoxeeContainer.deviceProvider.generateRegistrationDevice()
+        val response = appoxeeAdapter.logout(device)
+        enablePush(pushEnabled)
+        response.isSuccess()
     }
 
 

@@ -2,8 +2,8 @@ package com.appoxee.shared
 
 import android.net.Uri
 import android.os.Parcelable
-import com.appoxee.internal.push.model.PushData
-import com.appoxee.internal.push.model.PushUriType.Companion.toPushAction
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import kotlinx.parcelize.Parcelize
 
 @Parcelize

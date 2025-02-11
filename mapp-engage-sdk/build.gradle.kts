@@ -2,15 +2,15 @@ import com.google.common.collect.ImmutableList
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
+    id("org.jetbrains.kotlin.android")
 }
 
 val sdkVersion = project.properties["VERSION"]
 
 android {
     namespace = "com.appoxee"
-    compileSdk = 34
+    compileSdk = 35
 
     lint {
         targetSdk = 34
@@ -66,9 +66,11 @@ android {
             minSdk=23
         }
     }
+    buildToolsVersion = "35.0.0"
 }
 
 dependencies {
+    implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(libs.bundles.coil)
@@ -81,6 +83,5 @@ dependencies {
     implementation(libs.gms.location)
 
     testImplementation(libs.bundles.test)
-
     androidTestImplementation(libs.bundles.androidTest)
 }

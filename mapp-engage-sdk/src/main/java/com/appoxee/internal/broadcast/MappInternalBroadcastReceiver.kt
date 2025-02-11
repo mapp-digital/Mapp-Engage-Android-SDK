@@ -9,7 +9,7 @@ import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.LocalPushBroadcast

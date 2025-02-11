@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.appoxee.internal.ui.push.base.Notify
+import com.appoxee.internal.ui.push.base.NotifyImpl
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk

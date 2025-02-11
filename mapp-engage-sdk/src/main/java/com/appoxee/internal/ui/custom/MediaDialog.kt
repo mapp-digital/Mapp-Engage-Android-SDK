@@ -17,8 +17,8 @@ import androidx.core.view.setPadding
 import androidx.fragment.app.DialogFragment
 import androidx.media3.common.util.UnstableApi
 import com.appoxee.R
-import com.appoxee.internal.push.model.NotificationType
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.NotificationType
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.LibraryExtensions.toPx
 

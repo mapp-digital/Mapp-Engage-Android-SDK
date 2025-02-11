@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.base
+package com.appoxee.internal.ui.push.base
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -7,17 +7,16 @@ import android.content.Context
 import android.content.Intent
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
-import com.appoxee.internal.push.model.CategoriesFactory
-import com.appoxee.internal.push.model.PushData
-import com.appoxee.internal.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.push.model.CategoriesFactory
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData.Companion.toPushData
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.NotificationMode
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.withContext
-import kotlin.random.Random
 
 internal class PushManagerImpl(
     private val dispatchers: com.appoxee.internal.util.Dispatchers,
@@ -50,15 +49,20 @@ internal class PushManagerImpl(
             when (getNotificationMode()) {
                 NotificationMode.SILENT_ONLY -> {
                     Logger.d(TAG, "SILENT ONLY $pushData")
+                    // TODO handle silent only push messages
                 }
 
                 NotificationMode.BACKGROUND_ONLY -> {
                     Logger.d(TAG, "BACKGROUND ONLY $pushData")
+                    // TODO handle background only push
                 }
 
                 else -> {
-                    val notificationId = (System.currentTimeMillis()/100).toInt()
-                    Logger.d(TAG, "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId")
+                    val notificationId = (System.currentTimeMillis() / 100).toInt()
+                    Logger.d(
+                        TAG,
+                        "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
+                    )
                     val notification = createNotification(pushData, notificationId)
                     withContext(dispatchers.mainDispatcher) {
                         showNotification(notification, notificationId)

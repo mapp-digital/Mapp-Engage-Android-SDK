@@ -1,7 +1,7 @@
-package com.appoxee.internal.push.style
+package com.appoxee.internal.ui.push.style
 
-import com.appoxee.internal.push.model.NotificationType
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.NotificationType
+import com.appoxee.internal.ui.push.model.PushData
 
 internal class NotificationStyleFactory() {
     fun buildNotificationStyle(pushData: PushData): NotificationStyle {

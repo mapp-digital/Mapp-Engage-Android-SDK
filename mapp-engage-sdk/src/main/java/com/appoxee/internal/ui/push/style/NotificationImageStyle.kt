@@ -1,9 +1,9 @@
-package com.appoxee.internal.push.style
+package com.appoxee.internal.ui.push.style
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import java.net.URL
 
 internal class NotificationImageStyle(private val pushData: PushData) : NotificationStyle {

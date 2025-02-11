@@ -7,13 +7,12 @@ import android.net.Uri
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.push.model.PushData
-import com.appoxee.internal.push.model.PushUriType
-import com.appoxee.internal.push.model.PushUriType.Companion.toPushAction
 import com.appoxee.internal.ui.activity.FullScreenActivity
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushUriType
+import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import com.appoxee.internal.util.CompatExt
 import com.appoxee.shared.LocalPushBroadcast
-import kotlin.random.Random
 
 internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
     override fun createPendingIntent(

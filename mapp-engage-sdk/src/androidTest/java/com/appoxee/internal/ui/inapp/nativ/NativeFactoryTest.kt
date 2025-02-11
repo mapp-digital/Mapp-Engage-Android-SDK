@@ -58,7 +58,7 @@ class NativeFactoryTest {
         }
         val onShow = mockk<(Message) -> Unit>(relaxed = true)
         val onClose = mockk<(Message, TrackingKey, TrackingParams) -> Unit>(relaxed = true)
-        every { factory.getActionHandler(any()) } returns mockk(relaxed = true)
+        every { factory.getInappActionHandler(any()) } returns mockk(relaxed = true)
         every { factory.getDelay(any()) } returns 0
         every { factory.createTemplate(any(), any(), any(), any()) } returns template
         every { activity.isDestroyed } returns false
@@ -73,7 +73,7 @@ class NativeFactoryTest {
         coVerifyAll {
             factory.createBanner(any(), message, onShow, onClose)
             factory.getDelay(message)
-            factory.getActionHandler(any())
+            factory.getInappActionHandler(any())
             factory.createTemplate(any(), any(), message, onClose)
             template.show()
         }

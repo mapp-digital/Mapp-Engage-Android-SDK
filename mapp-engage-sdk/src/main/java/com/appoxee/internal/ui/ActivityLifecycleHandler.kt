@@ -7,9 +7,9 @@ import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
 import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MediaDialog
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.LibraryExtensions.startMainActivity
 import com.appoxee.internal.util.Logger

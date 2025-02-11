@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 import android.net.Uri
 import android.os.Parcelable
@@ -6,7 +6,6 @@ import com.appoxee.internal.model.response.Category
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
-import java.util.Objects
 
 @Parcelize
 internal data class PushData(
@@ -79,6 +78,7 @@ internal data class PushData(
         private const val KEY_SENDOUT_ID = "sendout_id"
         private const val PRIORITY = "priority"
 
+        @JvmStatic
         internal fun RemoteMessage.toPushData(categories: List<Category>): PushData {
             val map = mutableMapOf<String, String?>().apply {
                 putAll(this@toPushData.data)
@@ -86,12 +86,10 @@ internal data class PushData(
             val uriType = getUriType(map)
             val actionUriPath = getPushOpenUriString(map)
             val categoryName = map.getData(CATEGORY)
-            val category = categories.firstOrNull {
-                Objects.equals(
-                    categoryName?.lowercase(),
-                    it.name?.name?.lowercase()
-                )
+            val category = categoryName?.let { catName ->
+                categories.firstOrNull { catName == it.name?.value }
             }
+
             return PushData(
                 id = map.getData(KEY_MESSAGE_ID)?.toLongOrNull() ?: 0L,
                 title = map.getData(KEY_TITLE),

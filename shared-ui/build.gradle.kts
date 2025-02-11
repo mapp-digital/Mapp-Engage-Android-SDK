@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "eu.brrm.shared_ui"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21
@@ -47,16 +47,17 @@ android {
             minSdk=23
         }
     }
+    buildToolsVersion = "35.0.0"
 }
 
 dependencies {
+    implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
     implementation(project(":mapp-engage-sdk"))
 
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation(libs.bundles.test)
+    androidTestImplementation(libs.bundles.androidTest)
 }

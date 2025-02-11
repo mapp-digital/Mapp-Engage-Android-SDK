@@ -9,8 +9,8 @@ import android.util.Log
 import com.appoxee.internal.TestDispatchers
 import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.stats.StatsClient
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.Logger

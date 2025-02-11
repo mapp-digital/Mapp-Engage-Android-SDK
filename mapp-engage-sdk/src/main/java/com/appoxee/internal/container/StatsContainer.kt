@@ -20,5 +20,4 @@ internal class StatsContainer(
     val statsClient: StatsClient by lazy {
         StatsClientImpl(appoxeeContainer.engageApi, dispatchers)
     }
-
 }

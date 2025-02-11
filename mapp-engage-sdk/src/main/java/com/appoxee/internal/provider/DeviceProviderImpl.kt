@@ -48,7 +48,7 @@ internal class DeviceProviderImpl(private val context: Context) : DeviceProvider
     }
 
     override fun getAppVersion(): String {
-        return context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        return context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
     }
 
     override fun getLocale(): String {

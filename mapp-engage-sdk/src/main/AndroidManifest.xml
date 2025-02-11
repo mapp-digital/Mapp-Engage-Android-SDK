@@ -7,7 +7,7 @@
 
     <application>
         <service
-            android:name="com.appoxee.internal.push.base.MappMessagingService"
+            android:name="com.appoxee.internal.ui.push.base.MappMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -35,11 +35,6 @@
 
         <activity
             android:name="com.appoxee.internal.ui.activity.FullScreenActivity"
-            android:exported="true"
-            android:taskAffinity=""
-            android:theme="@style/Mapp.TransparentActivity" />
-        <activity
-            android:name="com.appoxee.internal.ui.activity.DispatcherActivity"
             android:exported="true"
             android:taskAffinity=""
             android:theme="@style/Mapp.TransparentActivity" />

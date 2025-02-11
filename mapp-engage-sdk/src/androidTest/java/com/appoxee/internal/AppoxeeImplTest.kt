@@ -12,9 +12,9 @@ import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.response.Response
-import com.appoxee.internal.push.base.PushManagerImpl
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.push.base.PushManagerImpl
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions

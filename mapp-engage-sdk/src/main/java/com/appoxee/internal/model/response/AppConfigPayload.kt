@@ -1,7 +1,7 @@
 package com.appoxee.internal.model.response
 
 import android.os.Parcelable
-import com.appoxee.internal.push.model.CategoryType
+import com.appoxee.internal.ui.push.model.CategoryType
 import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.arrayToList
 import com.appoxee.internal.util.getLongOrDefault
@@ -108,6 +108,10 @@ data class Category(
                 }
             })
         }
+    }
+
+    override fun toString(): String {
+        return super.toString()
     }
 
     companion object {

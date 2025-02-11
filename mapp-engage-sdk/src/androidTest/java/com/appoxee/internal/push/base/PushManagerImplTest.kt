@@ -4,9 +4,13 @@ import android.app.Notification
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.TestDispatchers
-import com.appoxee.internal.push.model.PushData
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.push.base.NotificationFactory
+import com.appoxee.internal.ui.push.base.Notify
+import com.appoxee.internal.ui.push.base.PushManagerImpl
+import com.appoxee.internal.ui.push.model.CategoriesFactory
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.NotificationMode
 import com.google.common.truth.Truth
@@ -31,6 +35,7 @@ class PushManagerImplTest {
     private lateinit var storage: Storage
     private lateinit var notify: Notify
     private lateinit var dispatchers: com.appoxee.internal.util.Dispatchers
+    private lateinit var categoriesFactory: CategoriesFactory
     private lateinit var context: Context
 
     private val CHANNEL_ID = "MAPP_NOTIFICATION_1"
@@ -50,6 +55,7 @@ class PushManagerImplTest {
             }
         }
         storage = spyk(InMemoryStorageImpl())
+        categoriesFactory = spyk(CategoriesFactory(storage))
 
         pushManager = spyk(
             PushManagerImpl(
@@ -57,6 +63,7 @@ class PushManagerImplTest {
                 notify,
                 notificationFactory,
                 storage,
+                categoriesFactory,
                 CHANNEL_ID,
                 CHANNEL_NAME
             )
@@ -76,7 +83,7 @@ class PushManagerImplTest {
         every { appoxeeOptions.notificationMode } answers { NotificationMode.BACKGROUND_AND_FOREGROUND }
         coEvery { pushManager.isPushMessageFromMapp(remoteMessage) } coAnswers { true }
         coEvery { storage.getInitOptions() } coAnswers { appoxeeOptions }
-        coJustRun { pushManager.reportPushReceived(any(),any(),any()) }
+        coJustRun { pushManager.reportPushReceived(any(), any(), any()) }
         coEvery { pushManager.invokeNoArgs("getNotificationMode") } coAnswers { appoxeeOptions.notificationMode }
         coEvery {
             pushManager.createNotification(

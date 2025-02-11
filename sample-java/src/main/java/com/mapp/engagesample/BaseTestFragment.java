@@ -3,9 +3,11 @@ package com.mapp.engagesample;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.Editable;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,6 +16,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -21,6 +24,7 @@ import com.appoxee.Appoxee;
 import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
+import com.appoxee.shared.GeoStatus;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
@@ -104,11 +108,20 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnStartGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().startGeofencing();
+            Appoxee.instance().startGeofencing(10).enqueue(result -> {
+                GeoStatus status = result.getData();
+                if (status instanceof GeoStatus.GeoStartedOk) {
+                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing started successfully!");
+                } else if (status instanceof GeoStatus.GeoLocationPermissionsNotGranted) {
+                    handleLocationPermissionNotGranted();
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
+                }
+            });
         });
 
         binding.btnStopGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().stopGeofencing();
+            Appoxee.instance().stopGeofencing().enqueue(null);
         });
 
         binding.btnGetFbToken.setOnClickListener(v -> {
@@ -214,6 +227,22 @@ public class BaseTestFragment extends Fragment {
         binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
             pushEnable(isChecked);
         });
+    }
+
+    private void handleLocationPermissionNotGranted() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Location permission needed")
+                .setMessage("Open settings to grant location permission?")
+                .setPositiveButton("Yes", (d, i) -> {
+                    Uri uri = Uri.parse("package:" + requireContext().getPackageName());
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    d.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .create()
+                .show();
     }
 
     private void setToken() {

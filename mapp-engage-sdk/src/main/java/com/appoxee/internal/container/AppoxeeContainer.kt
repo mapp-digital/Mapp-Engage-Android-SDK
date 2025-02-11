@@ -11,6 +11,8 @@ import com.appoxee.internal.network.NetworkClientImpl
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.DeviceProviderImpl
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.action.ActionHandler
+import com.appoxee.internal.ui.action.MessageActionHandler
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.DispatchersImpl
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +21,7 @@ import kotlinx.coroutines.sync.Mutex
 
 internal class AppoxeeContainer private constructor(
     context: Context,
-    storage: Storage ,
+    storage: Storage,
     dispatchers: Dispatchers,
 ) {
     companion object {
@@ -60,7 +62,7 @@ internal class AppoxeeContainer private constructor(
     }
 
     internal val geoContainer: GeoContainer by lazy {
-        GeoContainer(context, engageApi)
+        GeoContainer(context, engageApi, dispatchers)
     }
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {
@@ -70,5 +72,4 @@ internal class AppoxeeContainer private constructor(
             dispatchers = dispatchers
         )
     }
-
 }

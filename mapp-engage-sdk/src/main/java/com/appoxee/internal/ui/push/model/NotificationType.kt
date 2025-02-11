@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 internal enum class NotificationType(val value: String) {
     TEXT("text"),

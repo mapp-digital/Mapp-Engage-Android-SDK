@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 import android.os.Parcelable
 import com.appoxee.internal.util.getNullableString

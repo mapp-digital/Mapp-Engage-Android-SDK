@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.base
+package com.appoxee.internal.ui.push.base
 
 import android.app.Notification
 

@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.style
+package com.appoxee.internal.ui.push.style
 
 import androidx.core.app.NotificationCompat
 

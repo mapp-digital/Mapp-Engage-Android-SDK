@@ -1,5 +1,6 @@
 package com.appoxee.internal.network
 
+import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.model.request.Activation
 import com.appoxee.internal.model.request.GetAppConfig
 import com.appoxee.internal.model.request.GetAttributes
@@ -59,6 +60,7 @@ internal class EngageApiImpl(
     //private val sdkKeyHeader = mapOf("X_KEY" to options.sdkKey)
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     private suspend fun getSdkKeyHeader(): Map<String, String> {
         return storage.getInitOptions()?.let {
             mapOf("X_KEY" to it.sdkKey)

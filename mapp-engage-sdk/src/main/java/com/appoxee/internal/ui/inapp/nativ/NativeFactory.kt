@@ -2,13 +2,17 @@ package com.appoxee.internal.ui.inapp.nativ
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
+import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.ContentTemplates
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
+import com.appoxee.internal.ui.action.ActionHandler
+import com.appoxee.internal.ui.action.MessageActionHandler
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.InappActionHandlerImpl
 import com.appoxee.internal.ui.inapp.Template
@@ -23,6 +27,7 @@ import java.util.concurrent.TimeUnit
 internal class NativeFactory(
     private val scope: CoroutineScope,
     private val dispatchers: Dispatchers,
+    private val actionContainer: ActionContainer,
 ) {
     private var job: Job? = null
 
@@ -33,7 +38,7 @@ internal class NativeFactory(
         onShow: ((T) -> Unit)? = null,
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
-        val actionHandler = getActionHandler(context)
+        val inappActionHandler = actionContainer.inappActionHandler
         val delaySeconds = getDelay(message)
         var template: Template
         job = scope.launch {
@@ -42,7 +47,7 @@ internal class NativeFactory(
                 if (context.isDestroyed) return@withContext
                 template = createTemplate(
                     context,
-                    actionHandler,
+                    inappActionHandler,
                     message,
                     onMessageClosed
                 )
@@ -91,9 +96,6 @@ internal class NativeFactory(
             }
         }
     }
-
-    @VisibleForTesting(otherwise = PRIVATE)
-    fun getActionHandler(context: Activity): InappActionHandler = InappActionHandlerImpl(context)
 
     @VisibleForTesting(otherwise = PRIVATE)
     fun getDelay(message: Message): Long {

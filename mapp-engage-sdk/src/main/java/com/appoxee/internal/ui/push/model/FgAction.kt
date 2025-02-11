@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 import android.os.Parcelable
 import com.appoxee.internal.util.getNullableString
@@ -33,7 +33,12 @@ internal data class FgAction(
         if (!apxVc.isNullOrEmpty()) return PushUriType.KEY_APX_VC
         if (!apxInbox.isNullOrEmpty()) return PushUriType.KEY_INBOX
         if (!apxUrlInternal.isNullOrEmpty()) return PushUriType.KEY_URL_INTERNAL
-        if (!apxDpl.isNullOrEmpty()) return PushUriType.KEY_DEEP_LINK
+        if (!apxDpl.isNullOrEmpty()) {
+            return if (apxDpl.startsWith("tel:"))
+                PushUriType.KEY_DIALER
+            else
+                PushUriType.KEY_DEEP_LINK
+        }
         return if (isDestructive) PushUriType.KEY_APP_DESTROY_PUSH else PushUriType.KEY_LAUNCH_APP
     }
 
@@ -46,6 +51,7 @@ internal data class FgAction(
             PushUriType.KEY_INBOX -> apxInbox!!
             PushUriType.KEY_URL_INTERNAL -> apxUrlInternal!!
             PushUriType.KEY_DEEP_LINK -> apxDpl!!
+            PushUriType.KEY_DIALER -> apxDpl!!
             PushUriType.KEY_LAUNCH_APP -> PushUriType.KEY_LAUNCH_APP.value
             else -> PushUriType.KEY_APP_DESTROY_PUSH.value
         }

@@ -11,6 +11,7 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.tasks.await
 
 internal class GeofencingClientWrapper(private val context: Context) {
 
@@ -27,39 +28,41 @@ internal class GeofencingClientWrapper(private val context: Context) {
         )
     }
 
-    fun buildGeofenceList(regions: List<Region>): List<Geofence> {
+    fun buildGeofenceList(regions: List<Region>, enterDelaySeconds: Int = 0): List<Geofence> {
         return regions.map { region ->
-            Geofence.Builder()
+            val geofence = Geofence.Builder()
                 .setRequestId(region.id.toString())
                 .setCircularRegion(region.lat, region.lng, region.radius.toFloat())
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
-                .build()
+
+            if (enterDelaySeconds > 0) {
+                geofence.setLoiteringDelay(enterDelaySeconds * 1000)
+                geofence.setTransitionTypes(Geofence.GEOFENCE_TRANSITION_DWELL or Geofence.GEOFENCE_TRANSITION_EXIT)
+            } else {
+                geofence.setLoiteringDelay(0)
+                geofence.setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+            }
+
+            geofence.build()
         }
     }
 
     // Add geofences to GeofencingClient
     @RequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-    fun addGeofences(
-        geofences: List<Geofence>,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
+    suspend fun addGeofences(
+        geofences: List<Geofence>
     ) {
-        removeGeofences({}, {})
+        removeGeofences()
         val geofencingRequest = GeofencingRequest.Builder()
             .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
             .addGeofences(geofences)
             .build()
 
-        geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onFailure(e) }
+        geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).await()
     }
 
     // Remove all geofences
-    fun removeGeofences(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        geofencingClient.removeGeofences(geofencePendingIntent)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onFailure(e) }
+    suspend fun removeGeofences() {
+        geofencingClient.removeGeofences(geofencePendingIntent).await()
     }
 }

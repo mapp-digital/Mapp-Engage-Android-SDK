@@ -1,8 +1,8 @@
-package com.appoxee.internal.push.base
+package com.appoxee.internal.ui.push.base
 
 import android.app.Notification
 import android.content.Context
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import com.google.firebase.messaging.RemoteMessage
 
 internal interface PushManager {

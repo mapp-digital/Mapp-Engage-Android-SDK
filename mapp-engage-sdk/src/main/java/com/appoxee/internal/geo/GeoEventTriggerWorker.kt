@@ -8,6 +8,12 @@ import com.appoxee.internal.container.GeoContainer
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.util.Logger
 
+/**
+ * Worker to send geolocation event data
+ * When device enters or exit some location of interest, Google location service triggers corresponding event.
+ * SDK monitors for those events and sends them to the Mapp's backend server.
+ * Mapp system uses this event to send a push message pre-scheduled for this event and location
+ */
 class GeoEventTriggerWorker(context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
 

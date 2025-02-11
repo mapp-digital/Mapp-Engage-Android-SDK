@@ -3,10 +3,12 @@ package com.appoxee.internal.push.base
 import android.app.Notification
 import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.PendingIntentProvider
-import com.appoxee.internal.push.model.CategoriesFactory
-import com.appoxee.internal.push.model.PushData
-import com.appoxee.internal.push.style.NotificationStyle
-import com.appoxee.internal.push.style.NotificationStyleFactory
+import com.appoxee.internal.ui.push.base.NotificationBuilder
+import com.appoxee.internal.ui.push.base.NotificationFactory
+import com.appoxee.internal.ui.push.model.CategoriesFactory
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.style.NotificationStyle
+import com.appoxee.internal.ui.push.style.NotificationStyleFactory
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerifyAll

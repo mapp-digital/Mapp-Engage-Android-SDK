@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.mapp.engagesample'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.mapp.engagesample"
@@ -43,6 +43,7 @@ android {
             minSdk=23
         }
     }
+    buildToolsVersion '35.0.0'
 }
 
 dependencies {

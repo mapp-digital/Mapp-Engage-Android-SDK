@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 import com.appoxee.internal.model.response.Button
 import com.appoxee.internal.model.response.Category

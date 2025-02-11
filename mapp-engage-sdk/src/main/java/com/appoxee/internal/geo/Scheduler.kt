@@ -5,7 +5,7 @@ import androidx.work.Data
 import java.util.concurrent.TimeUnit
 
 interface Scheduler {
-    fun schedule(
+    suspend fun schedule(
         data: Data? = null,
         constraints: Constraints? = null,
         repeatIntervalMs: Long = TimeUnit.HOURS.toMillis(2)

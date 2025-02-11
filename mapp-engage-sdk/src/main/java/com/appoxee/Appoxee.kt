@@ -160,9 +160,15 @@ interface Appoxee {
      */
     fun triggerInApp(context: Activity, eventName: String)
 
-    fun <T : GeoStatus> startGeofencing(): T
+    fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int = 0): Call<T>
 
-    fun <T : GeoStatus> stopGeofencing(): T
+    fun <T : GeoStatus> stopGeofencing(): Call<T>
+
+    /**
+     * Log out a user. Alias will reset.
+     * @param pushEnabled - Enable or disable push messages.
+     */
+    fun logout(pushEnabled: Boolean): Call<Boolean>
 
     /**
      * Add list of tags on a device

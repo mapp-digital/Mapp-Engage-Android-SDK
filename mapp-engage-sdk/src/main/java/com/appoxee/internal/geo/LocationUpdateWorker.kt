@@ -4,13 +4,20 @@ import android.Manifest
 import android.content.Context
 import androidx.annotation.RequiresPermission
 import androidx.work.CoroutineWorker
+import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.GeoContainer
 import com.appoxee.internal.util.Logger
+import com.appoxee.shared.GeoStatus
 import kotlinx.coroutines.coroutineScope
-import java.io.IOException
 
+/**
+ * Worker to periodically monitor location updates and send them to the backend server.
+ * Based on current location, server returns list of the nearest geofencing locations.
+ * List of geofences are then injected to the geofencing client, after which geofencing client monitors
+ * if device entered/exit some of the geofences, and triggers proper event when it does.
+ */
 internal class LocationUpdateWorker(context: Context, parameters: WorkerParameters) :
     CoroutineWorker(context, parameters) {
     companion object {
@@ -31,11 +38,7 @@ internal class LocationUpdateWorker(context: Context, parameters: WorkerParamete
         try {
             // Perform your task
             val location = geoContainer.locationProvider.getCurrentLocation()
-                ?: if (this@LocationUpdateWorker.runAttemptCount < 3) {
-                    return@coroutineScope Result.retry()
-                } else {
-                    return@coroutineScope Result.failure()
-                }
+                ?: throw GeofenceException(GeoStatus.GeoLocationNotAvailable())
 
             val response = geoContainer.engageApi.getRegions(
                 lat = location.latitude,
@@ -44,32 +47,26 @@ internal class LocationUpdateWorker(context: Context, parameters: WorkerParamete
                 pageSize = 50,
             )
 
+            val enterDelaySeconds = inputData.getInt("enterDelaySeconds", 0)
+
             if (response.isSuccess()) {
                 val regions = response.data?.payload?.regions?.let {
                     if (it.size > 100) it.sortedByDescending { it.id }.subList(0, 100) else it
                 } ?: emptyList()
                 Logger.d(TAG, "Regions: $regions")
                 if (regions.isNotEmpty()) {
-                    geoContainer.geofencingClientWrapper.apply {
-                        val geofence = buildGeofenceList(regions)
-                        addGeofences(geofence, onSuccess = {
-                            Logger.d(TAG, "Geofences added: $geofence")
-                        }, onFailure = {
-                            Logger.e(TAG, "Error adding geofence: $geofence")
-                        })
-                    }
+                    val geofenceClient = geoContainer.geofencingClientWrapper
+                    val geofence = geofenceClient.buildGeofenceList(regions, enterDelaySeconds)
+                    geofenceClient.addGeofences(geofence)
+                    Logger.d(TAG, "Geofences added: $geofence")
                 }
                 Result.success()
             } else {
-                Result.failure()
+                throw response.error ?: Throwable("Error getting regions data")
             }
-        } catch (e: IOException) {
-            // Handle specific error, e.g., network issues
-            Logger.e(TAG, e)
-            Result.retry()
         } catch (e: Exception) {
             // Log or handle unexpected errors
-            Logger.e(TAG, e)
+            Logger.e(TAG, "Exception in starting geofencing: $e")
             Result.failure()
         }
     }

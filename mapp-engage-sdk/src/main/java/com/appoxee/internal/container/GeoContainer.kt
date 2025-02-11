@@ -8,23 +8,23 @@ import com.appoxee.internal.geo.LocationProvider
 import com.appoxee.internal.geo.LocationUpdateScheduler
 import com.appoxee.internal.geo.Scheduler
 import com.appoxee.internal.network.EngageApi
+import com.appoxee.internal.util.Dispatchers
 
-internal class GeoContainer(context: Context, internal val engageApi: EngageApi) {
-
-    private val storageContainer: StorageContainer by lazy {
-        StorageContainer.getInstance(context)
-    }
-
+internal class GeoContainer(
+    context: Context,
+    internal val engageApi: EngageApi,
+    internal val dispatchers: Dispatchers
+) {
     private val workManager: WorkManager by lazy {
         WorkManager.getInstance(context.applicationContext)
     }
 
     internal val locationUpdateScheduler: Scheduler by lazy {
-        LocationUpdateScheduler(workManager)
+        LocationUpdateScheduler(context, workManager, dispatchers)
     }
 
     internal val geoEventScheduler: GeoEventScheduler by lazy {
-        GeoEventScheduler(workManager)
+        GeoEventScheduler(context, workManager, dispatchers)
     }
 
     internal val geofencingClientWrapper: GeofencingClientWrapper by lazy {

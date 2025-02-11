@@ -1,6 +1,10 @@
 package com.appoxee.internal.push.style
 
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.style.NotificationImageStyle
+import com.appoxee.internal.ui.push.style.NotificationStyleFactory
+import com.appoxee.internal.ui.push.style.NotificationTextStyle
+import com.appoxee.internal.ui.push.style.NotificationVideoStyle
 import com.google.common.truth.Truth
 import io.mockk.every
 import io.mockk.mockk

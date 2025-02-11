@@ -11,21 +11,30 @@ import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.util.Logger
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     private lateinit var appoxeeContainer: AppoxeeContainer
+    private lateinit var scope: CoroutineScope
+
+    internal fun getAppoxeeContainer(context: Context): AppoxeeContainer {
+        return AppoxeeContainer.getInstance(context.applicationContext)
+    }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        Logger.d("GeofenceBroadcastReceiver", "Entered geofence with ID: ${intent?.extras}")
         val geofencingEvent = intent?.let { GeofencingEvent.fromIntent(it) }
         if (geofencingEvent?.hasError() == true) {
             Logger.e("GeofenceReceiver", "Error: ${geofencingEvent.errorCode}")
             return
         }
 
-        appoxeeContainer = AppoxeeContainer.getInstance(context.applicationContext)
+        appoxeeContainer = getAppoxeeContainer(context)
+
+        scope = CoroutineScope(SupervisorJob())
 
         val geoContainer = appoxeeContainer.geoContainer
 
@@ -47,31 +56,37 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
                     Logger.i("GeofenceReceiver", "Entered geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.ENTER.ordinal)
-                    geoContainer.geoEventScheduler.schedule(
-                        data = data.build(),
-                        constraints = constraints,
-                        repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
-                    )
+                    scope.launch {
+                        geoContainer.geoEventScheduler.schedule(
+                            data = data.build(),
+                            constraints = constraints,
+                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
+                        )
+                    }
                 }
 
                 Geofence.GEOFENCE_TRANSITION_EXIT -> {
                     Logger.i("GeofenceReceiver", "Exited geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.EXIT.ordinal)
-                    geoContainer.geoEventScheduler.schedule(
-                        data = data.build(),
-                        constraints = constraints,
-                        repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
-                    )
+                    scope.launch {
+                        geoContainer.geoEventScheduler.schedule(
+                            data = data.build(),
+                            constraints = constraints,
+                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
+                        )
+                    }
                 }
 
                 Geofence.GEOFENCE_TRANSITION_DWELL -> {
                     Logger.i("GeofenceReceiver", "Dwell geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.DWELL.ordinal)
-                    geoContainer.geoEventScheduler.schedule(
-                        data = data.build(),
-                        constraints = constraints,
-                        repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
-                    )
+                    scope.launch {
+                        geoContainer.geoEventScheduler.schedule(
+                            data = data.build(),
+                            constraints = constraints,
+                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
+                        )
+                    }
                 }
 
                 else -> {

@@ -1,4 +1,4 @@
-package com.appoxee.internal.push.model
+package com.appoxee.internal.ui.push.model
 
 import com.appoxee.internal.model.response.Category
 
@@ -23,7 +23,7 @@ enum class CategoryType(val value: String) {
     companion object {
         fun fromString(value: String): CategoryType? {
             return try {
-                CategoryType.valueOf(value.uppercase())
+                CategoryType.valueOf(value.lowercase())
             } catch (e: Exception) {
                 null
             }

@@ -1,9 +1,9 @@
-package com.appoxee.internal.push.style
+package com.appoxee.internal.ui.push.style
 
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import androidx.core.app.NotificationCompat
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 
 
 internal class NotificationVideoStyle(private val pushData: PushData) : NotificationStyle {

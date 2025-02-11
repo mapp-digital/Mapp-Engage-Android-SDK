@@ -7,15 +7,17 @@ import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.IconProviderImpl
 import com.appoxee.internal.provider.PendingIntentProvider
 import com.appoxee.internal.provider.PendingIntentProviderImpl
-import com.appoxee.internal.push.base.NotificationBuilder
-import com.appoxee.internal.push.base.NotificationBuilderImpl
-import com.appoxee.internal.push.base.NotificationFactory
-import com.appoxee.internal.push.base.Notify
-import com.appoxee.internal.push.base.NotifyImpl
-import com.appoxee.internal.push.base.PushManager
-import com.appoxee.internal.push.base.PushManagerImpl
-import com.appoxee.internal.push.model.CategoriesFactory
-import com.appoxee.internal.push.style.NotificationStyleFactory
+import com.appoxee.internal.ui.action.ActionHandler
+import com.appoxee.internal.ui.action.MessageActionHandler
+import com.appoxee.internal.ui.push.base.NotificationBuilder
+import com.appoxee.internal.ui.push.base.NotificationBuilderImpl
+import com.appoxee.internal.ui.push.base.NotificationFactory
+import com.appoxee.internal.ui.push.base.Notify
+import com.appoxee.internal.ui.push.base.NotifyImpl
+import com.appoxee.internal.ui.push.base.PushManager
+import com.appoxee.internal.ui.push.base.PushManagerImpl
+import com.appoxee.internal.ui.push.model.CategoriesFactory
+import com.appoxee.internal.ui.push.style.NotificationStyleFactory
 import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.DispatchersImpl
 
@@ -33,7 +35,7 @@ internal class PushContainer(
 
     private val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
 
-    private val categoriesFactory:CategoriesFactory
+    private val categoriesFactory: CategoriesFactory
         get() = CategoriesFactory(storage = storageContainer.storage)
 
     private val notificationStyleFactory: NotificationStyleFactory
