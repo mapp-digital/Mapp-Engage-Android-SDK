@@ -41,6 +41,7 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun setAlias(alias: String): String? {
+        if (alias.isEmpty()) throw IllegalArgumentException("Alias can not be empty!")
         return withContext(dispatchers.ioDispatcher) {
             val device = storage.getDevicePayload()
             // new alias same as old alias

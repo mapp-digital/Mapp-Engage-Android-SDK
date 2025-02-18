@@ -74,6 +74,7 @@ fun JSONObject.getNullableLong(name: String): Long? {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 fun <Value> JSONObject.toMap(excludeNulls: Boolean = false): Map<String, Value?> {
     val map = mutableMapOf<String, Value>()
     this.keys().forEach {

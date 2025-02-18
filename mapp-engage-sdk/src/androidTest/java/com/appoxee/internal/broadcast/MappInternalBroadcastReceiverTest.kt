@@ -7,8 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import com.appoxee.internal.TestDispatchers
-import com.appoxee.internal.container.StatsContainer
-import com.appoxee.internal.container.StorageContainer
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
@@ -34,7 +33,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.util.concurrent.TimeUnit
 
 @ExperimentalCoroutinesApi
 class MappInternalBroadcastReceiverTest {
@@ -42,8 +40,7 @@ class MappInternalBroadcastReceiverTest {
     private lateinit var context: Context
     private lateinit var intent: Intent
     private lateinit var notificationManager: NotificationManager
-    private lateinit var statsContainer: StatsContainer
-    private lateinit var storageContainer: StorageContainer
+    private lateinit var appoxeeContainer: AppoxeeContainer
     private lateinit var statsClient: StatsClient
     private lateinit var pushData: PushData
     private lateinit var bundle: Bundle
@@ -60,13 +57,10 @@ class MappInternalBroadcastReceiverTest {
         pushData = mockk(relaxed = true)
         bundle = mockk(relaxed = true)
 
-        statsContainer = spyk(StatsContainer(context, dispatchers), recordPrivateCalls = true)
-        storageContainer =
-            spyk(StorageContainer.getInstance(context, TimeUnit.SECONDS.toMillis(1), dispatchers))
+        appoxeeContainer = spyk(AppoxeeContainer.getInstance(context, dispatchers))
 
         receiver = spyk(MappInternalBroadcastReceiver(), recordPrivateCalls = true) {
-            setStatsContainer(statsContainer)
-            setStorageContainer(storageContainer)
+            setAppoxeeContainer(appoxeeContainer)
         }
 
         statsClient = mockkClass(StatsClient::class, relaxed = true, relaxUnitFun = true)
@@ -77,8 +71,8 @@ class MappInternalBroadcastReceiverTest {
         every { bundle.getParcelableCompat<PushData>("pushData") } returns pushData
         every { pushData.id } returns 1L
         every { pushData.sendoutId } returns 2L
-        every { statsContainer.statsClient } returns statsClient
-        coEvery { storageContainer.storage.getBroadcastClass() } coAnswers { MappInternalBroadcastReceiver::class.java }
+        every { appoxeeContainer.statsClient } returns statsClient
+        coEvery { appoxeeContainer.storage.getBroadcastClass() } coAnswers { MappInternalBroadcastReceiver::class.java }
     }
 
     @After
@@ -94,16 +88,23 @@ class MappInternalBroadcastReceiverTest {
         every { intent.action } returns action
         every { intent.getIntExtra("notificationId", 123) } returns 123
 
-        coEvery { statsContainer.statsClient.reportPushEvent(any(), any(), any(), any()) } just Runs
+        coEvery {
+            appoxeeContainer.statsClient.reportPushEvent(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } just Runs
         every { notificationManager.cancel(any()) } just Runs
         every { pushData.id } returns 1
         every { pushData.sendoutId } returns 2
 
         receiver.onReceive(context, intent)
 
-        Truth.assertThat(statsContainer.statsClient).isNotNull()
+        Truth.assertThat(appoxeeContainer.statsClient).isNotNull()
         coVerify {
-            statsContainer.statsClient.reportPushEvent(
+            appoxeeContainer.statsClient.reportPushEvent(
                 any(),
                 any(),
                 any(),
@@ -124,13 +125,13 @@ class MappInternalBroadcastReceiverTest {
     @Test
     fun should_not_handle_non_DISMISS_action() = runBlocking {
         val action = LocalPushBroadcast.Action.PUSH_RECEIVED
-        coEvery { storageContainer.storage.getBroadcastClass() } coAnswers { BroadcastReceiver::class.java }
+        coEvery { appoxeeContainer.storage.getBroadcastClass() } coAnswers { BroadcastReceiver::class.java }
         every { intent.action } returns action
 
         receiver.onReceive(context, intent)
 
         verify { notificationManager wasNot Called }
-        verify { statsContainer.statsClient wasNot Called }
+        verify { appoxeeContainer.statsClient wasNot Called }
     }
 
 }

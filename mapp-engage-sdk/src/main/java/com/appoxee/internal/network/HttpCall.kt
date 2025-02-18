@@ -5,6 +5,8 @@ import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -12,8 +14,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal class HttpCall<T>(
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-    private inline val call: suspend () -> T,
+    private val coroutineScope: CoroutineScope,
+    private val call: suspend () -> T,
 ) : Call<T> {
     private val mutex = Mutex()
 

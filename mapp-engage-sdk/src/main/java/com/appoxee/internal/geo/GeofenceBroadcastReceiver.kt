@@ -52,15 +52,15 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
+
             when (geofenceTransition) {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
                     Logger.i("GeofenceReceiver", "Entered geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.ENTER.ordinal)
                     scope.launch {
-                        geoContainer.geoEventScheduler.schedule(
+                        geoContainer.geofenceScheduler.postGeofenceEvent(
                             data = data.build(),
                             constraints = constraints,
-                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
                         )
                     }
                 }
@@ -69,10 +69,9 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                     Logger.i("GeofenceReceiver", "Exited geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.EXIT.ordinal)
                     scope.launch {
-                        geoContainer.geoEventScheduler.schedule(
+                        geoContainer.geofenceScheduler.postGeofenceEvent(
                             data = data.build(),
                             constraints = constraints,
-                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
                         )
                     }
                 }
@@ -81,10 +80,9 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                     Logger.i("GeofenceReceiver", "Dwell geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.DWELL.ordinal)
                     scope.launch {
-                        geoContainer.geoEventScheduler.schedule(
+                        geoContainer.geofenceScheduler.postGeofenceEvent(
                             data = data.build(),
                             constraints = constraints,
-                            repeatIntervalMs = TimeUnit.MINUTES.toMillis(1)
                         )
                     }
                 }

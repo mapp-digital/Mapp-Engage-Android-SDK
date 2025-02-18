@@ -7,8 +7,6 @@ import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.IconProviderImpl
 import com.appoxee.internal.provider.PendingIntentProvider
 import com.appoxee.internal.provider.PendingIntentProviderImpl
-import com.appoxee.internal.ui.action.ActionHandler
-import com.appoxee.internal.ui.action.MessageActionHandler
 import com.appoxee.internal.ui.push.base.NotificationBuilder
 import com.appoxee.internal.ui.push.base.NotificationBuilderImpl
 import com.appoxee.internal.ui.push.base.NotificationFactory
@@ -23,20 +21,19 @@ import com.appoxee.internal.util.DispatchersImpl
 
 internal class PushContainer(
     private val context: Context,
+    private val appoxeeContainer: AppoxeeContainer,
 ) {
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
     private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
 
     private val dispatchers: Dispatchers = DispatchersImpl()
 
-    private val storageContainer: StorageContainer by lazy { StorageContainer.getInstance(context) }
-
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
     private val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
 
     private val categoriesFactory: CategoriesFactory
-        get() = CategoriesFactory(storage = storageContainer.storage)
+        get() = CategoriesFactory(storage = appoxeeContainer.storage)
 
     private val notificationStyleFactory: NotificationStyleFactory
         get() = NotificationStyleFactory()
@@ -66,7 +63,7 @@ internal class PushContainer(
             dispatchers,
             notify,
             notificationFactory,
-            storageContainer.storage,
+            appoxeeContainer,
             categoriesFactory,
             NOTIFICATION_CHANNEL_ID,
             NOTIFICATION_CHANNEL_NAME

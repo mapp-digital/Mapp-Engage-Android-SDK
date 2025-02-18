@@ -2,6 +2,7 @@ package com.appoxee.internal.util
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 internal class DispatchersImpl : com.appoxee.internal.util.Dispatchers {
     override val ioDispatcher: CoroutineDispatcher

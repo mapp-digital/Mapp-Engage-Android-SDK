@@ -10,6 +10,8 @@ internal interface PushManager {
 
     fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean
 
+    suspend fun handleSilentPush(pushData: PushData)
+
     suspend fun createNotification(pushData: PushData, notificationId: Int): Notification
 
     fun createNotificationChannel()

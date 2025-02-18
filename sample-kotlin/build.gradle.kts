@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.mapp.engagesample"
     compileSdk = 35
-    buildToolsVersion="35.0.0"
+    buildToolsVersion = "35.0.0"
     defaultConfig {
         applicationId = "com.mapp.engagesample"
         minSdk = 21
@@ -51,29 +51,36 @@ android {
         flavorDimensions += listOf("main")
     }
     productFlavors {
-        create("app"){
-            dimension=flavorDimensions[0]
-            minSdk=21
+        create("app") {
+            dimension = flavorDimensions[0]
+            minSdk = 21
         }
         create("tst") {
             dimension = flavorDimensions.get(0)
-            minSdk=23
+            minSdk = 23
+        }
+    }
+
+    packaging {
+        resources {
+            pickFirsts += "META-INF/LICENSE.md"
+            pickFirsts += "META-INF/LICENSE-notice.md"
         }
     }
 }
 
 dependencies {
+    implementation(project(mapOf("path" to ":mapp-engage-sdk")))
+    implementation(project(mapOf("path" to ":shared-ui")))
+
     implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
-    implementation(libs.coil)
+    implementation(libs.bundles.coil)
     implementation(libs.viewmodel.ktx)
 
-    implementation(project(mapOf("path" to ":mapp-engage-sdk")))
-    implementation(project(mapOf("path" to ":shared-ui")))
-
     testImplementation(libs.bundles.test)
-    androidTestImplementation(libs.bundles.androidTest)
+    androidTestImplementation(libs.bundles.android.test)
 }

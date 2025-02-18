@@ -2,6 +2,7 @@ package com.appoxee.internal.ui.inapp.nativ
 
 import android.app.Activity
 import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.BannerPosition
 import com.appoxee.internal.model.response.inapp.Behaviour
@@ -33,13 +34,15 @@ class NativeFactoryTest {
     private lateinit var scope: CoroutineScope
     private lateinit var dispatchers: Dispatchers
     private lateinit var activity: Activity
+    private lateinit var actionContainer: ActionContainer
 
     @Before
     fun setUp() {
         scope = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         dispatchers = TestDispatchers()
         activity = mockk(relaxed = true)
-        factory = spyk(NativeFactory(scope, dispatchers))
+        actionContainer= mockk(relaxed = true)
+        factory = spyk(NativeFactory(scope, dispatchers,actionContainer))
     }
 
     @After
@@ -58,7 +61,6 @@ class NativeFactoryTest {
         }
         val onShow = mockk<(Message) -> Unit>(relaxed = true)
         val onClose = mockk<(Message, TrackingKey, TrackingParams) -> Unit>(relaxed = true)
-        every { factory.getInappActionHandler(any()) } returns mockk(relaxed = true)
         every { factory.getDelay(any()) } returns 0
         every { factory.createTemplate(any(), any(), any(), any()) } returns template
         every { activity.isDestroyed } returns false
@@ -73,7 +75,6 @@ class NativeFactoryTest {
         coVerifyAll {
             factory.createBanner(any(), message, onShow, onClose)
             factory.getDelay(message)
-            factory.getInappActionHandler(any())
             factory.createTemplate(any(), any(), message, onClose)
             template.show()
         }

@@ -22,7 +22,7 @@ internal data class PushData(
     val customerId: String? = null,
     val iosApxMedia: String? = null,
     val badgeNumber: Int? = null,
-    val contentAvailable: Boolean? = null,
+    val contentAvailable: Boolean = false,
     val silentType: String? = null,
     val silentData: String? = null,
     val buttonList: List<PushButton?> = emptyList(),

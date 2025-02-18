@@ -4,12 +4,9 @@ import android.Manifest
 import android.content.Context
 import androidx.annotation.RequiresPermission
 import androidx.work.CoroutineWorker
-import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.appoxee.internal.container.AppoxeeContainer
-import com.appoxee.internal.container.GeoContainer
 import com.appoxee.internal.util.Logger
-import com.appoxee.shared.GeoStatus
 import kotlinx.coroutines.coroutineScope
 
 /**
@@ -26,48 +23,17 @@ internal class LocationUpdateWorker(context: Context, parameters: WorkerParamete
 
     private val TAG = LocationUpdateWorker::class.java.name
 
-    private val appoxeeContainer: AppoxeeContainer by lazy {
-        AppoxeeContainer.getInstance(context)
-    }
-
-    private val geoContainer: GeoContainer
-        get() = appoxeeContainer.geoContainer
-
     @RequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION)
     override suspend fun doWork(): Result = coroutineScope {
         try {
-            // Perform your task
-            val location = geoContainer.locationProvider.getCurrentLocation()
-                ?: throw GeofenceException(GeoStatus.GeoLocationNotAvailable())
-
-            val response = geoContainer.engageApi.getRegions(
-                lat = location.latitude,
-                lng = location.longitude,
-                version = 0,
-                pageSize = 50,
-            )
-
+            val appoxeeContainer = AppoxeeContainer.getInstance(applicationContext)
+            val geofenceRegistry = appoxeeContainer.geoContainer.geofenceRegistry
             val enterDelaySeconds = inputData.getInt("enterDelaySeconds", 0)
-
-            if (response.isSuccess()) {
-                val regions = response.data?.payload?.regions?.let {
-                    if (it.size > 100) it.sortedByDescending { it.id }.subList(0, 100) else it
-                } ?: emptyList()
-                Logger.d(TAG, "Regions: $regions")
-                if (regions.isNotEmpty()) {
-                    val geofenceClient = geoContainer.geofencingClientWrapper
-                    val geofence = geofenceClient.buildGeofenceList(regions, enterDelaySeconds)
-                    geofenceClient.addGeofences(geofence)
-                    Logger.d(TAG, "Geofences added: $geofence")
-                }
-                Result.success()
-            } else {
-                throw response.error ?: Throwable("Error getting regions data")
-            }
+            geofenceRegistry.startGeofencing(enterDelaySeconds)
         } catch (e: Exception) {
             // Log or handle unexpected errors
             Logger.e(TAG, "Exception in starting geofencing: $e")
-            Result.failure()
         }
+        Result.success()
     }
 }

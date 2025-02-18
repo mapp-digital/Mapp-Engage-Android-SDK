@@ -158,7 +158,7 @@ interface Appoxee {
     /**
      * Get list of inapp messages from server and show them as proper dialog or fullscreen page
      */
-    fun triggerInApp(context: Activity, eventName: String)
+    fun triggerInApp(context: Activity, eventName: String): Call<Boolean>
 
     fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int = 0): Call<T>
 
@@ -231,22 +231,10 @@ interface Appoxee {
      */
     fun closeNotification(notificationId: Int)
 
+    /**
+     * Register Broadcast receiver class from client application.
+     * SDK will delegate events related to push messages to this class.
+     * Client app can use those events to execute some custom actions.
+     */
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
-
-    @TestOnly
-    fun testGetRegions(
-        lat: Double,
-        lng: Double,
-        version: Int,
-        pageSize: Int
-    ): Call<RegionsResponse>
-
-    @TestOnly
-    fun testRegionEvent(
-        geoEvent: GeoEvent,
-        latitude: Double,
-        longitude: Double,
-        regionId: Long,
-        version: Int
-    ): Call<Boolean>
 }

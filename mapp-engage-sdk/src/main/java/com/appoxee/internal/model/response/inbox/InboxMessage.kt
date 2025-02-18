@@ -15,6 +15,7 @@ import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
+@Suppress("UNCHECKED_CAST")
 data class InboxMessage(
     val templateId: Long,
     val content: String,

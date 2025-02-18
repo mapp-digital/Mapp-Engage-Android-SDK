@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.appoxee.internal.geo
 
 import android.annotation.SuppressLint

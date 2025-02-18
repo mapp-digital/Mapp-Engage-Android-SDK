@@ -14,8 +14,12 @@ import com.appoxee.internal.util.Logger
  * SDK monitors for those events and sends them to the Mapp's backend server.
  * Mapp system uses this event to send a push message pre-scheduled for this event and location
  */
-class GeoEventTriggerWorker(context: Context, params: WorkerParameters) :
+internal class GeoEventTriggerWorker(context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
+
+    companion object {
+        val WORK_NAME = "geo_trigger_work"
+    }
 
     private val TAG = GeoEventTriggerWorker::class.java.simpleName
 
@@ -46,15 +50,16 @@ class GeoEventTriggerWorker(context: Context, params: WorkerParameters) :
             return if (response.isSuccess()) {
                 Result.success()
             } else {
-                Logger.e(TAG, response.error.toString() ?: "Unknown error")
-                if (runAttemptCount < 3)
-                    Result.retry()
-                else
-                    Result.failure()
+                Logger.e(TAG, response.error.toString())
+                throw Exception(response.error)
             }
         } catch (e: Exception) {
-            Logger.e(TAG, e.toString() ?: "Unknown error")
-            return Result.failure()
+            Logger.e(TAG, e.toString())
+            return if (runAttemptCount < 3) {
+                Result.retry()
+            } else {
+                Result.failure()
+            }
         }
     }
 }

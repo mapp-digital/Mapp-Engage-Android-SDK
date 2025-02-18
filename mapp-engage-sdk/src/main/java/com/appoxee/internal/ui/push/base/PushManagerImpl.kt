@@ -6,23 +6,26 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
-import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.model.CategoriesFactory
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.ui.push.model.PushData.Companion.toPushData
+import com.appoxee.internal.ui.push.model.SilentType
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.NotificationMode
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 internal class PushManagerImpl(
     private val dispatchers: com.appoxee.internal.util.Dispatchers,
     private val notify: Notify,
     private val notificationFactory: NotificationFactory,
-    private val storage: Storage,
+    private val appoxeeContainer: AppoxeeContainer,
     private val categoriesFactory: CategoriesFactory,
     private val notificationChannelId: String,
     private val notificationChannelName: String,
@@ -32,7 +35,8 @@ internal class PushManagerImpl(
     private lateinit var options: AppoxeeOptions
     private suspend fun getOptions(): AppoxeeOptions {
         if (!::options.isInitialized) {
-            options = storage.getInitOptions() ?: throw DeviceNotRegisteredException()
+            options =
+                appoxeeContainer.storage.getInitOptions() ?: throw DeviceNotRegisteredException()
         }
         return options
     }
@@ -44,32 +48,37 @@ internal class PushManagerImpl(
     override suspend fun handlePushMessage(context: Context, remoteMessage: RemoteMessage) {
         withContext(dispatchers.ioDispatcher) {
             if (!isPushMessageFromMapp(remoteMessage)) return@withContext
-
+            val notificationMode = getNotificationMode()
+            Logger.d(TAG, "NOTIFICATION MODE: $notificationMode")
             val pushData = remoteMessage.toPushData(categoriesFactory.getCategories())
-            when (getNotificationMode()) {
-                NotificationMode.SILENT_ONLY -> {
-                    Logger.d(TAG, "SILENT ONLY $pushData")
-                    // TODO handle silent only push messages
-                }
-
-                NotificationMode.BACKGROUND_ONLY -> {
-                    Logger.d(TAG, "BACKGROUND ONLY $pushData")
-                    // TODO handle background only push
-                }
-
-                else -> {
-                    val notificationId = (System.currentTimeMillis() / 100).toInt()
-                    Logger.d(
+            if (pushData.contentAvailable) {
+                // silent push
+                handleSilentPush(pushData)
+                reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_SILENT)
+            } else {
+                // regular push
+                if (notificationMode == NotificationMode.BACKGROUND_AND_FOREGROUND || !appoxeeContainer.activityLifecycleHandler.isInForeground()) {
+                    createAndShowNotification(pushData)
+                } else {
+                    Logger.i(
                         TAG,
-                        "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
+                        "Application is in a foreground and notification will not be displayed!"
                     )
-                    val notification = createNotification(pushData, notificationId)
-                    withContext(dispatchers.mainDispatcher) {
-                        showNotification(notification, notificationId)
-                    }
-                    reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_RECEIVED)
                 }
+                reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_RECEIVED)
             }
+        }
+    }
+
+    private suspend fun createAndShowNotification(pushData: PushData) {
+        val notificationId = (System.currentTimeMillis() / 100).toInt()
+        Logger.d(
+            TAG,
+            "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
+        )
+        val notification = createNotification(pushData, notificationId)
+        withContext(dispatchers.mainDispatcher) {
+            showNotification(notification, notificationId)
         }
     }
 
@@ -78,6 +87,24 @@ internal class PushManagerImpl(
             !remoteMessage.data["p"].isNullOrBlank()
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override suspend fun handleSilentPush(pushData: PushData) {
+        if (SilentType.SYS_OPТ_IN.value.equals(pushData.silentType, true) ||
+            SilentType.OPT_INT.value.equals(pushData.silentType, true)
+        ) {
+            val isOptedIn = pushData.silentData.toBoolean()
+            val token = FirebaseMessaging.getInstance().token.await()
+            if (isOptedIn)
+                appoxeeContainer.appoxeeAdapter.optIn(token)
+            else
+                appoxeeContainer.appoxeeAdapter.optOut(token)
+        } else if (SilentType.SYS_SET_ALIAS.value.equals(pushData.silentType, true) ||
+            SilentType.SET_ALIAS.value.equals(pushData.silentType, true)
+        ) {
+            val alias = pushData.silentData
+            if (!alias.isNullOrBlank()) appoxeeContainer.appoxeeAdapter.setAlias(alias)
         }
     }
 

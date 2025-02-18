@@ -1,7 +1,7 @@
 package com.appoxee.internal.ui.push.base
 
 import android.annotation.SuppressLint
-import com.appoxee.Appoxee
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.util.Logger
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -9,23 +9,25 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import org.jetbrains.annotations.TestOnly
 
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
 class MappMessagingService : FirebaseMessagingService() {
 
-    private val TAG = com.appoxee.internal.ui.push.base.MappMessagingService::class.java.name
+    private val TAG = MappMessagingService::class.java.name
 
     private lateinit var pushContainer: PushContainer
+    private lateinit var appoxeeContainer: AppoxeeContainer
 
     private val scope = CoroutineScope(SupervisorJob())
 
     override fun onCreate() {
         Logger.d(TAG, "MappMessagingService - onCreate()")
         super.onCreate()
-        pushContainer = PushContainer(this)
-        com.appoxee.internal.ui.push.base.MappMessagingService.Companion.instance = this
+        appoxeeContainer = AppoxeeContainer.getInstance(this)
+        appoxeeContainer.activityLifecycleHandler.isInForeground()
+        pushContainer = PushContainer(this, appoxeeContainer)
+        instance = this
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -42,7 +44,7 @@ class MappMessagingService : FirebaseMessagingService() {
 
     override fun onDestroy() {
         Logger.d(TAG, "MappMessagingService - onDestroy()")
-        com.appoxee.internal.ui.push.base.MappMessagingService.Companion.instance = null
+        instance = null
         super.onDestroy()
     }
 
@@ -63,7 +65,7 @@ class MappMessagingService : FirebaseMessagingService() {
         @Volatile
         @JvmStatic
         @TestOnly
-        var instance: com.appoxee.internal.ui.push.base.MappMessagingService? = null
+        var instance: MappMessagingService? = null
             private set
     }
 }

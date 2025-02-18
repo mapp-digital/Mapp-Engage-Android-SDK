@@ -5,18 +5,12 @@ package com.appoxee.internal
 import android.app.Activity
 import android.app.Application
 import androidx.annotation.VisibleForTesting
-import androidx.work.Data
 import com.appoxee.Appoxee
 import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
-import com.appoxee.internal.container.StatsContainer
-import com.appoxee.internal.container.StorageContainer
-import com.appoxee.internal.geo.GeofenceException
-import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
@@ -24,12 +18,12 @@ import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.ui.ActivityLifecycleHandler
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
+import com.appoxee.shared.GeofenceException
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
@@ -44,6 +38,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
+@Suppress("UNCHECKED_CAST")
 internal class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions? = null,
@@ -65,24 +60,16 @@ internal class AppoxeeImpl(
 
     private val pushQueue = mutableSetOf<RemoteMessage>()
 
-    private val storageContainer: StorageContainer by lazy {
-        StorageContainer.getInstance(application.applicationContext)
-    }
-
     private val actionContainer: ActionContainer
         get() = ActionContainer(application)
 
-    private val statsContainer: StatsContainer
-        get() = StatsContainer(application.applicationContext, dispatchers)
-
-
     private val inappContainer: InAppContainer
-        get() = InAppContainer(internalScope, statsContainer, actionContainer)
+        get() = InAppContainer(internalScope, appoxeeContainer.statsClient, actionContainer)
 
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val appoxeeContainer = AppoxeeContainer.getInstance(
-        context = application.applicationContext, storage = storage, dispatchers = dispatchers
+        context = application, dispatchers = dispatchers
     )
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -91,26 +78,18 @@ internal class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val storage: Storage
-        get() = storageContainer.storage
+        get() = appoxeeContainer.storage
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer
-        get() = PushContainer(application.applicationContext)
-
-    internal val activityLifecycleHandler: ActivityLifecycleHandler by lazy {
-        ActivityLifecycleHandler(
-            application,
-            statsContainer.statsClient,
-            appoxeeContainer.baseScope
-        )
-    }
+        get() = PushContainer(application, appoxeeContainer)
 
     init {
         internalScope.launch(dispatchers.ioDispatcher) {
             Logger.init(application.applicationContext as Application)
 
             (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-                activityLifecycleHandler
+                appoxeeContainer.activityLifecycleHandler
             )
 
             println("OPTIONS: $options")
@@ -217,7 +196,7 @@ internal class AppoxeeImpl(
     }
 
     override fun setAlias(alias: String): Call<String?> = buildHttpCall {
-        appoxeeAdapter.setAlias(alias) ?: ""
+        appoxeeAdapter.setAlias(alias)
     }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
@@ -246,7 +225,7 @@ internal class AppoxeeImpl(
         message: InboxMessage,
         status: MessageStatus
     ): Call<Boolean> = buildHttpCall {
-        statsContainer.statsClient.markInboxMessageStatus(message, status)
+        inappContainer.inappManager.markInboxMessageStatus(message, status)
     }
 
     override fun showInboxMessage(context: Activity, message: InboxMessage) {
@@ -257,38 +236,40 @@ internal class AppoxeeImpl(
     }
 
     override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
-        val response = appoxeeAdapter.fetchInappMessages(eventName)
-        response
+        appoxeeAdapter.fetchInappMessages(eventName)
     }
 
-    override fun triggerInApp(context: Activity, eventName: String) {
-        appoxeeContainer.baseScope.launch {
-            val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
-            inappContainer.inappManager.let { inappManager ->
-                val sortedMessages = inappManager.parseResponse(inappResponse)
-                withContext(dispatchers.mainDispatcher) {
-                    inappManager.handleMessages(context, sortedMessages)
-                }
+    override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
+        val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
+        inappContainer.inappManager.let { inappManager ->
+            val sortedMessages = inappManager.parseResponse(inappResponse)
+            withContext(dispatchers.mainDispatcher) {
+                inappManager.handleMessages(context, sortedMessages)
             }
         }
+        true
     }
 
     override fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int): Call<T> = buildHttpCall {
         try {
-            val data = Data.Builder().putInt("enterDelaySeconds", enterDelaySeconds).build()
-            appoxeeContainer.geoContainer.locationUpdateScheduler.schedule(data = data)
-            GeoStatus.GeoStartedOk()
+            appoxeeContainer.geoContainer.geofenceRegistry.startGeofencing(enterDelaySeconds)
         } catch (e: GeofenceException) {
             e.geoStatus
         } catch (e: Exception) {
+            Logger.d(TAG, "Exception : $e")
             GeoStatus.GeoGeneralError()
         } as T
     }
 
     override fun <T : GeoStatus> stopGeofencing(): Call<T> = buildHttpCall {
-        appoxeeContainer.geoContainer.locationUpdateScheduler.cancel()
-        appoxeeContainer.geoContainer.geofencingClientWrapper.removeGeofences()
-        GeoStatus.GeoStoppedOk() as T
+        return@buildHttpCall try {
+            appoxeeContainer.geoContainer.geofenceRegistry.stopGeofencing()
+        } catch (e: GeofenceException) {
+            e.geoStatus
+        } catch (e: Exception) {
+            Logger.d(TAG, "Exception : $e")
+            GeoStatus.GeoErrorStopping()
+        } as T
     }
 
     override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
@@ -390,26 +371,6 @@ internal class AppoxeeImpl(
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
 
-    override fun testGetRegions(
-        lat: Double, lng: Double, version: Int, pageSize: Int
-    ): Call<RegionsResponse> = buildHttpCall {
-        appoxeeAdapter.getRegions(lat, lng, version, pageSize).data?.payload ?: RegionsResponse(
-            0, emptyList()
-        )
-    }
-
-    override fun testRegionEvent(
-        geoEvent: GeoEvent, latitude: Double, longitude: Double, regionId: Long, version: Int
-    ): Call<Boolean> = buildHttpCall {
-        appoxeeAdapter.eventRegions(geoEvent, latitude, longitude, regionId, version).isSuccess()
-    }
-
-    private fun saveConfiguration(options: AppoxeeOptions) {
-        internalScope.launch {
-            storage.saveInitOptions(options)
-        }
-    }
-
     private suspend fun getAppConfig() {
         withContext(dispatchers.ioDispatcher) {
             val result = appoxeeAdapter.getAppConfig()
@@ -436,7 +397,7 @@ internal class AppoxeeImpl(
                 }
 
             } else {
-                throw IllegalArgumentException("PushBroadcast must be of type LocalPushBroadcast")
+                throw IllegalArgumentException("PushBroadcast must be subtype of LocalPushBroadcast")
             }
         }
     }
@@ -445,17 +406,5 @@ internal class AppoxeeImpl(
         call: suspend () -> T
     ): Call<T> {
         return HttpCall(coroutineScope = appoxeeContainer.baseScope, call)
-    }
-
-    private suspend fun <T> safeCall(
-        call: suspend () -> T?
-    ): MappResult<T?> {
-        return try {
-            val data = call.invoke()
-            MappResult.Success(data)
-        } catch (e: Exception) {
-            Logger.e(TAG, "Appoxee call $call error: $e")
-            MappResult.Error(e)
-        }
     }
 }

@@ -14,5 +14,5 @@ open class GeoStatus(val status: String) {
     class GeoTooManyGeofences : GeoStatus("GEOFENCE_TOO_MANY_GEOFENCES")
     class GeoTooManyPendingIntents : GeoStatus("GEOFENCE_TOO_MANY_PENDING_INTENTS")
     class GeoErrorStopping : GeoStatus("GEOFENCE_ERROR_STOPPING")
-
+    class GeoEmptyGeofencesList : GeoStatus("GEOFENCE_EMPTY_GEOFENCE_LIST") // when try to add empty list of geofences
 }

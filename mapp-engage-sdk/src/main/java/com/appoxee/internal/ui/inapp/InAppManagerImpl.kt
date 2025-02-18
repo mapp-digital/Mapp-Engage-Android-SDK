@@ -1,13 +1,15 @@
 package com.appoxee.internal.ui.inapp
 
 import android.app.Activity
-import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
+import com.appoxee.internal.model.response.inbox.InboxMessage
+import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
 import com.appoxee.internal.util.Dispatchers
@@ -23,7 +25,7 @@ import kotlinx.coroutines.withContext
 internal class InAppManagerImpl(
     private val nativeFactory: NativeFactory,
     private val webFactory: WebFactory,
-    private val statsContainer: StatsContainer,
+    private val statsClient: StatsClient,
     private val scope: CoroutineScope,
     private val dispatchers: Dispatchers = DispatchersImpl(),
 ) : InAppManager {
@@ -42,7 +44,7 @@ internal class InAppManagerImpl(
         val mutableMessages = messages.toMutableList()
 
         val message = messages.first()
-        mutableMessages.removeFirst()
+        mutableMessages.remove(message)
         showMessage(activity, message,
             onShow = { msg ->
                 scope.launch {
@@ -54,7 +56,7 @@ internal class InAppManagerImpl(
                     reportInappEvent(msg, key, params)
                     withContext(dispatchers.mainDispatcher) {
                         if (mutableMessages.isNotEmpty())
-                            handleMessages(activity, mutableMessages)
+                            handleMessages(activity, mutableMessages.toList())
                     }
                 }
             })
@@ -87,10 +89,17 @@ internal class InAppManagerImpl(
         trackingKey: TrackingKey,
         trackingParams: TrackingParams,
     ) {
-        statsContainer.statsClient.reportInappEvent(
+        statsClient.reportInappEvent(
             message.originalEventId, message.templateId, trackingKey,
             trackingParams.toMap()
         )
+    }
+
+    override suspend fun markInboxMessageStatus(
+        message: InboxMessage,
+        status: MessageStatus
+    ): Boolean = withContext(dispatchers.ioDispatcher) {
+        statsClient.markInboxMessageStatus(message, status)
     }
 
 }

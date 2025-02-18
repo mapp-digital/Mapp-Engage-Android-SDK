@@ -1,6 +1,4 @@
-package com.appoxee.internal.geo
-
-import com.appoxee.shared.GeoStatus
+package com.appoxee.shared
 
 class GeofenceException(val geoStatus: GeoStatus) : Exception(geoStatus.status) {
 }

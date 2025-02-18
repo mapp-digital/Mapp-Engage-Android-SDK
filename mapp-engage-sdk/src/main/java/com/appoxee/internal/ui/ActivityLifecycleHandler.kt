@@ -6,22 +6,30 @@ import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MediaDialog
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
+import com.appoxee.internal.util.Dispatchers
 import com.appoxee.internal.util.LibraryExtensions.startMainActivity
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Objects
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.reflect.KClass
 
 internal class ActivityLifecycleHandler(
     context: Context,
     private val statsClient: StatsClient,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val dispatchers: Dispatchers,
 ) : Application.ActivityLifecycleCallbacks {
 
     private val TAG = ActivityLifecycleHandler::class.java.name
@@ -33,6 +41,28 @@ internal class ActivityLifecycleHandler(
 
     private var startingTimestamp = AtomicLong()
 
+    private val visibleActivities: MutableList<KClass<out Activity>> = mutableListOf()
+
+    private var isApplicationInForeground: AtomicBoolean = AtomicBoolean(false)
+
+    init {
+        scope.launch(dispatchers.mainDispatcher) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleEventObserver {
+                override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                    isApplicationInForeground.set(event <= Lifecycle.Event.ON_RESUME)
+                }
+            })
+        }
+    }
+
+    fun isInForeground(): Boolean {
+        return isApplicationInForeground.get()
+    }
+
+    fun isVisible(activity: Activity): Boolean {
+        return visibleActivities.contains(activity::class)
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         Logger.d(TAG, "CREATED ACTIVITY: ${activity::class.java.name}")
     }
@@ -43,9 +73,11 @@ internal class ActivityLifecycleHandler(
     }
 
     override fun onActivityResumed(activity: Activity) {
+        visibleActivities.add(activity::class)
     }
 
     override fun onActivityPaused(activity: Activity) {
+        visibleActivities.remove(activity::class)
     }
 
     override fun onActivityStopped(activity: Activity) {

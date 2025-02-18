@@ -1,5 +1,6 @@
 package com.appoxee.internal.network
 
+import androidx.annotation.WorkerThread
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 
@@ -13,6 +14,7 @@ interface Call<T> {
      * Execute method and get [MappResult]<[T]> result as a return value
      * Method should be used from Java code, inside some background executor or background thread.
      */
+    @WorkerThread
     fun execute(): MappResult<T>
 
     /**

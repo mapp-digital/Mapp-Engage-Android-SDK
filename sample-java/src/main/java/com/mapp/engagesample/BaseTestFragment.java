@@ -46,7 +46,7 @@ public class BaseTestFragment extends Fragment {
 
 
     private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
-        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
+        Log.d(TAG, "SUCCESS IN BASE TEST FRAGMENT - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
         if (status) {
             updateUI(status, mappResult.getData());
         }
@@ -84,7 +84,12 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnFetchInappMessages.setOnClickListener(v -> {
-            Appoxee.instance().triggerInApp(requireActivity(), "app_open");
+            Appoxee.instance().triggerInApp(requireActivity(), "app_open")
+                    .enqueue(result -> {
+                        if (!result.isSuccess()) {
+                            Util.showDialog(requireContext(), "Error", result.getError().getMessage());
+                        }
+                    });
         });
 
         binding.btnSetTags.setOnClickListener(v -> {
@@ -108,20 +113,28 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnStartGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().startGeofencing(10).enqueue(result -> {
+            Appoxee.instance().startGeofencing(0).enqueue(result -> {
                 GeoStatus status = result.getData();
+                Log.d(TAG, status.getClass().getName());
                 if (status instanceof GeoStatus.GeoStartedOk) {
                     Util.showDialog(requireContext(), "Geofencing Status", "Geofencing started successfully!");
                 } else if (status instanceof GeoStatus.GeoLocationPermissionsNotGranted) {
                     handleLocationPermissionNotGranted();
                 } else {
-                    Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
+                    Util.showDialog(requireContext(), "Geofencing Status", status.getStatus());
                 }
             });
         });
 
         binding.btnStopGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().stopGeofencing().enqueue(null);
+            Appoxee.instance().stopGeofencing().enqueue(result -> {
+                GeoStatus status = result.getData();
+                if (status instanceof GeoStatus.GeoStoppedOk) {
+                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing stopped successfully!");
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
+                }
+            });
         });
 
         binding.btnGetFbToken.setOnClickListener(v -> {
@@ -173,34 +186,41 @@ public class BaseTestFragment extends Fragment {
         }
 
         isPushEnabled(payload);
-
-        mainExecutor.post(() -> {
-            binding.switchReady.setChecked(status);
-            binding.tvDevice.setText(sb.toString());
-        });
+        binding.switchReady.setChecked(status);
+        binding.tvDevice.setText(sb.toString());
+        if (!status) {
+            Util.showDialog(requireContext(), "Error", "Mapp SDK not initialized!");
+        }
     }
 
     private void setAlias() {
-        Editable alias = binding.editTextAlias.getText();
-        if (alias == null || alias.toString().isEmpty()) {
-            Util.showDialog(requireContext(), "Set alias", "Alias can not be empty!");
-            return;
-        }
-
-        Appoxee.instance().setAlias(alias.toString()).enqueue(mappResult -> {
+        Editable editableAlias = binding.editTextAlias.getText();
+        String alias = editableAlias != null ? editableAlias.toString() : null;
+        Appoxee.instance().setAlias(alias).enqueue(mappResult -> {
             if (mappResult.isSuccess()) {
-                alias.clear();
+                if (editableAlias != null) {
+                    editableAlias.clear();
+                }
+                String dmcUserId = mappResult.getData();
+                Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+            } else {
+                String error = mappResult.getError() != null ? mappResult.getError().toString() : "Unknown error";
+                Util.showDialog(requireContext(), "Error", error);
             }
-            String dmcUserId = mappResult.getData();
-            Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+
         });
     }
 
     private void getAlias() {
         executor.execute(() -> {
             MappResult<String> mappResult = Appoxee.instance().getAlias().execute();
-            String alias = mappResult.getData();
-            mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
+            if (mappResult.isSuccess()) {
+                String alias = mappResult.getData();
+                mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
+            } else {
+                String error = mappResult.getError() != null ? mappResult.getError().getMessage() : "Unknown error";
+                mainExecutor.post(() -> Util.showDialog(requireContext(), "Error", error));
+            }
         });
     }
 
@@ -213,9 +233,14 @@ public class BaseTestFragment extends Fragment {
     }
 
     private void getDevice() {
-        Appoxee.instance().getDevice().enqueue(mappResult -> {
-            DevicePayload device = mappResult.getData();
-            Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+        Appoxee.instance().getDevice().enqueue(result -> {
+            if (result.isSuccess()) {
+                DevicePayload device = result.getData();
+                Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+            } else {
+                String error = result.getError() != null ? result.getError().toString() : "Unknown error";
+                Util.showDialog(requireContext(), "Get Device Error", error);
+            }
         });
     }
 

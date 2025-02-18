@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import android.util.DisplayMetrics
+import android.view.Display
 import android.view.WindowManager
 import com.appoxee.BuildConfig
 import com.appoxee.internal.model.request.RegisterDevice
@@ -79,6 +80,7 @@ internal class DeviceProviderImpl(private val context: Context) : DeviceProvider
         return String.format(Locale.US, "%dx%d", width, height)
     }
 
+    @Suppress("DEPRECATION")
     private fun getDisplayMetrics(): DisplayMetrics {
         val displayMetrics = DisplayMetrics()
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager

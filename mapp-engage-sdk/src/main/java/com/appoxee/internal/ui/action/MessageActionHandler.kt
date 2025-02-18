@@ -9,12 +9,10 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.graphics.drawable.toBitmap
-import com.appoxee.Appoxee
 import com.appoxee.R
 import com.appoxee.internal.Actions
-import com.appoxee.internal.AppoxeeImpl
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.Logger
 
@@ -25,6 +23,7 @@ import com.appoxee.internal.util.Logger
 internal class MessageActionHandler(private val context: Context) : ActionHandler {
     private val TAG = MessageActionHandler::class.java.simpleName
 
+    private val appoxeeContainer by lazy { AppoxeeContainer.getInstance(context) }
     override fun openAppStore(url: String) {
         val applicationId = Uri.parse(url).getQueryParameter("id")
         val message = "AppStore: $applicationId"
@@ -35,11 +34,11 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
 
         val playStoreIntent = Intent(Intent.ACTION_VIEW, playStoreUri)
         try {
-            startActivity(context, playStoreIntent, null)
+            context.startActivity(playStoreIntent, null)
         } catch (e: ActivityNotFoundException) {
             // Play Store app is not installed, fallback to the web browser
             val webIntent = Intent(Intent.ACTION_VIEW, webUri)
-            startActivity(context, webIntent, null)
+            context.startActivity(webIntent, null)
         }
     }
 
@@ -143,7 +142,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
     }
 
     override fun showGif(pushData: PushData) {
-        (Appoxee.instance() as AppoxeeImpl?)?.activityLifecycleHandler?.handleRichPush(
+        appoxeeContainer.activityLifecycleHandler.handleRichPush(
             context,
             pushData
         )

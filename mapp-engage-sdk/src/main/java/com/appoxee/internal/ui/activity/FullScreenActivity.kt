@@ -6,14 +6,12 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.appoxee.internal.container.ActionContainer
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
-import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
-import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.Logger
 
 class FullScreenActivity : AppCompatActivity() {
@@ -36,16 +34,16 @@ class FullScreenActivity : AppCompatActivity() {
         }
     }
 
+    private lateinit var appoxeeContainer: AppoxeeContainer
     private lateinit var actionContainer: ActionContainer
-    private lateinit var statsClient: StatsClient
     private lateinit var pushContainer: PushContainer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
         super.onCreate(savedInstanceState)
+        appoxeeContainer = AppoxeeContainer.getInstance(this)
         actionContainer = ActionContainer(this)
-        pushContainer = PushContainer(this)
-        statsClient = StatsContainer(this, DispatchersImpl()).statsClient
+        pushContainer = PushContainer(this, appoxeeContainer)
         handleIntent(intent)
     }
 
