@@ -91,18 +91,14 @@ internal class PushManagerImpl(
     }
 
     override suspend fun handleSilentPush(pushData: PushData) {
-        if (SilentType.SYS_OPТ_IN.value.equals(pushData.silentType, true) ||
-            SilentType.OPT_INT.value.equals(pushData.silentType, true)
-        ) {
+        if (SilentType.SYS_OPТ_IN.value.equals(pushData.silentType, true)) {
             val isOptedIn = pushData.silentData.toBoolean()
             val token = FirebaseMessaging.getInstance().token.await()
             if (isOptedIn)
                 appoxeeContainer.appoxeeAdapter.optIn(token)
             else
                 appoxeeContainer.appoxeeAdapter.optOut(token)
-        } else if (SilentType.SYS_SET_ALIAS.value.equals(pushData.silentType, true) ||
-            SilentType.SET_ALIAS.value.equals(pushData.silentType, true)
-        ) {
+        } else if (SilentType.SYS_SET_ALIAS.value.equals(pushData.silentType, true)) {
             val alias = pushData.silentData
             if (!alias.isNullOrBlank()) appoxeeContainer.appoxeeAdapter.setAlias(alias)
         }

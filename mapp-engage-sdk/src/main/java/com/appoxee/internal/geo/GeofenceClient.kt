@@ -23,15 +23,15 @@ interface GeofenceClient {
     fun buildGeofenceList(regions: List<Region>, enterDelaySeconds: Int = 0): List<Geofence>
     fun removeGeofences(pendingIntent: PendingIntent)
     fun createGeofencePendingIntent(): PendingIntent
+    fun getGeofencingRequestBuilder(): GeofencingRequest.Builder
 }
 
 internal class GeofenceClientImpl(
     private val context: Context,
     private val locationProvider: LocationProvider,
-    private val engageApi: EngageApi
-) : GeofenceClient {
-
+    private val engageApi: EngageApi,
     private val geofencingClient: GeofencingClient = LocationServices.getGeofencingClient(context)
+) : GeofenceClient {
 
     override suspend fun getRegions(location: Location): List<Region> {
         val response = engageApi.getRegions(location.latitude, location.longitude, 0, 50)
@@ -52,13 +52,12 @@ internal class GeofenceClientImpl(
     override suspend fun addGeofences(geofences: List<Geofence>, pendingIntent: PendingIntent) {
         if (geofences.isEmpty()) throw GeofenceException(GeoStatus.GeoEmptyGeofencesList())
 
-        val geofencingRequest = GeofencingRequest.Builder()
+        val geofencingBuilder = getGeofencingRequestBuilder()
             .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
             .addGeofences(geofences)
-            .build()
 
         removeGeofences(pendingIntent)
-        geofencingClient.addGeofences(geofencingRequest, pendingIntent)
+        geofencingClient.addGeofences(geofencingBuilder.build(), pendingIntent)
     }
 
     override fun buildGeofenceList(regions: List<Region>, enterDelaySeconds: Int): List<Geofence> {
@@ -92,6 +91,10 @@ internal class GeofenceClientImpl(
             intent,
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
         )
+    }
+
+    override fun getGeofencingRequestBuilder(): GeofencingRequest.Builder {
+        return GeofencingRequest.Builder()
     }
 
 }

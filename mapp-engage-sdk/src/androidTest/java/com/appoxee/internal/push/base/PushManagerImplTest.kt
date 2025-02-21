@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.base.NotificationFactory
@@ -36,6 +37,7 @@ class PushManagerImplTest {
     private lateinit var notify: Notify
     private lateinit var dispatchers: com.appoxee.internal.util.Dispatchers
     private lateinit var categoriesFactory: CategoriesFactory
+    private lateinit var appoxeeContainer: AppoxeeContainer
     private lateinit var context: Context
 
     private val CHANNEL_ID = "MAPP_NOTIFICATION_1"
@@ -56,13 +58,13 @@ class PushManagerImplTest {
         }
         storage = spyk(InMemoryStorageImpl())
         categoriesFactory = spyk(CategoriesFactory(storage))
-
+        appoxeeContainer = spyk(AppoxeeContainer.getInstance(context))
         pushManager = spyk(
             PushManagerImpl(
                 dispatchers,
                 notify,
                 notificationFactory,
-                storage,
+                appoxeeContainer,
                 categoriesFactory,
                 CHANNEL_ID,
                 CHANNEL_NAME

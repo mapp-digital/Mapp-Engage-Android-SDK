@@ -7,16 +7,18 @@ import android.location.Location
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.appoxee.internal.model.response.geo.Region
+import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.provider.SystemInfoProvider
 import com.appoxee.shared.GeoStatus
 import com.google.android.gms.location.Geofence
-import io.mockk.MockKAnnotations
+import com.google.android.gms.location.GeofenceStatusCodes
+import com.google.android.gms.location.GeofencingClient
+import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coJustRun
+import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.impl.annotations.MockK
 import io.mockk.just
-import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.runs
@@ -32,28 +34,43 @@ import org.junit.Test
 class GeofenceRegistryImplTest {
     private lateinit var mockContext: Context
 
-    @MockK
     private lateinit var mockPackageManager: PackageManager
 
-    @MockK
     private lateinit var mockGeofenceClient: GeofenceClient
 
-    @MockK
+    private lateinit var mockLocationProvider: LocationProvider
+
+    private lateinit var mockEngageApi: EngageApi
+
+    private lateinit var mockGeofencingClient: GeofencingClient
+
     private lateinit var mockPendingIntent: PendingIntent
 
-    @MockK
     private lateinit var geofenceScheduler: GeofenceScheduler
 
-    @MockK
     private lateinit var mockSystemInfoProvider: SystemInfoProvider
 
     private lateinit var geofenceRegistry: GeofenceRegistry
 
     @Before
     fun setup() {
-        MockKAnnotations.init(this, relaxed = true)
-
         mockContext = mockk(relaxed = true)
+        mockPackageManager = mockk(relaxed = true)
+        mockPendingIntent = mockk(relaxed = true)
+        mockLocationProvider = mockk(relaxed = true)
+        geofenceScheduler = mockk(relaxed = true)
+        mockEngageApi = mockk(relaxed = true)
+        mockSystemInfoProvider = mockk(relaxed = true)
+        mockGeofencingClient = mockk(relaxed = true)
+        mockGeofenceClient =
+            spyk(
+                GeofenceClientImpl(
+                    mockContext,
+                    mockLocationProvider,
+                    mockEngageApi,
+                    mockGeofencingClient
+                )
+            )
         every { mockContext.packageManager } returns mockPackageManager
         every { mockGeofenceClient.createGeofencePendingIntent() } returns mockPendingIntent
         every { mockSystemInfoProvider.currentSdkInt() } returns Build.VERSION_CODES.TIRAMISU
@@ -65,7 +82,15 @@ class GeofenceRegistryImplTest {
             )
         } coAnswers { coJustRun { Unit } }
 
+        coEvery { geofenceScheduler.cancel() } just runs
         coEvery { geofenceScheduler.postGeofenceEvent(any(), any()) } just runs
+        coEvery {
+            geofenceScheduler.scheduleRefreshGeofencesPeriodicWorker(
+                any(),
+                any(),
+                any()
+            )
+        } just runs
         every { geofenceScheduler.cancel() } just runs
 
         geofenceRegistry =
@@ -101,17 +126,20 @@ class GeofenceRegistryImplTest {
 
         coEvery { mockGeofenceClient.getLocation() } coAnswers { mockLocation }
         coEvery { mockGeofenceClient.getRegions(mockLocation) } coAnswers { mockRegions }
+        coEvery { mockGeofenceClient.addGeofences(mockGeofences, mockPendingIntent) } just runs
+        every { mockGeofenceClient.getGeofencingRequestBuilder() } returns mockk(relaxed = true)
         coEvery {
             mockGeofenceClient.buildGeofenceList(
                 mockRegions,
                 any()
             )
         } coAnswers { mockGeofences }
-        coEvery { mockGeofenceClient.addGeofences(mockGeofences, mockPendingIntent) } just runs
 
-        val result = geofenceRegistry.startGeofencing(10)
+        val result = kotlin.runCatching { geofenceRegistry.startGeofencing(10) }.getOrNull()
 
-        assert(result is GeoStatus.GeoStartedOk)
+        coVerify { mockGeofenceClient.addGeofences(any(), any()) }
+        coVerify { geofenceScheduler.scheduleRefreshGeofencesPeriodicWorker(any(), any(), any()) }
+        Truth.assertThat(result).isInstanceOf(GeoStatus.GeoStartedOk::class.java)
     }
 
     @Test

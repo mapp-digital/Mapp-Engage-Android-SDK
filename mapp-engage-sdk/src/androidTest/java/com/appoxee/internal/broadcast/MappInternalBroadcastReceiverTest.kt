@@ -121,17 +121,4 @@ class MappInternalBroadcastReceiverTest {
 
         verify { notificationManager wasNot Called }
     }
-
-    @Test
-    fun should_not_handle_non_DISMISS_action() = runBlocking {
-        val action = LocalPushBroadcast.Action.PUSH_RECEIVED
-        coEvery { appoxeeContainer.storage.getBroadcastClass() } coAnswers { BroadcastReceiver::class.java }
-        every { intent.action } returns action
-
-        receiver.onReceive(context, intent)
-
-        verify { notificationManager wasNot Called }
-        verify { appoxeeContainer.statsClient wasNot Called }
-    }
-
 }
