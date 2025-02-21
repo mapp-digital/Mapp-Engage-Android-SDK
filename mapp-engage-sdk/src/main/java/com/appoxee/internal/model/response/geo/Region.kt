@@ -3,24 +3,16 @@ package com.appoxee.internal.model.response.geo
 import com.appoxee.internal.util.getLongOrDefault
 import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
-import kotlin.math.ln
 
 data class Region(
-    private val id: Long,
-    private val lat: Double,
-    private val lng: Double,
-    private val radius: Long,
-    private val name: String,
-    private val durationFrom: Long,
-    private val durationTo: Long,
+    val id: Long,
+    val lat: Double,
+    val lng: Double,
+    val radius: Long,
+    val name: String,
+    val durationFrom: Long,
+    val durationTo: Long,
 ) {
-    fun getId(): Long = id
-    fun getName(): String = name
-
-    fun getLat(): Double = lat
-
-    fun getLng(): Double = lng
-
     private lateinit var json: JSONObject
     fun toJSON(): JSONObject {
         if (!::json.isInitialized) {

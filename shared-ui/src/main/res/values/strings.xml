@@ -1,4 +1,5 @@
 <resources>
     <string name="inbox">Inbox Messages</string>
     <string name="total_message_count">Total message count: </string>
+    <string name="inbox_messages_action_explanation">Click to open In-app message\nLong press to change messsage status</string>
 </resources>

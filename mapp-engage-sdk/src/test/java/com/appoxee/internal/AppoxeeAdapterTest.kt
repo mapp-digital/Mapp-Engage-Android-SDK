@@ -2,9 +2,6 @@ package com.appoxee.internal
 
 import TestDispatchers
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
@@ -88,22 +85,21 @@ class AppoxeeAdapterTest {
      * Network call is executed and value is returned from a server
      */
     @Test
-    fun `setAlias with new value successful`() {
-        runTest {
-            coEvery { engageApi.setAlias(any(String::class)) } answers {
-                Response.success(
-                    200,
-                    ResponseData(metadata = null, DefaultResponse("123456", emptyList()))
-                )
-            }
-
-            //coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
-
-            coEvery { storage.getDevicePayload() } answers { null as DevicePayload? }
-            val response = appoxeeAdapter.setAlias("")
-            Truth.assertThat(response).isNotNull()
-            coVerify { engageApi.setAlias(any(String::class)) }
+    fun `setAlias with new value successful`() = runTest {
+        val testAlias="test@alias.com"
+        coEvery { engageApi.setAlias(testAlias) } answers {
+            Response.success(
+                200,
+                ResponseData(metadata = null, DefaultResponse("123456", emptyList()))
+            )
         }
+
+        //coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
+
+        coEvery { storage.getDevicePayload() } answers { null as DevicePayload? }
+        val response = appoxeeAdapter.setAlias(testAlias)
+        Truth.assertThat(response).isNotNull()
+        coVerify { engageApi.setAlias(any(String::class)) }
     }
 
     /**
@@ -130,16 +126,15 @@ class AppoxeeAdapterTest {
      * Test setAlias and get some error response
      */
     @Test
-    fun `setAlias with new value error`() {
-        runTest {
-            coEvery { engageApi.setAlias(any(String::class)) } answers {
-                Response.error(TimeoutException())
-            }
-            coEvery { storage.getDevicePayload() } answers { null }
-            val response = appoxeeAdapter.setAlias("")
-            Truth.assertThat(response).isNull()
-            coVerify { engageApi.setAlias(any(String::class)) }
+    fun `setAlias with new value error`() = runTest {
+        val testAlias = "test@alias.com"
+        coEvery { engageApi.setAlias(testAlias) } answers {
+            Response.error(TimeoutException())
         }
+        coEvery { storage.getDevicePayload() } answers { null }
+        val response = appoxeeAdapter.setAlias(testAlias)
+        Truth.assertThat(response).isNull()
+        coVerify { engageApi.setAlias(any(String::class)) }
     }
 
     /**

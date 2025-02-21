@@ -3,9 +3,11 @@ package com.mapp.engagesample;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.Editable;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,20 +16,19 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.appoxee.Appoxee;
-import com.appoxee.internal.model.request.geo.GeoEvent;
 import com.appoxee.internal.model.response.DevicePayload;
-import com.appoxee.internal.model.response.geo.Region;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
+import com.appoxee.shared.GeoStatus;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -45,7 +46,7 @@ public class BaseTestFragment extends Fragment {
 
 
     private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
-        Log.d(TAG, "SUCCESS IN MAIN ACTIVITY - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
+        Log.d(TAG, "SUCCESS IN BASE TEST FRAGMENT - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
         if (status) {
             updateUI(status, mappResult.getData());
         }
@@ -83,7 +84,12 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnFetchInappMessages.setOnClickListener(v -> {
-            Appoxee.instance().triggerInApp(requireActivity(), "app_open");
+            Appoxee.instance().triggerInApp(requireActivity(), "app_open")
+                    .enqueue(result -> {
+                        if (!result.isSuccess()) {
+                            Util.showDialog(requireContext(), "Error", result.getError().getMessage());
+                        }
+                    });
         });
 
         binding.btnSetTags.setOnClickListener(v -> {
@@ -106,21 +112,28 @@ public class BaseTestFragment extends Fragment {
             });
         });
 
-        binding.btnGetRegions.setOnClickListener(v -> {
-            Appoxee.instance().testGetRegions(43.1407, 20.5181, 0, 50).enqueue(result -> {
-                List<Region> regions = result.getData() != null ? result.getData().getRegions() : Collections.emptyList();
-                StringBuilder sb = new StringBuilder();
-                for (Region r : regions) {
-                    sb.append("(").append(r.getId()).append(") ");
-                    sb.append(r.getName()).append("\n(").append(r.getLat()).append("/").append(r.getLng()).append(")\n\n");
+        binding.btnStartGeofencing.setOnClickListener(v -> {
+            Appoxee.instance().startGeofencing(0).enqueue(result -> {
+                GeoStatus status = result.getData();
+                Log.d(TAG, status.getClass().getName());
+                if (status instanceof GeoStatus.GeoStartedOk) {
+                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing started successfully!");
+                } else if (status instanceof GeoStatus.GeoLocationPermissionsNotGranted) {
+                    handleLocationPermissionNotGranted();
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Status", status.getStatus());
                 }
-                Util.showDialog(requireContext(), "Regions", sb.toString());
             });
         });
 
-        binding.btnEventRegions.setOnClickListener(v -> {
-            Appoxee.instance().testRegionEvent(GeoEvent.ENTER, 43.1407, 20.5181, 91, 0).enqueue(result -> {
-                Util.showDialog(requireContext(), "Trigger Enter Geolocation", String.valueOf(result.getData()));
+        binding.btnStopGeofencing.setOnClickListener(v -> {
+            Appoxee.instance().stopGeofencing().enqueue(result -> {
+                GeoStatus status = result.getData();
+                if (status instanceof GeoStatus.GeoStoppedOk) {
+                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing stopped successfully!");
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
+                }
             });
         });
 
@@ -173,34 +186,41 @@ public class BaseTestFragment extends Fragment {
         }
 
         isPushEnabled(payload);
-
-        mainExecutor.post(() -> {
-            binding.switchReady.setChecked(status);
-            binding.tvDevice.setText(sb.toString());
-        });
+        binding.switchReady.setChecked(status);
+        binding.tvDevice.setText(sb.toString());
+        if (!status) {
+            Util.showDialog(requireContext(), "Error", "Mapp SDK not initialized!");
+        }
     }
 
     private void setAlias() {
-        Editable alias = binding.editTextAlias.getText();
-        if (alias == null || alias.toString().isEmpty()) {
-            Util.showDialog(requireContext(), "Set alias", "Alias can not be empty!");
-            return;
-        }
-
-        Appoxee.instance().setAlias(alias.toString()).enqueue(mappResult -> {
+        Editable editableAlias = binding.editTextAlias.getText();
+        String alias = editableAlias != null ? editableAlias.toString() : null;
+        Appoxee.instance().setAlias(alias).enqueue(mappResult -> {
             if (mappResult.isSuccess()) {
-                alias.clear();
+                if (editableAlias != null) {
+                    editableAlias.clear();
+                }
+                String dmcUserId = mappResult.getData();
+                Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+            } else {
+                String error = mappResult.getError() != null ? mappResult.getError().toString() : "Unknown error";
+                Util.showDialog(requireContext(), "Error", error);
             }
-            String dmcUserId = mappResult.getData();
-            Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+
         });
     }
 
     private void getAlias() {
         executor.execute(() -> {
             MappResult<String> mappResult = Appoxee.instance().getAlias().execute();
-            String alias = mappResult.getData();
-            mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
+            if (mappResult.isSuccess()) {
+                String alias = mappResult.getData();
+                mainExecutor.post(() -> Util.showDialog(requireContext(), "Alias", alias));
+            } else {
+                String error = mappResult.getError() != null ? mappResult.getError().getMessage() : "Unknown error";
+                mainExecutor.post(() -> Util.showDialog(requireContext(), "Error", error));
+            }
         });
     }
 
@@ -213,9 +233,14 @@ public class BaseTestFragment extends Fragment {
     }
 
     private void getDevice() {
-        Appoxee.instance().getDevice().enqueue(mappResult -> {
-            DevicePayload device = mappResult.getData();
-            Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+        Appoxee.instance().getDevice().enqueue(result -> {
+            if (result.isSuccess()) {
+                DevicePayload device = result.getData();
+                Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+            } else {
+                String error = result.getError() != null ? result.getError().toString() : "Unknown error";
+                Util.showDialog(requireContext(), "Get Device Error", error);
+            }
         });
     }
 
@@ -227,6 +252,22 @@ public class BaseTestFragment extends Fragment {
         binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
             pushEnable(isChecked);
         });
+    }
+
+    private void handleLocationPermissionNotGranted() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Location permission needed")
+                .setMessage("Open settings to grant location permission?")
+                .setPositiveButton("Yes", (d, i) -> {
+                    Uri uri = Uri.parse("package:" + requireContext().getPackageName());
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    d.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .create()
+                .show();
     }
 
     private void setToken() {

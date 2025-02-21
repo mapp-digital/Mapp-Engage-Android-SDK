@@ -1,6 +1,7 @@
 package com.appoxee.internal.push.style
 
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.style.NotificationVideoStyle
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.spyk

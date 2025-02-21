@@ -7,7 +7,7 @@ object Actions {
     const val DEEP_LINK_URI="apx://deeplink?link="
 
     object Button {
-        const val PLAY = "play"
-        const val TURN_OFF = "turn off"
+        const val PLAY = "Play"
+        const val TURN_OFF = "Turn Off"
     }
 }

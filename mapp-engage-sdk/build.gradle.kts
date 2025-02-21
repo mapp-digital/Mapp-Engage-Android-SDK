@@ -2,18 +2,19 @@ import com.google.common.collect.ImmutableList
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
+    id("org.jetbrains.kotlin.android")
 }
 
 val sdkVersion = project.properties["VERSION"]
 
 android {
     namespace = "com.appoxee"
-    compileSdk = 34
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     lint {
-        targetSdk = 34
+        targetSdk = 35
     }
 
     defaultConfig {
@@ -42,14 +43,6 @@ android {
         jvmTarget = "17"
     }
 
-    packaging {
-        resources.excludes.addAll(
-            ImmutableList.of(
-                "META-INF/LICENSE.md",
-                "META-INF/LICENSE-notice.md"
-            )
-        )
-    }
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -66,19 +59,29 @@ android {
             minSdk=23
         }
     }
+
+    packaging {
+        resources {
+            pickFirsts += "META-INF/LICENSE.md"
+            pickFirsts +="META-INF/LICENSE-notice.md"
+        }
+    }
 }
 
 dependencies {
+    implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(libs.bundles.coil)
-    implementation(libs.bundles.exoplayer)
-    implementation(libs.bundles.datastore)
+    implementation(libs.bundles.media3)
+    implementation(libs.datastore.preferences)
     implementation(libs.browser)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.play.services.location)
+    implementation(libs.work.manager)
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(libs.bundles.test)
-
-    androidTestImplementation(libs.bundles.androidTest)
+    androidTestImplementation(libs.bundles.android.test)
 }

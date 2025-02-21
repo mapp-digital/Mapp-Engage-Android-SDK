@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.extraProperties
-
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -7,7 +5,8 @@ plugins {
 
 android {
     namespace = "eu.brrm.shared_ui"
-    compileSdk = 34
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         minSdk = 21
@@ -38,25 +37,33 @@ android {
         flavorDimensions += listOf("main")
     }
     productFlavors {
-        create("app"){
-            dimension=flavorDimensions[0]
-            minSdk=21
+        create("app") {
+            dimension = flavorDimensions[0]
+            minSdk = 21
         }
         create("tst") {
             dimension = flavorDimensions.get(0)
-            minSdk=23
+            minSdk = 23
+        }
+    }
+
+    packaging {
+        resources {
+            pickFirsts += "META-INF/LICENSE.md"
+            pickFirsts += "META-INF/LICENSE-notice.md"
         }
     }
 }
 
 dependencies {
+    implementation(project(":mapp-engage-sdk"))
+
+    implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
-    implementation(project(":mapp-engage-sdk"))
 
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation(libs.bundles.test)
+    androidTestImplementation(libs.bundles.android.test)
 }

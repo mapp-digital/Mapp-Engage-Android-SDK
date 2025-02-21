@@ -17,6 +17,7 @@ import com.appoxee.internal.util.DispatchersImpl
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
 import com.google.firebase.messaging.RemoteMessage
 import org.jetbrains.annotations.TestOnly
@@ -118,6 +119,13 @@ interface Appoxee {
     ): Call<InboxMessagesResponse?>
 
     /**
+     * Get inbox messages of requested templateId
+     * @param templateId to filter inbox messages
+     * @return [InboxMessage] the inbox message with a requested templateId
+     */
+    fun fetchInboxMessage(templateId: Long): Call<InboxMessage?>
+
+    /**
      * Get latest inbox message
      * @return [InboxMessage] the latest inbox message
      */
@@ -150,7 +158,17 @@ interface Appoxee {
     /**
      * Get list of inapp messages from server and show them as proper dialog or fullscreen page
      */
-    fun triggerInApp(context: Activity, eventName: String)
+    fun triggerInApp(context: Activity, eventName: String): Call<Boolean>
+
+    fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int = 0): Call<T>
+
+    fun <T : GeoStatus> stopGeofencing(): Call<T>
+
+    /**
+     * Log out a user. Alias will reset.
+     * @param pushEnabled - Enable or disable push messages.
+     */
+    fun logout(pushEnabled: Boolean): Call<Boolean>
 
     /**
      * Add list of tags on a device
@@ -213,22 +231,10 @@ interface Appoxee {
      */
     fun closeNotification(notificationId: Int)
 
+    /**
+     * Register Broadcast receiver class from client application.
+     * SDK will delegate events related to push messages to this class.
+     * Client app can use those events to execute some custom actions.
+     */
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
-
-    @TestOnly
-    fun testGetRegions(
-        lat: Double,
-        lng: Double,
-        version: Int,
-        pageSize: Int
-    ): Call<RegionsResponse>
-
-    @TestOnly
-    fun testRegionEvent(
-        geoEvent: GeoEvent,
-        latitude: Double,
-        longitude: Double,
-        regionId: Long,
-        version: Int
-    ): Call<Boolean>
 }
