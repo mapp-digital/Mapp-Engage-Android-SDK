@@ -9,7 +9,7 @@ import android.net.Uri
 import android.util.DisplayMetrics
 import androidx.core.graphics.toColorInt
 import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import com.google.common.base.Charsets
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -105,9 +105,9 @@ object LibraryExtensions {
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    internal fun String?.encode() :String{
-        if(this.isNullOrEmpty()) return ""
-        return Base64.encode(this.toByteArray(Charsets.UTF_8), 0,this.length)
+    internal fun String?.encode(): String {
+        if (this.isNullOrEmpty()) return ""
+        return Base64.encode(this.toByteArray(Charsets.UTF_8), 0, this.length)
     }
 
     @OptIn(ExperimentalEncodingApi::class)

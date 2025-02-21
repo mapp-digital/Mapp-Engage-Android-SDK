@@ -6,12 +6,12 @@ import android.net.Uri
 import android.util.Log
 import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappActionType
+import com.appoxee.internal.ui.action.ActionHandler
+import com.appoxee.internal.ui.action.MessageActionHandler
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
-import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -22,6 +22,7 @@ import org.junit.Test
 class InappActionHandlerImplTest {
 
     private lateinit var inappActionHandler: InappActionHandler
+    private lateinit var actionHandler: ActionHandler
     private lateinit var context: Context
 
     @Before
@@ -36,7 +37,8 @@ class InappActionHandlerImplTest {
         every { Log.e(any(), any()) } returns 0
 
         context = mockk(relaxed = true)
-        inappActionHandler = spyk(InappActionHandlerImpl(context))
+        actionHandler = mockk<MessageActionHandler>(relaxed = true)
+        inappActionHandler = spyk(InappActionHandlerImpl(actionHandler = actionHandler))
     }
 
     @After
@@ -48,33 +50,30 @@ class InappActionHandlerImplTest {
     fun `inapp with action type APP_STORE should call handleAppStore`() {
         val actionData = mockk<ActionData>(relaxed = true)
         every { actionData.actionType } answers { InappActionType.APP_STORE }
-        every { inappActionHandler.handleAppStore(any()) } just runs
 
         inappActionHandler.handleAction(actionData)
 
-        verify { inappActionHandler.handleAppStore(any()) }
+        verify { actionHandler.openAppStore(any()) }
     }
 
     @Test
     fun `inapp with action type DEEPLINK should call handleDeeplink`() {
         val actionData = mockk<ActionData>(relaxed = true)
         every { actionData.actionType } answers { InappActionType.DEEPLINK }
-        every { inappActionHandler.handleDeeplink(any()) } just runs
 
         inappActionHandler.handleAction(actionData)
 
-        verify { inappActionHandler.handleDeeplink(any()) }
+        verify { actionHandler.openDeepLink(any(), any()) }
     }
 
     @Test
     fun `inapp with action type DIALER should call handleDialer`() {
         val actionData = mockk<ActionData>(relaxed = true)
         every { actionData.actionType } answers { InappActionType.DIALER }
-        every { inappActionHandler.handleDialer(any()) } just runs
 
         inappActionHandler.handleAction(actionData)
 
-        verify { inappActionHandler.handleDialer(any()) }
+        verify { actionHandler.openDialer(any()) }
     }
 
     @Test
@@ -82,11 +81,10 @@ class InappActionHandlerImplTest {
         val actionData = mockk<ActionData>(relaxed = true)
         every { actionData.actionType } answers { InappActionType.LANDING_PAGE }
         every { actionData.openInApp } answers { true }
-        every { inappActionHandler.handleLandingPageInApp(any()) } just runs
 
         inappActionHandler.handleAction(actionData)
 
-        verify { inappActionHandler.handleLandingPageInApp(any()) }
+        verify { actionHandler.openLandingPageInternal(any()) }
     }
 
     @Test
@@ -94,11 +92,10 @@ class InappActionHandlerImplTest {
         val actionData = mockk<ActionData>(relaxed = true)
         every { actionData.actionType } answers { InappActionType.LANDING_PAGE }
         every { actionData.openInApp } answers { false }
-        every { inappActionHandler.handleLandingPageExternal(any()) } just runs
 
         inappActionHandler.handleAction(actionData)
 
-        verify { inappActionHandler.handleLandingPageExternal(any()) }
+        verify { actionHandler.openLandingPageExternal(any()) }
     }
 
 }

@@ -5,11 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.VisibleForTesting
-import com.appoxee.internal.container.StatsContainer
-import com.appoxee.internal.container.StorageContainer
+import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.LocalPushBroadcast
@@ -19,13 +18,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
 import java.util.Objects
-import java.util.concurrent.TimeUnit
 
 class MappInternalBroadcastReceiver : BroadcastReceiver() {
     private val TAG = MappInternalBroadcastReceiver::class.java.name
-    private lateinit var statsContainer: StatsContainer
-    private lateinit var storageContainer: StorageContainer
 
+    private lateinit var appoxeeContainer: AppoxeeContainer
     private val scope = CoroutineScope(SupervisorJob())
 
     override fun onReceive(context: Context?, i: Intent?) {
@@ -34,13 +31,8 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
 
         context?.let { ctx ->
             i?.extras?.let { bundle ->
-                if (!::statsContainer.isInitialized) {
-                    statsContainer = StatsContainer(ctx)
-                }
-
-                if (!::storageContainer.isInitialized) {
-                    storageContainer =
-                        StorageContainer.getInstance(ctx, TimeUnit.HOURS.toMillis(1))
+                if (!::appoxeeContainer.isInitialized) {
+                    appoxeeContainer = AppoxeeContainer.getInstance(context)
                 }
 
                 bundle.getParcelableCompat<PushData>("pushData")?.let { pushData ->
@@ -80,7 +72,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         Logger.d(TAG, "notifyClientApp() - PushData: $pushData - action: $action")
         // delegate to subscribed app event
 
-        val clazz = storageContainer.storage.getBroadcastClass()
+        val clazz = appoxeeContainer.storage.getBroadcastClass()
         Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz?.simpleName}")
         val intent = Intent(context, clazz).apply {
             setPackage(context?.applicationContext?.packageName)
@@ -99,7 +91,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         val data = pushData ?: return
         val messageId = data.id
         val sendoutId = data.sendoutId
-        statsContainer.statsClient.reportPushEvent(
+        appoxeeContainer.statsClient.reportPushEvent(
             messageId,
             sendoutId ?: 0L,
             clickType,
@@ -109,13 +101,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
 
     @TestOnly
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun setStorageContainer(storageContainer: StorageContainer) {
-        this.storageContainer = storageContainer
-    }
-
-    @TestOnly
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun setStatsContainer(statsContainer: StatsContainer) {
-        this.statsContainer = statsContainer
+    internal fun setAppoxeeContainer(appoxeeContainer: AppoxeeContainer) {
+        this.appoxeeContainer = appoxeeContainer
     }
 }

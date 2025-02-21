@@ -8,9 +8,9 @@ import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
 
-private const val MIN_TIMEOUT: Int = 5_000
+private const val MIN_TIMEOUT: Int = 10_000
 private const val MAX_TIMEOUT: Int = 60_000
-private const val DEFAULT_TIMEOUT: Int = 10_000
+private const val DEFAULT_TIMEOUT: Int = 20_000
 
 class AppoxeeOptions(
     /**

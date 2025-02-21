@@ -4,13 +4,13 @@ import android.app.Activity
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.TestDispatchers
-import com.appoxee.internal.container.StatsContainer
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
+import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
 import com.appoxee.internal.util.Dispatchers
@@ -21,8 +21,6 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
-import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +36,6 @@ class InAppManagerImplTest {
     // Mocks
     private lateinit var nativeFactory: NativeFactory
     private lateinit var webFactory: WebFactory
-    private lateinit var statsContainer: StatsContainer
     private lateinit var dispatchers: Dispatchers
 
     // Class under test
@@ -53,6 +50,8 @@ class InAppManagerImplTest {
 
     private lateinit var scope: CoroutineScope
 
+    private lateinit var statsClient: StatsClient
+
     @Before
     fun setUp() {
         // Initialize mocks using Mockk
@@ -60,13 +59,13 @@ class InAppManagerImplTest {
         nativeFactory = mockk()
         webFactory = mockk()
         dispatchers = TestDispatchers()
-        statsContainer = spyk(StatsContainer(context, dispatchers))
         scope = TestScope(StandardTestDispatcher())
+        statsClient = mockk(relaxed = true)
         // Create the class under test
         inAppManager = InAppManagerImpl(
             nativeFactory = nativeFactory,
             webFactory = webFactory,
-            statsContainer = statsContainer,
+            statsClient = statsClient,
             scope = scope,
             dispatchers = dispatchers
         )
@@ -96,7 +95,7 @@ class InAppManagerImplTest {
             )
         } just runs
         coEvery {
-            statsContainer.statsClient.reportInappEvent(
+            statsClient.reportInappEvent(
                 any(), any(), any(), any()
             )
         } just runs

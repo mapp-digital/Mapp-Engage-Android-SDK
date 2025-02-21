@@ -1,6 +1,6 @@
 package com.appoxee.internal.network
 
-import com.appoxee.internal.push.model.PushData
+import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.NotificationMode
 

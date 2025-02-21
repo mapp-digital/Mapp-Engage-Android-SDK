@@ -20,7 +20,7 @@ internal class Logger private constructor(application: Application) {
 
         @JvmStatic
         internal fun d(tag: String, message: String) {
-            print(tag, message) { s1, s2,t ->
+            print(tag, message) { s1, s2, t ->
                 Log.d(s1, s2)
             }
         }
@@ -42,6 +42,13 @@ internal class Logger private constructor(application: Application) {
         @JvmStatic
         internal fun e(tag: String, message: String, throwable: Throwable? = null) {
             print(tag, message, throwable) { s1, s2, t ->
+                Log.e(s1, s2, t)
+            }
+        }
+
+        @JvmStatic
+        internal fun e(tag: String, throwable: Throwable? = null) {
+            print(tag, throwable?.message ?: "", throwable) { s1, s2, t ->
                 Log.e(s1, s2, t)
             }
         }

@@ -2,9 +2,6 @@ package com.appoxee.internal
 
 import android.annotation.SuppressLint
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.request.events.ClickType
-import com.appoxee.internal.model.request.events.EventType
-import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -44,6 +41,7 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun setAlias(alias: String): String? {
+        if (alias.isEmpty()) throw IllegalArgumentException("Alias can not be empty!")
         return withContext(dispatchers.ioDispatcher) {
             val device = storage.getDevicePayload()
             // new alias same as old alias
@@ -159,4 +157,11 @@ internal class AppoxeeAdapter(
             engageApi.activate(timestamp)
         }
     }
+
+    internal suspend fun logout(
+        device: RegisterDevice,
+    ): Response<ResponseData<RegisterPayload>> =
+        withContext(dispatchers.ioDispatcher) {
+            engageApi.registerDevice(device)
+        }
 }

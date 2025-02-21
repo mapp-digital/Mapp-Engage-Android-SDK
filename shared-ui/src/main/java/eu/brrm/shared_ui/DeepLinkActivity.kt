@@ -18,13 +18,13 @@ class DeepLinkActivity : AppCompatActivity() {
     }
 
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
 
-    private fun handleIntent(intent: Intent?) {
-        val action = intent?.action ?: return
+    private fun handleIntent(intent: Intent) {
+        val action = intent.action ?: return
         val packageName = intent.`package` ?: return
         val data = intent.data ?: return
 

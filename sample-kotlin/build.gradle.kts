@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.mapp.engagesample"
     compileSdk = 35
-    buildToolsVersion="35.0.0"
+    buildToolsVersion = "35.0.0"
     defaultConfig {
         applicationId = "com.mapp.engagesample"
         minSdk = 21
@@ -31,11 +31,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.3"
@@ -51,33 +51,36 @@ android {
         flavorDimensions += listOf("main")
     }
     productFlavors {
-        create("app"){
-            dimension=flavorDimensions[0]
-            minSdk=21
+        create("app") {
+            dimension = flavorDimensions[0]
+            minSdk = 21
         }
         create("tst") {
             dimension = flavorDimensions.get(0)
-            minSdk=23
+            minSdk = 23
+        }
+    }
+
+    packaging {
+        resources {
+            pickFirsts += "META-INF/LICENSE.md"
+            pickFirsts += "META-INF/LICENSE-notice.md"
         }
     }
 }
 
 dependencies {
+    implementation(project(mapOf("path" to ":mapp-engage-sdk")))
+    implementation(project(mapOf("path" to ":shared-ui")))
+
+    implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.bundles.coil)
+    implementation(libs.viewmodel.ktx)
 
-    implementation(project(mapOf("path" to ":mapp-engage-sdk")))
-    implementation(project(mapOf("path" to ":shared-ui")))
-
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("io.coil-kt:coil:2.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.2.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation(libs.bundles.test)
+    androidTestImplementation(libs.bundles.android.test)
 }
