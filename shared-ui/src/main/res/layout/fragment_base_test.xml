@@ -7,13 +7,13 @@
     android:orientation="vertical"
     tools:ignore="HardcodedText">
 
-    <Switch
+    <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchReady"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingVertical="10dp"
         android:text="Is Ready"
-        tools:ignore="HardcodedText,UseSwitchCompatOrMaterialXml" />
+        tools:ignore="HardcodedText" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -25,13 +25,13 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <androidx.appcompat.widget.SwitchCompat
+            <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchPushEnabled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="10dp"
-                android:text="Push Enabled"
-                tools:ignore="HardcodedText,UseSwitchCompatOrMaterialXml" />
+                android:text="Opted Out"
+                tools:ignore="HardcodedText" />
 
             <TextView
                 android:id="@+id/tvDevice"
@@ -55,7 +55,8 @@
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editTextAlias"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton

@@ -5,19 +5,22 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultCallback;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.appoxee.Appoxee;
-import com.appoxee.shared.AppoxeeObserver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import eu.brrm.shared_ui.PermissionHelper;
@@ -31,6 +34,8 @@ import eu.brrm.shared_ui.databinding.ActivityMainBinding;
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
 
+    private PermissionHelper permissionHelper;
+
     private final OnBackPressedCallback onBackCallback = new OnBackPressedCallback(getSupportFragmentManager().getBackStackEntryCount() <= 1) {
         @Override
         public void handleOnBackPressed() {
@@ -42,12 +47,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
-        if (status && mappResult.isSuccess()) {
-            requestPostNotificationPermission();
-        }
-    };
-
     private final FragmentManager.OnBackStackChangedListener onBackStackChangedListener = () -> {
         int size = getSupportFragmentManager().getBackStackEntryCount();
         String title = getSupportFragmentManager().getBackStackEntryAt(size - 1).getName();
@@ -56,17 +55,43 @@ public class MainActivity extends AppCompatActivity {
         onBackCallback.setEnabled(size <= 1);
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    private final ActivityResultCallback<Map<String, Boolean>> postNotificationPermissionCallback = (result) -> {
+        String permission = Manifest.permission.POST_NOTIFICATIONS;
+        if (Boolean.TRUE.equals(result.get(permission))) {
+            Toast.makeText(
+                    this,
+                    "Permission(s) granted: \n" + Util.permissionsToString(result),
+                    Toast.LENGTH_SHORT
+            ).show();
+            binding.topPanel.setVisibility(View.GONE);
+        } else {
+            binding.topPanel.setVisibility(View.VISIBLE);
+            binding.btnOpenSettings.setOnClickListener(v -> {
+                permissionHelper.openApplicationSettings(MainActivity.this);
+            });
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
+        permissionHelper = new PermissionHelper(getActivityResultRegistry());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
         getOnBackPressedDispatcher().addCallback(this, onBackCallback);
         getSupportFragmentManager().addOnBackStackChangedListener(onBackStackChangedListener);
-        Appoxee.instance().subscribe(appoxeeObserver);
         navigate(new HomeFragment());
         Appoxee.instance().setPushBroadcast(MyPushBroadcast.class);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPostNotificationPermission();
+        }
     }
 
     public <T extends Fragment> void navigate(T fragment) {
@@ -76,24 +101,11 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private void requestPostNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionHelper permissionHelper = new PermissionHelper(this.getActivityResultRegistry());
-            List<String> permissions = new ArrayList<>();
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
-            permissionHelper.requestPermissions(this, permissions, result -> {
-                if (Boolean.TRUE.equals(result.get(Manifest.permission.POST_NOTIFICATIONS))) {
-                    Toast.makeText(
-                            this,
-                            "Permission(s) granted: \n" + Util.permissionsToString(result),
-                            Toast.LENGTH_SHORT
-                    ).show();
-                    Appoxee.instance().enablePush(true, null);
-                }
-            });
-        } else {
-            Appoxee.instance().enablePush(true, null);
-        }
+        List<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+        permissionHelper.requestPermissions(this, permissions, postNotificationPermissionCallback);
     }
 
     @Override
@@ -108,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        Appoxee.instance().unsubscribe(appoxeeObserver);
         getSupportFragmentManager().removeOnBackStackChangedListener(onBackStackChangedListener);
         super.onDestroy();
     }

@@ -3,11 +3,14 @@ package com.mapp.engagesample
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
@@ -15,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
+import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
 import com.mapp.engagesample.inbox.InboxMessagesActivity
@@ -60,45 +64,18 @@ class BaseTestFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.switchReady.isEnabled = false
         binding.btnSetAlias.setOnClickListener {
-            lifecycleScope.launch {
-                val etAlias = binding.editTextAlias
-                val alias = etAlias.text.toString()
-                if (alias.isBlank()) {
-                    Util.showDialog(requireContext(), "Set Alias", "Alias can't be empty!")
-                    return@launch
-                }
-                val result = Appoxee.instance().setAlias(alias).asSuspend()
-                if (result.isSuccess()) {
-                    etAlias.text?.clear()
-                }
-                Util.showDialog(
-                    requireContext(),
-                    "DmcUserId",
-                    if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-            }
+            setAlias()
         }
 
         binding.btnGetAlias.setOnClickListener {
-            lifecycleScope.launch {
-                val result = Appoxee.instance().getAlias().asSuspend()
-                Util.showDialog(
-                    requireContext(), "Alias", if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-            }
+            getAlias()
         }
 
         binding.btnGetDevice.setOnClickListener {
-            lifecycleScope.launch {
-                val result = Appoxee.instance().getDevice().asSuspend()
-                Util.showDialog(
-                    requireContext(), "Device", if (result.isSuccess()) result.getData().toString()
-                    else result.getError().toString()
-                )
-            }
+            getDevice()
         }
 
         binding.btnGetFbToken.setOnClickListener {
@@ -111,9 +88,31 @@ class BaseTestFragment : Fragment() {
         }
 
         binding.btnFetchInappMessages.setOnClickListener {
-            lifecycleScope.launch {
-                Appoxee.instance().triggerInApp(requireActivity(), "app_open")
-            }
+            fetchInappMessages()
+        }
+
+        binding.btnSetTags.setOnClickListener {
+            setTags()
+        }
+
+        binding.btnRemoveTags.setOnClickListener {
+            removeTags()
+        }
+
+        binding.btnSetCustomAttributes.setOnClickListener {
+            setCustomAttributes()
+        }
+
+        binding.btnGetCustomAttributes.setOnClickListener {
+            getCustomAttributes()
+        }
+
+        binding.btnStartGeofencing.setOnClickListener {
+            startGeofencing()
+        }
+
+        binding.btnStopGeofencing.setOnClickListener {
+            stopGeofencing()
         }
     }
 
@@ -132,6 +131,8 @@ class BaseTestFragment : Fragment() {
             val call = Appoxee.instance().enablePush(enabled)
             val result = call.asSuspend()
             val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
+            binding.switchPushEnabled.text =
+                if (result.getData() == true) "Opted In" else "Opted Out"
             Util.showDialog(
                 requireContext(),
                 "Push status",
@@ -145,6 +146,7 @@ class BaseTestFragment : Fragment() {
         binding.switchPushEnabled.also {
             it.setOnCheckedChangeListener(null)
             it.isChecked = enabled
+            it.text = if (enabled) "Opted In" else "Opted Out"
             it.setOnCheckedChangeListener { _, isChecked ->
                 pushEnable(isChecked)
             }
@@ -170,6 +172,181 @@ class BaseTestFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun setAlias() {
+        lifecycleScope.launch {
+            val etAlias = binding.editTextAlias
+            val alias = etAlias.text?.toString() ?: ""
+            val result = Appoxee.instance().setAlias(alias).asSuspend()
+            if (result.isSuccess()) {
+                etAlias.text?.clear()
+            }
+            Util.showDialog(
+                requireContext(),
+                "DmcUserId",
+                if (result.isSuccess()) result.getData().toString()
+                else result.getError().toString()
+            )
+        }
+    }
+
+    private fun getAlias() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().getAlias().asSuspend()
+            Util.showDialog(
+                requireContext(), "Alias", if (result.isSuccess()) result.getData().toString()
+                else result.getError().toString()
+            )
+        }
+    }
+
+    private fun getDevice() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().getDevice().asSuspend()
+            Util.showDialog(
+                requireContext(), "Device", if (result.isSuccess()) result.getData().toString()
+                else result.getError().toString()
+            )
+        }
+    }
+
+    private fun fetchInappMessages() {
+        lifecycleScope.launch {
+            val result =
+                Appoxee.instance().triggerInApp(requireActivity(), "app_open").asSuspend()
+            if (!result.isSuccess()) {
+                Util.showDialog(
+                    requireContext(),
+                    "Error",
+                    result.getError()?.message ?: "Unknown error"
+                )
+            }
+        }
+    }
+
+    private fun setTags() {
+        lifecycleScope.launch {
+            val result =
+                Appoxee.instance().addTags(listOf("female", "makeup", "fashion")).asSuspend()
+            if (result.isSuccess()) {
+                Util.showDialog(requireContext(), "Set tags", result.getData().toString())
+            } else {
+                Util.showDialog(
+                    requireContext(),
+                    "Error",
+                    result.getError()?.message ?: "Unknown error"
+                )
+            }
+        }
+    }
+
+    private fun removeTags() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().removeTags(listOf("female", "makeup")).asSuspend()
+            if (result.isSuccess()) {
+                Util.showDialog(requireContext(), "Remove tags", result.getData().toString())
+            } else {
+                Util.showDialog(
+                    requireContext(),
+                    "Error",
+                    result.getError()?.message ?: "Unknown error"
+                )
+            }
+        }
+    }
+
+    private fun setCustomAttributes() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance()
+                .addCustomAttributes(mapOf("currency" to "EUR", "phone" to "+381991234567"))
+                .asSuspend()
+            if (result.isSuccess()) {
+                Util.showDialog(
+                    requireContext(),
+                    "Set Custom Attributes",
+                    result.getData().toString()
+                )
+            } else {
+                Util.showDialog(
+                    requireContext(),
+                    "Error",
+                    result.getError()?.message ?: "Unknown error"
+                )
+            }
+        }
+    }
+
+    private fun getCustomAttributes() {
+        lifecycleScope.launch {
+            val result =
+                Appoxee.instance().getCustomAttributes(listOf("currency", "phone")).asSuspend()
+            if (result.isSuccess()) {
+                Util.showDialog(
+                    requireContext(),
+                    "Get Custom Attributes",
+                    result.getData().toString()
+                )
+            } else {
+                Util.showDialog(
+                    requireContext(),
+                    "Error",
+                    result.getError()?.message ?: "Unknown error"
+                )
+            }
+        }
+    }
+
+    private fun startGeofencing() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().startGeofencing<GeoStatus>(0).asSuspend()
+            result.getData()?.let { geoStatus ->
+                if (geoStatus is GeoStatus.GeoStartedOk) {
+                    Util.showDialog(
+                        requireContext(),
+                        "Geofencing",
+                        "Geofencing started successfully!"
+                    )
+                } else if (geoStatus is GeoStatus.GeoLocationPermissionsNotGranted) {
+                    handleLocationPermissionsNotGranted()
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Error", geoStatus.status)
+                }
+            }
+        }
+    }
+
+    private fun stopGeofencing() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().stopGeofencing<GeoStatus>().asSuspend()
+            result.getData()?.let { geoStatus ->
+                if (geoStatus is GeoStatus.GeoStoppedOk) {
+                    Util.showDialog(
+                        requireContext(),
+                        "Geofencing",
+                        "Geofencing stopped successfully!"
+                    )
+                } else {
+                    Util.showDialog(requireContext(), "Geofencing Error", geoStatus.status)
+                }
+            }
+        }
+    }
+
+    private fun handleLocationPermissionsNotGranted() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Location permission needed")
+            .setView(R.layout.dialog_location_rationale)
+            .setPositiveButton("Open settings") { d, i ->
+                val uri = Uri.parse("package:" + requireContext().packageName)
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                startActivity(intent)
+                d.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+            .show()
     }
 
     override fun onPause() {
