@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
@@ -23,6 +24,7 @@ import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
 import com.mapp.engagesample.inbox.InboxMessagesActivity
 import eu.brrm.shared_ui.Util
+import eu.brrm.shared_ui.Util.toColor
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -133,6 +135,7 @@ class BaseTestFragment : Fragment() {
             val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
             binding.switchPushEnabled.text =
                 if (result.getData() == true) "Opted In" else "Opted Out"
+            binding.switchPushEnabled.setTextColor(ContextCompat.getColor(requireContext(), enabled.toColor()))
             Util.showDialog(
                 requireContext(),
                 "Push status",
@@ -147,6 +150,7 @@ class BaseTestFragment : Fragment() {
             it.setOnCheckedChangeListener(null)
             it.isChecked = enabled
             it.text = if (enabled) "Opted In" else "Opted Out"
+            it.setTextColor(ContextCompat.getColor(requireContext(), enabled.toColor()))
             it.setOnCheckedChangeListener { _, isChecked ->
                 pushEnable(isChecked)
             }

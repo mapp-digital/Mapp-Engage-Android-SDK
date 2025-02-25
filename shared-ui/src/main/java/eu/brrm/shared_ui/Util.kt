@@ -1,6 +1,7 @@
 package eu.brrm.shared_ui
 
 import android.content.Context
+import androidx.annotation.ColorRes
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.regex.Pattern
 
@@ -32,5 +33,11 @@ object Util {
         if (this.isNullOrEmpty()) return ""
         return this.split(Pattern.compile("(?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z])"), 0)
             .joinToString(separator = " ")
+    }
+
+    @JvmStatic
+    @ColorRes
+    fun Boolean.toColor(): Int {
+        return if (this) return R.color.green else R.color.red
     }
 }

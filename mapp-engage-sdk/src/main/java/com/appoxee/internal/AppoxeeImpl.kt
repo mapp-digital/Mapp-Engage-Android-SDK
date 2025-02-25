@@ -109,10 +109,6 @@ internal class AppoxeeImpl(
                 }
             }
 
-            // when registration is validated
-            // update optIn or optOut status with firebase token
-            updateOptStatus()
-
             // fetch InApp Configuration parameters
             getAppConfig()
 
@@ -140,14 +136,18 @@ internal class AppoxeeImpl(
                 // when registration data differs, register data again to update valus on server
                 appoxeeAdapter.register(newRegisterPayload)
 
+                // update optIn or optOut status with firebase token
+                updateOptStatus(devicePayload)
+
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
                 devicePayload = appoxeeAdapter.getDevice()
             }
         } else {
-            // retrieve registration from server
-            val retrieveRegistrationFromServer = false
-            if (retrieveRegistrationFromServer) {
+            // retrieve registration from server if application was previously registered
+            // then uninstalled and installed again
+            val reusePreviousRegistration = false
+            if (reusePreviousRegistration) {
                 // cached device payload doesn't exist or expired
                 // get new device payload from server
                 Logger.d(TAG, "validateRegistration - cached udidHashed == null")
@@ -163,6 +163,9 @@ internal class AppoxeeImpl(
             if (devicePayload?.udidHashed == null) {
                 // if device payload doesn't exist after all checkins, register device
                 appoxeeAdapter.register(newRegisterPayload)
+
+                // update optIn or optOut status with firebase token
+                updateOptStatus(devicePayload)
 
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
@@ -181,9 +184,8 @@ internal class AppoxeeImpl(
     }
 
 
-    private suspend fun updateOptStatus() {
+    private suspend fun updateOptStatus(devicePayload: DevicePayload?) {
         Logger.d(TAG, "updateOptStatus()")
-        val devicePayload = storage.getDevicePayload()
         val pushToken = FirebaseMessaging.getInstance().token.await()
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
 

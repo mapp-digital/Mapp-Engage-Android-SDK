@@ -229,6 +229,7 @@ public class BaseTestFragment extends Fragment {
         call.enqueue(result -> {
             boolean data = Boolean.TRUE.equals(result.getData());
             binding.switchPushEnabled.setText((data) ? "Opted In" : "Opted Out");
+            binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(data)));
             Util.showDialog(requireContext(), "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
         });
     }
@@ -251,6 +252,7 @@ public class BaseTestFragment extends Fragment {
         binding.switchPushEnabled.setOnCheckedChangeListener(null);
         binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
         binding.switchPushEnabled.setText(enabled ? "Opted In" : "Opted Out");
+        binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(enabled)));
         binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
             pushEnable(isChecked);
         });
