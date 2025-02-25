@@ -228,6 +228,7 @@ public class BaseTestFragment extends Fragment {
         Call<Boolean> call = Appoxee.instance().enablePush(enabled, null);
         call.enqueue(result -> {
             boolean data = Boolean.TRUE.equals(result.getData());
+            binding.switchPushEnabled.setText((data) ? "Opted In" : "Opted Out");
             Util.showDialog(requireContext(), "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
         });
     }
@@ -249,6 +250,7 @@ public class BaseTestFragment extends Fragment {
         Boolean enabled = pushToken != null && !pushToken.isEmpty();
         binding.switchPushEnabled.setOnCheckedChangeListener(null);
         binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
+        binding.switchPushEnabled.setText(enabled ? "Opted In" : "Opted Out");
         binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
             pushEnable(isChecked);
         });

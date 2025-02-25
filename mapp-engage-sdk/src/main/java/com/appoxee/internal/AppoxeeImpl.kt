@@ -145,14 +145,23 @@ internal class AppoxeeImpl(
                 devicePayload = appoxeeAdapter.getDevice()
             }
         } else {
-            // cached device payload doesn't exist or expired
-            // get new device payload from server
-            Logger.d(TAG, "validateRegistration - cached udidHashed == null")
-            devicePayload = appoxeeAdapter.getDevice()
+            // retrieve registration from server
+            val retrieveRegistrationFromServer = false
+            if (retrieveRegistrationFromServer) {
+                // cached device payload doesn't exist or expired
+                // get new device payload from server
+                Logger.d(TAG, "validateRegistration - cached udidHashed == null")
+                devicePayload = appoxeeAdapter.getDevice()
+            }
+            // check if device registered with older version (v6) and needs to be migrated
+            val migrate = false
+            if (migrate) {
+                // TODO migration login to retrieve old saved device registration data and covert to the new device format
+            }
 
-            // check if device payload from server exist or not
+            // check if device payload exist or not
             if (devicePayload?.udidHashed == null) {
-                // if device payload doesn't exist on server, register device
+                // if device payload doesn't exist after all checkins, register device
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // get device payload from server after new registration
@@ -178,14 +187,16 @@ internal class AppoxeeImpl(
         val pushToken = FirebaseMessaging.getInstance().token.await()
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
 
-        // if device opted Out and optOut token is expired, update optOut token
-        if (devicePayload?.pushTokenBk?.isNotEmpty() == true && pushToken != devicePayload.pushTokenBk) {
-            appoxeeAdapter.optOut(pushToken)
-        }
-
         // if device opted In and optIn token is expired, update optIn token
-        if (devicePayload?.pushToken?.isNotEmpty() == true && pushToken != devicePayload.pushToken) {
-            appoxeeAdapter.optIn(pushToken)
+        if (devicePayload?.pushToken?.isNotEmpty() == true) {
+            if (pushToken != devicePayload.pushToken) {
+                appoxeeAdapter.optIn(pushToken)
+            }
+        } else {
+            // if device opted Out and optOut token is expired, update optOut token
+            if (pushToken != devicePayload?.pushTokenBk) {
+                appoxeeAdapter.optOut(pushToken)
+            }
         }
 
         Logger.d(TAG, "updateOptStatus() - Finished")
