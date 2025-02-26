@@ -5,9 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.os.Looper
 import com.appoxee.internal.AppoxeeImpl
-import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
@@ -20,7 +18,9 @@ import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
 import com.google.firebase.messaging.RemoteMessage
-import org.jetbrains.annotations.TestOnly
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Engage SDK public API for usage in client's application
@@ -31,6 +31,10 @@ interface Appoxee {
         private val TAG = Appoxee::class.java.name
         private lateinit var mInstance: Appoxee
         private val dispatchers: com.appoxee.internal.util.Dispatchers = DispatchersImpl()
+        private val internalScope: CoroutineScope =
+            CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+                Logger.e(TAG, "exception in sdk init: $throwable")
+            })
 
         /**
          * Initialization method for the SDK.
@@ -45,7 +49,12 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            mInstance = AppoxeeImpl(context.applicationContext as Application, options, dispatchers)
+            mInstance = AppoxeeImpl(
+                context.applicationContext as Application,
+                options,
+                dispatchers,
+                internalScope
+            )
             Logger.d(TAG, "engage($context, $options)")
         }
 

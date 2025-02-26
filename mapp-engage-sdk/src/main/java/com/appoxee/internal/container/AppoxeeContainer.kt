@@ -4,6 +4,8 @@ package com.appoxee.internal.container
 
 import android.content.Context
 import com.appoxee.internal.AppoxeeAdapter
+import com.appoxee.internal.migration.MigrationHelper
+import com.appoxee.internal.migration.MigrationHelperImpl
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.NetworkClient
@@ -105,4 +107,6 @@ internal class AppoxeeContainer private constructor(
             dispatchers = dispatchers
         )
     }
+
+    internal val migrationHelper: MigrationHelper by lazy { MigrationHelperImpl(context) }
 }

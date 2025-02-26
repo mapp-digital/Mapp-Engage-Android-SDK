@@ -60,6 +60,10 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = false
+    }
+
     packaging {
         resources {
             pickFirsts += "META-INF/LICENSE.md"

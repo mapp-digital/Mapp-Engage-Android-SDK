@@ -10,6 +10,8 @@ import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.migration.MigrationHelper
+import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
@@ -17,6 +19,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
+import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.util.Logger
@@ -28,9 +31,7 @@ import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,16 +44,12 @@ internal class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions? = null,
     private val dispatchers: com.appoxee.internal.util.Dispatchers,
+    private val internalScope: CoroutineScope
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
 
     private val mutex = Mutex()
-
-    private val internalScope: CoroutineScope =
-        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
-            Logger.e(TAG, "exception in sdk init: $throwable")
-        })
 
     private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
 
@@ -84,42 +81,56 @@ internal class AppoxeeImpl(
     internal val pushContainer: PushContainer
         get() = PushContainer(application, appoxeeContainer)
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val deviceProvider: DeviceProvider
+        get() = appoxeeContainer.deviceProvider
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val migrationHelper: MigrationHelper
+        get() = appoxeeContainer.migrationHelper
+
+
     init {
         internalScope.launch(dispatchers.ioDispatcher) {
-            Logger.init(application.applicationContext as Application)
-
-            (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-                appoxeeContainer.activityLifecycleHandler
-            )
-
-            println("OPTIONS: $options")
-            // save config to local storage if not null
-            options?.let {
-                if (it != storage.getInitOptions()) {
-                    storage.clearRegistration()
-                    storage.saveInitOptions(it)
-                }
-            }
-
-            // check device registration
-            // update if exist or register new device
-            validateRegistration()?.let {
-                withContext(dispatchers.mainDispatcher) {
-                    updateReadyStatus(true, MappResult.Success(it))
-                }
-            }
-
-            // fetch InApp Configuration parameters
-            getAppConfig()
-
-            //init webview
-            withContext(dispatchers.mainDispatcher) {
-                MappWebView.getInstance(application.applicationContext)
-            }
+            initializeSdk()
         }
     }
 
-    private suspend fun validateRegistration(): DevicePayload? {
+    private suspend fun initializeSdk() {
+        Logger.init(application.applicationContext as Application)
+
+        (application.applicationContext as Application).registerActivityLifecycleCallbacks(
+            appoxeeContainer.activityLifecycleHandler
+        )
+
+        println("OPTIONS: $options")
+        // save config to local storage if not null
+        options?.let {
+            if (it != storage.getInitOptions()) {
+                storage.clearRegistration()
+                storage.saveInitOptions(it)
+            }
+        }
+
+        // check device registration
+        // update if exist or register new device
+        validateRegistration()?.let {
+            withContext(dispatchers.mainDispatcher) {
+                updateReadyStatus(true, MappResult.Success(it))
+            }
+        }
+
+        // fetch InApp Configuration parameters
+        getAppConfig()
+
+        //init webview
+        withContext(dispatchers.mainDispatcher) {
+            MappWebView.getInstance(application.applicationContext)
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun validateRegistration(): DevicePayload? {
         // get saved device from local storage
         var devicePayload: DevicePayload? = storage.getDevicePayload()
 
@@ -127,45 +138,57 @@ internal class AppoxeeImpl(
         val savedRegisterPayload = storage.getRegistrationDevice()
 
         // calculate current registration data of device
-        val newRegisterPayload = appoxeeContainer.deviceProvider.generateRegistrationDevice()
+        val newRegisterPayload = deviceProvider.generateRegistrationDevice()
 
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
             // check if saved registration data and currently calculated registration data differs
-            if (savedRegisterPayload != newRegisterPayload) {
-                // when registration data differs, register data again to update valus on server
+            if (savedRegisterPayload?.equals(newRegisterPayload) == false) {
+                // when registration data differs, register data again to update values on server
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // update optIn or optOut status with firebase token
-                updateOptStatus(devicePayload)
+                // this fulfills requirement to preserve OptIn/OptOut state when channel changed
+                updateOptStatus(devicePayload, null)
 
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
                 devicePayload = appoxeeAdapter.getDevice()
+            } else {
+                // device already registered and channel is unchanged
+                // update only FB token if needed
+                updateOptStatus(devicePayload, null)
             }
         } else {
-            // retrieve registration from server if application was previously registered
-            // then uninstalled and installed again
-            val reusePreviousRegistration = false
-            if (reusePreviousRegistration) {
-                // cached device payload doesn't exist or expired
-                // get new device payload from server
-                Logger.d(TAG, "validateRegistration - cached udidHashed == null")
-                devicePayload = appoxeeAdapter.getDevice()
-            }
             // check if device registered with older version (v6) and needs to be migrated
-            val migrate = false
-            if (migrate) {
-                // TODO migration login to retrieve old saved device registration data and covert to the new device format
+            val oldOptions = migrationHelper.getRegistrationOptions()
+
+            // get old registration options
+            val oldRegistration = migrationHelper.fetchRegistrationData()
+
+            // if channel is unchanged, reuse device registration and do not register device again.
+            // migrate registration to SDK v7 structure and delete SDK v6 registration data.
+            if (options?.equals(oldOptions) == true) {
+                devicePayload = appoxeeAdapter.getDevice()
+
+                // update only optOut state to refresh firebase token if it is changed
+                updateOptStatus(devicePayload, oldRegistration)
+
+                // delete old registration data
+                migrationHelper.deleteOldRegistration()
             }
 
-            // check if device payload exist or not
+            // Device payload is null if device was not previously registered or if channel data were changed.
+            // In this case, register new device and update optIn/optOut state
             if (devicePayload?.udidHashed == null) {
                 // if device payload doesn't exist after all checkins, register device
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // update optIn or optOut status with firebase token
-                updateOptStatus(devicePayload)
+                updateOptStatus(devicePayload, oldRegistration)
+
+                // delete old registration data if still exists
+                migrationHelper.deleteOldRegistration()
 
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
@@ -184,14 +207,18 @@ internal class AppoxeeImpl(
     }
 
 
-    private suspend fun updateOptStatus(devicePayload: DevicePayload?) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun updateOptStatus(
+        devicePayload: DevicePayload?,
+        oldRegistration: OldRegistration?
+    ) {
         Logger.d(TAG, "updateOptStatus()")
         val pushToken = FirebaseMessaging.getInstance().token.await()
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
 
         // if device opted In and optIn token is expired, update optIn token
-        if (devicePayload?.pushToken?.isNotEmpty() == true) {
-            if (pushToken != devicePayload.pushToken) {
+        if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
+            if (pushToken != devicePayload?.pushToken) {
                 appoxeeAdapter.optIn(pushToken)
             }
         } else {

@@ -2,6 +2,7 @@ package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
 import com.appoxee.internal.util.getNullableString
+import kotlinx.parcelize.IgnoredOnParcel
 import org.json.JSONObject
 
 internal data class RegisterDevice(
@@ -17,6 +18,7 @@ internal data class RegisterDevice(
     val resolution: String? = "N/A",
 ) : NetworkData {
 
+    @IgnoredOnParcel
     private lateinit var json: JSONObject
 
     companion object {

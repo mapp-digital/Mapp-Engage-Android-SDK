@@ -38,7 +38,7 @@ import org.junit.Test
 import java.util.Random
 import java.util.UUID
 
-class AppoxeeImplTest {
+class AppoxeeImplAndroidTest {
 
     private lateinit var appoxee: AppoxeeImpl
     private lateinit var engageApiImpl: EngageApiImpl
