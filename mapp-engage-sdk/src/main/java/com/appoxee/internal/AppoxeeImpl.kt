@@ -20,8 +20,9 @@ import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
+import com.appoxee.internal.provider.ObserversProvider
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.ui.custom.MappWebView
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -31,6 +32,7 @@ import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -43,15 +45,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions? = null,
-    private val dispatchers: com.appoxee.internal.util.Dispatchers,
-    private val internalScope: CoroutineScope
+    private val internalScope: CoroutineScope,
+    private val dispatcherProvider: DispatchersProvider,
+    private val observersProvider: ObserversProvider = ObserversProvider()
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
 
     private val mutex = Mutex()
-
-    private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
 
     private val mIsReady by lazy { AtomicBoolean(false) }
 
@@ -66,7 +67,7 @@ internal class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val appoxeeContainer = AppoxeeContainer.getInstance(
-        context = application, dispatchers = dispatchers
+        context = application, dispatchersProvider = dispatcherProvider
     )
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -91,21 +92,31 @@ internal class AppoxeeImpl(
 
 
     init {
-        internalScope.launch(dispatchers.ioDispatcher) {
+        internalScope.launch(dispatcherProvider.defaultDispatcher) {
+            // initialize logger
+            Logger.init(application)
+
+            // attach activity lifecycle listener
+            application.registerActivityLifecycleCallbacks(
+                appoxeeContainer.activityLifecycleHandler
+            )
+
+            // initialize sdk
             initializeSdk()
+
+            //init webview
+//            withContext(dispatchersProvider.mainDispatcher) {
+//                MappWebView.getInstance(application)
+//            }
         }
     }
 
-    private suspend fun initializeSdk() {
-        Logger.init(application.applicationContext as Application)
-
-        (application.applicationContext as Application).registerActivityLifecycleCallbacks(
-            appoxeeContainer.activityLifecycleHandler
-        )
-
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun initializeSdk() {
         println("OPTIONS: $options")
         // save config to local storage if not null
         options?.let {
+            // save only if current options are changed compared to the saved one
             if (it != storage.getInitOptions()) {
                 storage.clearRegistration()
                 storage.saveInitOptions(it)
@@ -115,18 +126,11 @@ internal class AppoxeeImpl(
         // check device registration
         // update if exist or register new device
         validateRegistration()?.let {
-            withContext(dispatchers.mainDispatcher) {
-                updateReadyStatus(true, MappResult.Success(it))
-            }
+            updateReadyStatus(true, MappResult.Success(it))
         }
 
         // fetch InApp Configuration parameters
-        getAppConfig()
-
-        //init webview
-        withContext(dispatchers.mainDispatcher) {
-            MappWebView.getInstance(application.applicationContext)
-        }
+        fetchAppConfig()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -143,7 +147,7 @@ internal class AppoxeeImpl(
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
             // check if saved registration data and currently calculated registration data differs
-            if (savedRegisterPayload?.equals(newRegisterPayload) == false) {
+            if (savedRegisterPayload != newRegisterPayload) {
                 // when registration data differs, register data again to update values on server
                 appoxeeAdapter.register(newRegisterPayload)
 
@@ -236,7 +240,7 @@ internal class AppoxeeImpl(
     }
 
     override fun setAlias(alias: String): Call<String?> = buildHttpCall {
-        appoxeeAdapter.setAlias(alias)
+        appoxeeAdapter.setAlias(alias)?.dmcUserId
     }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
@@ -283,7 +287,7 @@ internal class AppoxeeImpl(
         val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
-            withContext(dispatchers.mainDispatcher) {
+            withContext(dispatcherProvider.mainDispatcher) {
                 inappManager.handleMessages(context, sortedMessages)
             }
         }
@@ -361,35 +365,32 @@ internal class AppoxeeImpl(
     }
 
 
-    override fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        mIsReady.set(status)
-        observers.forEach {
-            it.onReadyStatusChanged(status, mappResult)
-        }
-        pushQueue.forEach {
-            internalScope.launch {
-                pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
+    override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) =
+        withContext(dispatcherProvider.mainDispatcher) {
+            mIsReady.set(status)
+            observersProvider.notify(status, mappResult)
+            pushQueue.forEach {
+                internalScope.launch {
+                    pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
+                }
             }
         }
-    }
 
     override fun subscribe(observer: AppoxeeObserver) {
         internalScope.launch {
             mutex.withLock {
                 val payload = storage.getDevicePayload()
-                withContext(dispatchers.mainDispatcher) {
-                    observers.add(observer)
+                withContext(dispatcherProvider.mainDispatcher) {
+                    observersProvider.addObserver(observer)
                     val device = payload ?: return@withContext
-                    observer.onReadyStatusChanged(
-                        isReady(), MappResult.Success(data = device)
-                    )
+                    observersProvider.notify(isReady(), MappResult.Success(data = device))
                 }
             }
         }
     }
 
     override fun unsubscribe(observer: AppoxeeObserver) {
-        observers.remove(observer)
+        observersProvider.removeObserver(observer)
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
@@ -411,8 +412,8 @@ internal class AppoxeeImpl(
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
 
-    private suspend fun getAppConfig() {
-        withContext(dispatchers.ioDispatcher) {
+    private suspend fun fetchAppConfig() {
+        withContext(dispatcherProvider.defaultDispatcher) {
             val result = appoxeeAdapter.getAppConfig()
             if (result.isSuccess()) {
                 storage.saveAppConfig(result.data?.payload)
@@ -432,7 +433,7 @@ internal class AppoxeeImpl(
             val requiredClass = LocalPushBroadcast::class.java
             if (clazz.superclass == requiredClass) {
                 appoxeeContainer.localPushBroadcast = clazz
-                withContext(dispatchers.ioDispatcher) {
+                withContext(dispatcherProvider.defaultDispatcher) {
                     storage.setBroadcastClass(clazz)
                 }
 
@@ -442,9 +443,14 @@ internal class AppoxeeImpl(
         }
     }
 
-    private fun <T> buildHttpCall(
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope = appoxeeContainer.baseScope, call)
+        return HttpCall(
+            scope = internalScope,
+            call = call,
+            dispatchersProvider = dispatcherProvider
+        )
     }
 }

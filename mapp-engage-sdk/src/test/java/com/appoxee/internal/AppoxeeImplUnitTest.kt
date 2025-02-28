@@ -1,20 +1,25 @@
 package com.appoxee.internal
 
-import TestDispatchers
+import TestDispatchersProvider
 import android.app.Application
 import android.util.Log
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.NetworkClient
+import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.provider.DeviceProvider
-import com.appoxee.internal.storage.InMemoryStorageImpl
+import com.appoxee.internal.provider.ObserversProvider
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -25,9 +30,12 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.test.StandardTestDispatcher
+import io.mockk.verifyOrder
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -40,8 +48,6 @@ class AppoxeeImplTestUnit {
     private lateinit var mockApplication: Application
 
     private lateinit var mockOptions: AppoxeeOptions
-
-    private lateinit var mockDispatchers: Dispatchers
 
     private lateinit var mockAppoxeeContainer: AppoxeeContainer
 
@@ -57,13 +63,19 @@ class AppoxeeImplTestUnit {
 
     private lateinit var mockAppoxeeAdapter: AppoxeeAdapter
 
-    private lateinit var mockScope: CoroutineScope
-
     private lateinit var mockNetworkClient: NetworkClient
 
     private lateinit var mockDevicePayload: DevicePayload
 
     private lateinit var mockOldRegistration: OldRegistration
+
+    private lateinit var observersProvider: ObserversProvider
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val testDispatcher = UnconfinedTestDispatcher(TestCoroutineScheduler())
+    private val testDispatchersProvider: TestDispatchersProvider =
+        TestDispatchersProvider(testDispatcher)
+    private val mockScope = TestScope(testDispatcher)
 
     @Before
     fun setUp() {
@@ -112,13 +124,12 @@ class AppoxeeImplTestUnit {
         )
 
         mockDeviceProvider = mockk(relaxed = true)
-        mockStorage = spyk(InMemoryStorageImpl())
-        mockEngageApi = mockk(relaxed = true, relaxUnitFun = true)
-        mockDispatchers = TestDispatchers()
+        mockStorage = mockk(relaxed = true)
+        mockEngageApi = mockk(relaxed = true)
         mockMigrationHelper = mockk(relaxed = true)
-        mockAppoxeeAdapter = mockk(relaxed = true)
+        observersProvider = mockk(relaxed = true)
+        mockAppoxeeAdapter = spyk(AppoxeeAdapter(mockEngageApi, mockStorage))
 
-        mockScope = TestScope(context = StandardTestDispatcher())
 
         every { mockOptions.sdkKey } returns "1111.22222"
         every { mockOptions.server } returns AppoxeeOptions.Server.TEST
@@ -141,7 +152,13 @@ class AppoxeeImplTestUnit {
         mockAppoxeeContainer = mockk(relaxed = true, relaxUnitFun = true)
 
         sut = spyk(
-            AppoxeeImpl(mockApplication, mockOptions, mockDispatchers, mockScope),
+            AppoxeeImpl(
+                mockApplication,
+                mockOptions,
+                mockScope,
+                testDispatchersProvider,
+                observersProvider
+            ),
             recordPrivateCalls = true
         )
         every { sut.appoxeeAdapter } returns mockAppoxeeAdapter
@@ -151,6 +168,7 @@ class AppoxeeImplTestUnit {
         every { sut.migrationHelper } returns mockMigrationHelper
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @After
     fun tearDown() {
         unmockkAll()
@@ -269,6 +287,122 @@ class AppoxeeImplTestUnit {
             mockAppoxeeAdapter.register(mockRegisterDevice)
             mockAppoxeeAdapter.getDevice()
             sut.updateOptStatus(mockDevicePayload, mockOldRegistration)
+        }
+    }
+
+    @Test
+    fun `validate registration when already on v7 and channel changed`() = runTest {
+        val appoxeeOptions = AppoxeeOptions(AppoxeeOptions.Server.L3, "abcd.efgh", "001122", "0987")
+        val storage = mockk<Storage>(relaxed = true) {
+            coEvery { this@mockk.getInitOptions() } coAnswers { appoxeeOptions }
+        }
+
+        coEvery { sut.storage } coAnswers { storage }
+
+        coEvery { sut.updateReadyStatus(any(), any()) } just runs
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
+        coEvery { sut.updateOptStatus(any(), any()) } just runs
+
+        // execute validation
+        sut.initializeSdk()
+
+        coVerifyOrder {
+            storage.getInitOptions()
+            storage.clearRegistration()
+            storage.saveInitOptions(any())
+            sut.validateRegistration()
+            mockAppoxeeAdapter.register(mockRegisterDevice)
+            sut.updateOptStatus(any(), any())
+            mockAppoxeeAdapter.getDevice()
+        }
+    }
+
+    @Test
+    fun `set alias with empty string throws exception`() = runTest {
+        every { sut.appoxeeAdapter } answers { mockAppoxeeAdapter }
+
+        val result = sut.setAlias("").asSuspend()
+
+        Truth.assertThat(result.getError()).isInstanceOf(Exception::class.java)
+    }
+
+    @Test
+    fun `set alias with valid string returns success`() = runTest {
+        coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
+        coEvery { mockAppoxeeAdapter.refreshDevicePayload() } coAnswers { mockDevicePayload }
+
+        val mockResponse = Response.success(200, ResponseData<DefaultResponse>(mockk(), mockk()))
+        coEvery { mockEngageApi.setAlias("user@mapp.com") } coAnswers { mockResponse }
+
+        val result = sut.setAlias("user@mapp.com").asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+    }
+
+    @Test
+    fun `get alias returns success`() = runTest {
+        val mockResponse = Response.success(200, ResponseData(mockk(), payload = mockDevicePayload))
+        coEvery { mockEngageApi.getAlias() } coAnswers { mockResponse }
+
+        val result = sut.getAlias().asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isEqualTo(mockDevicePayload.alias)
+
+    }
+
+    @Test
+    fun `get alias returns error when API throws exception`() = runTest {
+        coEvery { mockEngageApi.getAlias() } coAnswers { throw Exception() }
+
+        val result = sut.getAlias().asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isFalse()
+        Truth.assertThat(result.getError()).isInstanceOf(Exception::class.java)
+    }
+
+    @Test
+    fun `fetch inbox messages returns success`() = runTest {
+        val mockResponse = Response.success(
+            200, InboxMessagesResponse("1", listOf(mockk(), mockk()))
+        )
+        coEvery { mockEngageApi.fetchInboxMessages(any()) } coAnswers { mockResponse }
+
+        val result = sut.fetchInboxMessages().asSuspend()
+
+        coVerify { mockEngageApi.fetchInboxMessages("app_inbox") }
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()?.messages).hasSize(2)
+        Truth.assertThat(result.getData()?.eventId).isEqualTo("1")
+    }
+
+    @Test
+    fun `fetch inbox messages returns error when engageApi throws exception`() = runTest {
+        coEvery { mockEngageApi.fetchInboxMessages(any()) } coAnswers { throw Exception("Error") }
+
+        val result = sut.fetchInboxMessages().asSuspend()
+
+        coVerify { mockEngageApi.fetchInboxMessages("app_inbox") }
+
+        Truth.assertThat(result.isSuccess()).isFalse()
+        Truth.assertThat(result.getError()).isInstanceOf(Exception::class.java)
+    }
+
+    @Test
+    fun `subscribe should add observer to the list`() = runTest {
+        mockScope.launch {
+            // Mock dependencies
+            val observer = mockk<AppoxeeObserver>(relaxed = true)
+
+            // Call the method
+            sut.subscribe(observer)
+
+            // Verify observer was added
+            verifyOrder {
+                observersProvider.addObserver(observer)
+                observersProvider.notify(any(), any())
+            }
         }
     }
 }

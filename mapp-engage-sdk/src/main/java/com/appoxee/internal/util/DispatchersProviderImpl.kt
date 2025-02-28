@@ -2,9 +2,8 @@ package com.appoxee.internal.util
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 
-internal class DispatchersImpl : com.appoxee.internal.util.Dispatchers {
+internal class DispatchersProviderImpl : com.appoxee.internal.util.DispatchersProvider {
     override val ioDispatcher: CoroutineDispatcher
         get() = Dispatchers.IO
     override val mainDispatcher: CoroutineDispatcher

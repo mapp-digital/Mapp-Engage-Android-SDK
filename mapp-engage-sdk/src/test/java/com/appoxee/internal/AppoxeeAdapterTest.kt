@@ -1,6 +1,6 @@
 package com.appoxee.internal
 
-import TestDispatchers
+import TestDispatchersProvider
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -14,14 +14,19 @@ import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -33,20 +38,27 @@ class AppoxeeAdapterTest {
     private lateinit var appoxeeAdapter: AppoxeeAdapter
     private lateinit var engageApi: EngageApi
     private lateinit var storage: Storage
-    private lateinit var dispatchers: Dispatchers
+    private lateinit var dispatchersProvider: DispatchersProvider
+    private val scheduler = TestCoroutineScheduler()
+    private val standardTestDispatcher = StandardTestDispatcher(scheduler)
+    private val testDispatchers = TestDispatchersProvider(standardTestDispatcher)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
         engageApi = mockk(relaxed = true)
         storage = mockk(relaxed = true)
-        dispatchers = TestDispatchers()
-        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage, dispatchers))
+
+        kotlinx.coroutines.Dispatchers.setMain(dispatchersProvider.mainDispatcher)
+        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage))
         coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @After
     fun tearDown() {
         unmockkAll()
+        kotlinx.coroutines.Dispatchers.resetMain()
     }
 
     /**
@@ -86,7 +98,7 @@ class AppoxeeAdapterTest {
      */
     @Test
     fun `setAlias with new value successful`() = runTest {
-        val testAlias="test@alias.com"
+        val testAlias = "test@alias.com"
         coEvery { engageApi.setAlias(testAlias) } answers {
             Response.success(
                 200,

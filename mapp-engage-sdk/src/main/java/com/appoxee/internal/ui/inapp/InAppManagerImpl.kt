@@ -12,8 +12,8 @@ import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
-import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.DispatchersImpl
+import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.internal.util.DispatchersProviderImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,7 +27,7 @@ internal class InAppManagerImpl(
     private val webFactory: WebFactory,
     private val statsClient: StatsClient,
     private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers = DispatchersImpl(),
+    private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl(),
 ) : InAppManager {
 
     override fun parseResponse(response: InappResponse?): List<Message> {
@@ -54,7 +54,7 @@ internal class InAppManagerImpl(
             onMessageClosed = { msg, key, params ->
                 scope.launch {
                     reportInappEvent(msg, key, params)
-                    withContext(dispatchers.mainDispatcher) {
+                    withContext(dispatchersProvider.mainDispatcher) {
                         if (mutableMessages.isNotEmpty())
                             handleMessages(activity, mutableMessages.toList())
                     }
@@ -98,7 +98,7 @@ internal class InAppManagerImpl(
     override suspend fun markInboxMessageStatus(
         message: InboxMessage,
         status: MessageStatus
-    ): Boolean = withContext(dispatchers.ioDispatcher) {
+    ): Boolean = withContext(dispatchersProvider.ioDispatcher) {
         statsClient.markInboxMessageStatus(message, status)
     }
 

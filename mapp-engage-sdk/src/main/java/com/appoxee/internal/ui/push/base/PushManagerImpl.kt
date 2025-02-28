@@ -22,7 +22,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 internal class PushManagerImpl(
-    private val dispatchers: com.appoxee.internal.util.Dispatchers,
+    private val dispatchersProvider: com.appoxee.internal.util.DispatchersProvider,
     private val notify: Notify,
     private val notificationFactory: NotificationFactory,
     private val appoxeeContainer: AppoxeeContainer,
@@ -46,7 +46,7 @@ internal class PushManagerImpl(
     }
 
     override suspend fun handlePushMessage(context: Context, remoteMessage: RemoteMessage) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.ioDispatcher) {
             if (!isPushMessageFromMapp(remoteMessage)) return@withContext
             val notificationMode = getNotificationMode()
             Logger.d(TAG, "NOTIFICATION MODE: $notificationMode")
@@ -77,7 +77,7 @@ internal class PushManagerImpl(
             "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
         )
         val notification = createNotification(pushData, notificationId)
-        withContext(dispatchers.mainDispatcher) {
+        withContext(dispatchersProvider.mainDispatcher) {
             showNotification(notification, notificationId)
         }
     }
@@ -105,7 +105,7 @@ internal class PushManagerImpl(
     }
 
     override suspend fun createNotification(pushData: PushData, notificationId: Int): Notification {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.ioDispatcher) {
             notificationFactory.createSimpleNotification(
                 pushData,
                 notificationId

@@ -26,7 +26,7 @@ import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.getDisplayMetrics
 import com.appoxee.internal.util.LibraryExtensions.toColor
 import com.appoxee.internal.util.LibraryExtensions.toPx
@@ -37,9 +37,9 @@ internal class StandardNativeTemplate<T : Message>(
     inappActionHandler: InappActionHandler,
     private val message: T,
     scope: CoroutineScope,
-    dispatchers: Dispatchers,
+    dispatchersProvider: DispatchersProvider,
     private val onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
-) : Template(inappActionHandler, scope, dispatchers) {
+) : Template(inappActionHandler, scope, dispatchersProvider) {
 
     private lateinit var alertDialog: AlertDialog
     private var height: Int = 0

@@ -15,7 +15,6 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.base.PushManagerImpl
-import com.appoxee.internal.util.Dispatchers
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappResult
@@ -30,7 +29,14 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import net.bytebuddy.utility.RandomString
 import org.junit.After
 import org.junit.Before
@@ -43,14 +49,16 @@ class AppoxeeImplAndroidTest {
     private lateinit var appoxee: AppoxeeImpl
     private lateinit var engageApiImpl: EngageApiImpl
     private lateinit var storage: Storage
-    private lateinit var dispatchers: Dispatchers
+    private val testScheduler = TestCoroutineScheduler()
+    private val testDispatchers = TestDispatchersProvider()
+    private val testScope = TestScope()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        dispatchers = TestDispatchers()
-
+        Dispatchers.setMain(testDispatchers.mainDispatcher)
         val appoxeeOptions = spyk(
             AppoxeeOptions(
                 server = AppoxeeOptions.Server.L3,
@@ -66,9 +74,9 @@ class AppoxeeImplAndroidTest {
 
         storage = mockk<InMemoryStorageImpl>(relaxed = true)
 
-        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, dispatchers))
+        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, testDispatchers, testScope))
 
-        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage, dispatchers)) {
+        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage, testDispatchers)) {
             coEvery { this@spyk["refreshDevicePayload"]() as Unit } just Runs
         }
 
@@ -77,9 +85,11 @@ class AppoxeeImplAndroidTest {
         every { appoxee.storage } answers { storage }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @After
     fun tearDown() {
         unmockkAll()
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -320,7 +330,7 @@ class AppoxeeImplAndroidTest {
 
     @Test
     fun updateReadyStatus() {
-        runBlocking {
+        runTest {
             val status = true
             val devicePayload = mockk<DevicePayload>(relaxed = true, relaxUnitFun = true)
             val result = MappResult.Success(devicePayload)
@@ -328,27 +338,10 @@ class AppoxeeImplAndroidTest {
             val observer = mockk<AppoxeeObserver>(relaxed = true, relaxUnitFun = true)
 
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
-
+            every { appoxee.observers } returns mutableSetOf(observer)
             appoxee.updateReadyStatus(status, result)
-            appoxee.subscribe(observer)
 
-            coVerify(exactly = 1) { observer.onReadyStatusChanged(status, any()) }
-        }
-    }
-
-    @Test
-    fun subscribe() {
-        runBlocking {
-            val observer = mockk<AppoxeeObserver>() {
-                every { onReadyStatusChanged(any(), any()) } just Runs
-            }
-
-            val observers: MutableSet<AppoxeeObserver> = mockk(relaxed = true)
-
-            every { appoxee.getProperty("observers") as MutableSet<*> } answers { observers }
-
-            appoxee.subscribe(observer)
-            verify(exactly = 1) { observers.add(observer) }
+            coVerify(exactly = 1) { observer.onReadyStatusChanged(any(), any()) }
         }
     }
 

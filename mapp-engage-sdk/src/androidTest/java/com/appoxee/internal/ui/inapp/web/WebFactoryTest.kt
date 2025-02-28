@@ -1,7 +1,7 @@
 package com.appoxee.internal.ui.inapp.web
 
 import android.app.Activity
-import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.BannerPosition
@@ -13,7 +13,7 @@ import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.google.common.truth.Truth
 import io.mockk.coVerifyAll
 import io.mockk.every
@@ -33,17 +33,17 @@ import org.junit.Test
 class WebFactoryTest {
     private lateinit var factory: WebFactory
     private lateinit var scope: CoroutineScope
-    private lateinit var dispatchers: Dispatchers
+    private lateinit var dispatchersProvider: DispatchersProvider
     private lateinit var activity: Activity
     private lateinit var actionContainer: ActionContainer
 
     @Before
     fun setUp() {
         scope = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
-        dispatchers = TestDispatchers()
+        dispatchersProvider = TestDispatchersProvider()
         activity = mockk(relaxed = true)
         actionContainer= mockk(relaxed = true)
-        factory = spyk(WebFactory(scope, dispatchers, actionContainer))
+        factory = spyk(WebFactory(scope, dispatchersProvider, actionContainer))
     }
 
     @After

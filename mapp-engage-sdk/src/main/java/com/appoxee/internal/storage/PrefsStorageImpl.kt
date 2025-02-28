@@ -11,7 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import kotlinx.coroutines.flow.first
@@ -24,7 +24,7 @@ import java.util.Date
 private val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = "EngageDataStore")
 
 internal class PrefsStorageImpl(
-    context: Context, private val dataValidityMs: Long, private val dispatchers: Dispatchers
+    context: Context, private val dataValidityMs: Long, private val dispatchersProvider: DispatchersProvider
 ) : Storage {
 
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
@@ -39,13 +39,13 @@ internal class PrefsStorageImpl(
     private val mutex = Mutex()
 
     private suspend fun getTimestamp(): Long {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
         }
     }
 
     private suspend fun isCacheValid(): Boolean {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             val now = Date().time
             val lastSavedTimestamp = getTimestamp()
             now - lastSavedTimestamp < dataValidityMs
@@ -53,7 +53,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun clearRegistration() {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {
                 mutex.withLock {
                     it.remove(registerDeviceKey)
@@ -61,13 +61,14 @@ internal class PrefsStorageImpl(
                     it.remove(timestampKey)
                     it.remove(appConfigKey)
                     it.remove(appoxeeOptionsKey)
+                    it.remove(broadcastKey)
                 }
             }
         }
     }
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {
                 mutex.withLock {
                     val json = devicePayload?.toJSON()
@@ -79,7 +80,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun getDevicePayload(): DevicePayload? {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             if (!isCacheValid()) {
                 dataStore.edit {
                     mutex.withLock {
@@ -107,7 +108,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {
                 mutex.withLock {
                     val json = registerDevice?.asJson()?.getJSONObject("register")
@@ -118,7 +119,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun getRegistrationDevice(): RegisterDevice? {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             try {
                 mutex.withLock {
                     val json = dataStore.data.first()[registerDeviceKey]
@@ -136,7 +137,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun saveInitOptions(options: AppoxeeOptions?) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             options?.toJSON().let {
                 dataStore.edit { prefs ->
                     mutex.withLock {
@@ -148,7 +149,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun getInitOptions(): AppoxeeOptions? {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             try {
                 mutex.withLock {
                     val json = dataStore.data.first()[appoxeeOptionsKey]
@@ -166,7 +167,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun saveAppConfig(appConfigPayload: AppConfigPayload?) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             appConfigPayload?.toJSON()?.let { appConfig ->
                 dataStore.edit { prefs ->
                     mutex.withLock {
@@ -178,7 +179,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun getAppConfig(): AppConfigPayload? {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             try {
                 mutex.withLock {
                     val json = dataStore.data.first()[appConfigKey]
@@ -197,7 +198,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun setBroadcastClass(clazz: Class<*>) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
                 mutex.withLock {
                     prefs[broadcastKey] = clazz.name
@@ -207,7 +208,7 @@ internal class PrefsStorageImpl(
     }
 
     override suspend fun getBroadcastClass(): Class<*>? {
-        return withContext(dispatchers.ioDispatcher) {
+        return withContext(dispatchersProvider.defaultDispatcher) {
             try {
                 mutex.withLock {
                     dataStore.data.first()[broadcastKey]?.let {

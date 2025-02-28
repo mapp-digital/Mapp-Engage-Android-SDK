@@ -25,7 +25,6 @@ class MappMessagingService : FirebaseMessagingService() {
         Logger.d(TAG, "MappMessagingService - onCreate()")
         super.onCreate()
         appoxeeContainer = AppoxeeContainer.getInstance(this)
-        appoxeeContainer.activityLifecycleHandler.isInForeground()
         pushContainer = PushContainer(this, appoxeeContainer)
         instance = this
     }

@@ -11,13 +11,13 @@ import com.appoxee.internal.geo.GeofenceSchedulerImpl
 import com.appoxee.internal.geo.LocationProvider
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.provider.SystemInfoProvider
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 
 internal class GeoContainer(
     context: Context,
     private val systemInfoProvider: SystemInfoProvider,
     internal val engageApi: EngageApi,
-    internal val dispatchers: Dispatchers
+    internal val dispatchersProvider: DispatchersProvider
 ) {
     private val workManager: WorkManager by lazy {
         WorkManager.getInstance(context.applicationContext)
@@ -32,7 +32,7 @@ internal class GeoContainer(
     }
 
     internal val geofenceScheduler: GeofenceScheduler by lazy {
-        GeofenceSchedulerImpl(dispatchers, workManager)
+        GeofenceSchedulerImpl(dispatchersProvider, workManager)
     }
 
     internal val geofenceRegistry: GeofenceRegistry by lazy {
