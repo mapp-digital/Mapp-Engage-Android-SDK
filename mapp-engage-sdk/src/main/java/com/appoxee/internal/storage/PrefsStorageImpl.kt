@@ -2,6 +2,7 @@ package com.appoxee.internal.storage
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -19,12 +20,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.util.Date
+import java.util.concurrent.TimeUnit
 
 private val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = "EngageDataStore")
 
 internal class PrefsStorageImpl(
-    context: Context, private val dataValidityMs: Long, private val dispatchersProvider: DispatchersProvider
+    context: Context,
+    private val dispatchersProvider: DispatchersProvider,
+    private val dataValidityMs: Long = TimeUnit.DAYS.toMillis(1)
 ) : Storage {
 
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
@@ -38,19 +41,31 @@ internal class PrefsStorageImpl(
 
     private val mutex = Mutex()
 
-    private suspend fun getTimestamp(): Long {
+    override suspend fun getTimestamp(): Long {
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
         }
     }
 
-    private suspend fun isCacheValid(): Boolean {
+    override suspend fun updateCacheTimestamp() {
+        withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.edit {
+                mutex.withLock {
+                    it[timestampKey] = System.currentTimeMillis()
+                }
+            }
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    override suspend fun isCacheValid(): Boolean {
         return withContext(dispatchersProvider.defaultDispatcher) {
-            val now = Date().time
+            val now = System.currentTimeMillis()
             val lastSavedTimestamp = getTimestamp()
             now - lastSavedTimestamp < dataValidityMs
         }
     }
+
 
     override suspend fun clearRegistration() {
         withContext(dispatchersProvider.defaultDispatcher) {
@@ -73,7 +88,6 @@ internal class PrefsStorageImpl(
                 mutex.withLock {
                     val json = devicePayload?.toJSON()
                     it[devicePayloadKey] = json.toString()
-                    it[timestampKey] = Date().time
                 }
             }
         }
@@ -81,14 +95,6 @@ internal class PrefsStorageImpl(
 
     override suspend fun getDevicePayload(): DevicePayload? {
         return withContext(dispatchersProvider.defaultDispatcher) {
-            if (!isCacheValid()) {
-                dataStore.edit {
-                    mutex.withLock {
-                        it.remove(devicePayloadKey)
-                    }
-                }
-            }
-
             val json = mutex.withLock {
                 dataStore.data.first()[devicePayloadKey]
             }

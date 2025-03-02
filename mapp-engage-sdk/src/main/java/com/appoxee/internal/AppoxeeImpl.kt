@@ -34,6 +34,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -42,12 +44,15 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("UNCHECKED_CAST")
-internal class AppoxeeImpl(
+internal open class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions? = null,
-    private val internalScope: CoroutineScope,
-    private val dispatcherProvider: DispatchersProvider,
-    private val observersProvider: ObserversProvider = ObserversProvider()
+    val dispatcherProvider: DispatchersProvider,
+    val observersProvider: ObserversProvider = ObserversProvider(),
+    val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
+        application,
+        dispatcherProvider
+    ),
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
@@ -56,7 +61,12 @@ internal class AppoxeeImpl(
 
     private val mIsReady by lazy { AtomicBoolean(false) }
 
-    private val pushQueue = mutableSetOf<RemoteMessage>()
+    private val pushQueue by lazy { mutableSetOf<RemoteMessage>() }
+
+    private val internalScope =
+        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+            Logger.e(this.javaClass.name, "exception in sdk init: $throwable")
+        })
 
     private val actionContainer: ActionContainer
         get() = ActionContainer(application)
@@ -64,31 +74,25 @@ internal class AppoxeeImpl(
     private val inappContainer: InAppContainer
         get() = InAppContainer(internalScope, appoxeeContainer.statsClient, actionContainer)
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val pushContainer: PushContainer by lazy {
+        PushContainer(
+            application,
+            appoxeeContainer
+        )
+    }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val appoxeeContainer = AppoxeeContainer.getInstance(
-        context = application, dispatchersProvider = dispatcherProvider
-    )
+    internal val appoxeeAdapter: AppoxeeAdapter by lazy { appoxeeContainer.appoxeeAdapter }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val appoxeeAdapter: AppoxeeAdapter
-        get() = appoxeeContainer.appoxeeAdapter
+    internal open val storage: Storage by lazy { appoxeeContainer.storage }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val storage: Storage
-        get() = appoxeeContainer.storage
+    internal val deviceProvider: DeviceProvider by lazy { appoxeeContainer.deviceProvider }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val pushContainer: PushContainer
-        get() = PushContainer(application, appoxeeContainer)
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val deviceProvider: DeviceProvider
-        get() = appoxeeContainer.deviceProvider
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val migrationHelper: MigrationHelper
-        get() = appoxeeContainer.migrationHelper
+    internal val migrationHelper: MigrationHelper by lazy { appoxeeContainer.migrationHelper }
 
 
     init {
@@ -247,10 +251,9 @@ internal class AppoxeeImpl(
         appoxeeAdapter.getAlias()
     }
 
-    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> =
-        buildHttpCall {
-            appoxeeAdapter.fetchInboxMessages("app_inbox")
-        }
+    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> = buildHttpCall {
+        appoxeeAdapter.fetchInboxMessages("app_inbox")
+    }
 
     override fun fetchInboxMessage(templateId: Long): Call<InboxMessage?> =
         buildHttpCall {
@@ -369,18 +372,24 @@ internal class AppoxeeImpl(
         withContext(dispatcherProvider.mainDispatcher) {
             mIsReady.set(status)
             observersProvider.notify(status, mappResult)
-            pushQueue.forEach {
-                internalScope.launch {
+            internalScope.launch {
+                pushQueue.forEach {
                     pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
                 }
             }
+            Unit
         }
 
     override fun subscribe(observer: AppoxeeObserver) {
+        println("🚀 subscribe called")
+        println("🔎 internalScope isActive: ${internalScope.isActive}")
         internalScope.launch {
+            println("⚡ Inside coroutine")
             mutex.withLock {
+                println("🔓 Inside mutex block")
                 val payload = storage.getDevicePayload()
                 withContext(dispatcherProvider.mainDispatcher) {
+                    println("🔓 Inside withContext block")
                     observersProvider.addObserver(observer)
                     val device = payload ?: return@withContext
                     observersProvider.notify(isReady(), MappResult.Success(data = device))
@@ -412,14 +421,18 @@ internal class AppoxeeImpl(
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
 
-    private suspend fun fetchAppConfig() {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun fetchAppConfig() {
         withContext(dispatcherProvider.defaultDispatcher) {
-            val result = appoxeeAdapter.getAppConfig()
-            if (result.isSuccess()) {
-                storage.saveAppConfig(result.data?.payload)
-                Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
-            } else {
-                Logger.e(TAG, result.error?.toString() ?: "Error")
+            if (!storage.isCacheValid()) {
+                val result = appoxeeAdapter.getAppConfig()
+                if (result.isSuccess()) {
+                    storage.saveAppConfig(result.data?.payload)
+                    storage.updateCacheTimestamp()
+                    Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
+                } else {
+                    Logger.e(TAG, result.error?.toString() ?: "Error")
+                }
             }
         }
     }

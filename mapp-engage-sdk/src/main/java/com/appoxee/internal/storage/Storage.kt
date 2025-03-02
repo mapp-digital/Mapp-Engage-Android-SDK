@@ -28,4 +28,10 @@ internal interface Storage {
     suspend fun setBroadcastClass(clazz: Class<*>)
 
     suspend fun getBroadcastClass(): Class<*>?
+
+    suspend fun isCacheValid(): Boolean
+
+    suspend fun updateCacheTimestamp()
+
+    suspend fun getTimestamp(): Long
 }

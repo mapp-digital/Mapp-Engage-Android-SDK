@@ -4,9 +4,11 @@ import TestDispatchersProvider
 import android.app.Application
 import android.util.Log
 import com.appoxee.internal.container.AppoxeeContainer
+import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
@@ -17,9 +19,15 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.ObserversProvider
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.ui.push.base.PushManager
+import com.appoxee.internal.ui.push.base.PushManagerImpl
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.LocalPushBroadcast
+import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
+import com.google.firebase.messaging.RemoteMessage
+import io.mockk.Ordering
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -30,16 +38,16 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
+import io.mockk.verify
 import io.mockk.verifyOrder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestCoroutineScheduler
-import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicBoolean
 
 class AppoxeeImplTestUnit {
 
@@ -71,14 +79,16 @@ class AppoxeeImplTestUnit {
 
     private lateinit var observersProvider: ObserversProvider
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val testDispatcher = UnconfinedTestDispatcher(TestCoroutineScheduler())
-    private val testDispatchersProvider: TestDispatchersProvider =
-        TestDispatchersProvider(testDispatcher)
-    private val mockScope = TestScope(testDispatcher)
+    private lateinit var testDispatcher: TestDispatcher
 
+    private lateinit var testDispatchersProvider: TestDispatchersProvider
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
+        testDispatcher = UnconfinedTestDispatcher()
+        testDispatchersProvider = TestDispatchersProvider(testDispatcher)
+        //Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
         mockkStatic(Log::class)
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
@@ -124,12 +134,13 @@ class AppoxeeImplTestUnit {
         )
 
         mockDeviceProvider = mockk(relaxed = true)
-        mockStorage = mockk(relaxed = true)
+        mockStorage = mockk<Storage>(relaxed = true)
         mockEngageApi = mockk(relaxed = true)
         mockMigrationHelper = mockk(relaxed = true)
         observersProvider = mockk(relaxed = true)
         mockAppoxeeAdapter = spyk(AppoxeeAdapter(mockEngageApi, mockStorage))
 
+        coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
 
         every { mockOptions.sdkKey } returns "1111.22222"
         every { mockOptions.server } returns AppoxeeOptions.Server.TEST
@@ -149,17 +160,21 @@ class AppoxeeImplTestUnit {
             )
         }
 
-        mockAppoxeeContainer = mockk(relaxed = true, relaxUnitFun = true)
+        mockAppoxeeContainer = mockk<AppoxeeContainer>(relaxed = true, relaxUnitFun = true)
+//        every { mockAppoxeeContainer.appoxeeAdapter } returns mockAppoxeeAdapter
+//        every { mockAppoxeeContainer.storage } returns mockStorage
+//        every { mockAppoxeeContainer.deviceProvider } returns mockDeviceProvider
+//        every { mockAppoxeeContainer.engageApi } returns mockEngageApi
+//        every { mockAppoxeeContainer.networkClient } returns mockNetworkClient
 
         sut = spyk(
             AppoxeeImpl(
                 mockApplication,
                 mockOptions,
-                mockScope,
                 testDispatchersProvider,
-                observersProvider
-            ),
-            recordPrivateCalls = true
+                observersProvider,
+                mockAppoxeeContainer
+            )
         )
         every { sut.appoxeeAdapter } returns mockAppoxeeAdapter
         every { sut.appoxeeContainer } returns mockAppoxeeContainer
@@ -172,6 +187,7 @@ class AppoxeeImplTestUnit {
     @After
     fun tearDown() {
         unmockkAll()
+        //Dispatchers.resetMain()
     }
 
     @Test
@@ -381,28 +397,230 @@ class AppoxeeImplTestUnit {
     fun `fetch inbox messages returns error when engageApi throws exception`() = runTest {
         coEvery { mockEngageApi.fetchInboxMessages(any()) } coAnswers { throw Exception("Error") }
 
-        val result = sut.fetchInboxMessages().asSuspend()
+        val result = kotlin.runCatching { sut.fetchInboxMessages().asSuspend() }.getOrNull()
 
         coVerify { mockEngageApi.fetchInboxMessages("app_inbox") }
 
-        Truth.assertThat(result.isSuccess()).isFalse()
-        Truth.assertThat(result.getError()).isInstanceOf(Exception::class.java)
+        Truth.assertThat(result?.isSuccess()).isFalse()
+        Truth.assertThat(result?.getError()).isNotNull()
     }
 
     @Test
     fun `subscribe should add observer to the list`() = runTest {
-        mockScope.launch {
+        // Mock dependencies
+        val observer = mockk<AppoxeeObserver>(relaxed = true)
+
+        // Call the method
+        sut.subscribe(observer)
+        // Verify observer was added
+        verifyOrder {
+            observersProvider.addObserver(observer)
+            observersProvider.notify(any(), any())
+        }
+    }
+
+    @Test
+    fun `unsubscribe should remove observer from the list`() = runTest {
+        // Mock dependencies
+        val observer = mockk<AppoxeeObserver>(relaxed = true)
+
+        // Call the method
+        sut.unsubscribe(observer)
+        // Verify observer was added
+        verify(exactly = 1) {
+            observersProvider.removeObserver(observer)
+        }
+
+        verify(exactly = 0) {
+            observersProvider.notify(any(), any())
+        }
+    }
+
+    @Test
+    fun `update ready status successfully and notify observers`() = runTest {
+        val mockResult = MappResult.Success(data = mockDevicePayload)
+        val mockIsReady = mockk<AtomicBoolean>(relaxed = true)
+        val mockObserverProvider = mockk<ObserversProvider>(relaxed = true)
+
+        every { sut.getProperty("mIsReady") } returns mockIsReady
+        every { sut.observersProvider } returns mockObserverProvider
+
+        sut.updateReadyStatus(true, mockResult)
+
+        coVerifyOrder {
+            mockIsReady.set(true)
+            mockObserverProvider.notify(true, mockResult)
+        }
+    }
+
+    @Test
+    fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
+        runTest {
             // Mock dependencies
-            val observer = mockk<AppoxeeObserver>(relaxed = true)
+            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
+
+            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+                every { get() } returns true
+            }
+            val mockPushManager = mockk<PushManager>(relaxed = true)
+            val pushContainer = mockk<PushContainer>(relaxed = true) {
+                every { this@mockk.pushManager } returns mockPushManager
+            }
+
+            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+
+            every { sut.pushContainer } returns pushContainer
 
             // Call the method
-            sut.subscribe(observer)
-
+            sut.handlePushMessage(remoteMessage = mockRemoteMessage)
             // Verify observer was added
-            verifyOrder {
-                observersProvider.addObserver(observer)
-                observersProvider.notify(any(), any())
+            coVerify(exactly = 1) {
+                mockPushManager.handlePushMessage(any(), remoteMessage = mockRemoteMessage)
             }
         }
+
+    @Test
+    fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =
+        runTest {
+            // Mock dependencies
+            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
+
+            val mockPushQueue = mockk<MutableSet<RemoteMessage>>(relaxed = true)
+
+            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+                every { get() } returns false
+            }
+
+            coEvery { sut.getProperty("pushQueue") } returns mockPushQueue
+            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+
+            // Call the method
+            sut.handlePushMessage(remoteMessage = mockRemoteMessage)
+            // Verify observer was added
+            coVerify(exactly = 1) {
+                mockPushQueue.add(mockRemoteMessage)
+            }
+        }
+
+    @Test
+    fun `ifPushMessageFromMapp returns true for messages having 'p' parameter`() =
+        runTest {
+            // Mock dependencies
+            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true) {
+                every { this@mockk.data["p"] } returns "1234"
+            }
+
+            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+                every { get() } returns true
+            }
+
+
+            val mockPushManager = mockk<PushManagerImpl>(relaxed = true) {
+                every { this@mockk.isPushMessageFromMapp(any()) } answers { callOriginal() }
+            }
+            val pushContainer = mockk<PushContainer>(relaxed = true) {
+                every { this@mockk.pushManager } returns mockPushManager
+            }
+
+            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+
+            every { sut.pushContainer } returns pushContainer
+
+            // Call the method
+            val result = sut.isPushMessageFromMapp(remoteMessage = mockRemoteMessage)
+            // Verify observer was added
+            coVerify(exactly = 1) {
+                mockPushManager.isPushMessageFromMapp(mockRemoteMessage)
+            }
+
+            Truth.assertThat(result).isTrue()
+        }
+
+    @Test
+    fun `ifPushMessageFromMapp returns false for messages not having 'p' parameter`() =
+        runTest {
+            // Mock dependencies
+            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true) {
+                every { this@mockk.data["p"] } returns null
+            }
+
+            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+                every { get() } returns true
+            }
+
+
+            val mockPushManager = mockk<PushManagerImpl>(relaxed = true) {
+                every { this@mockk.isPushMessageFromMapp(any()) } answers { callOriginal() }
+            }
+            val pushContainer = mockk<PushContainer>(relaxed = true) {
+                every { this@mockk.pushManager } returns mockPushManager
+            }
+
+            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+
+            every { sut.pushContainer } returns pushContainer
+
+            // Call the method
+            val result = sut.isPushMessageFromMapp(remoteMessage = mockRemoteMessage)
+            // Verify observer was added
+            coVerify(exactly = 1) {
+                mockPushManager.isPushMessageFromMapp(mockRemoteMessage)
+            }
+
+            Truth.assertThat(result).isFalse()
+        }
+
+    @Test
+    fun `fetchConfig runs and get configuration successfully`() = runTest {
+        val mockConfiguration = mockk<AppConfigPayload>(relaxed = true)
+
+        val mockResponse = Response.success(200, ResponseData(null, mockConfiguration))
+
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } returns 0
+        every { Log.e(any(), any(), any()) } returns 0
+
+        coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
+
+        sut.fetchAppConfig()
+
+        coVerifyOrder {
+            mockEngageApi.getAppConfig()
+            mockStorage.saveAppConfig(mockConfiguration)
+            mockStorage.updateCacheTimestamp()
+            Log.d(any(), any())
+        }
+    }
+
+    @Test
+    fun `fetchConfig runs and get error when engageApi throws exception`() = runTest {
+        val mockResponse = Response.error<ResponseData<AppConfigPayload>>(Throwable("Error"))
+
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } returns 0
+        every { Log.e(any(), any(), any()) } returns 0
+
+        coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
+
+        kotlin.runCatching { sut.fetchAppConfig() }
+
+        coVerifyOrder {
+            mockEngageApi.getAppConfig()
+            Log.e(any(), any(), any())
+        }
+
+        coVerify(ordering = Ordering.UNORDERED, exactly = 0) {
+            mockStorage.saveAppConfig(any())
+            mockStorage.updateCacheTimestamp()
+        }
+    }
+
+    private abstract class ValidPushBroadcast : LocalPushBroadcast()
+
+    @Test
+    fun `setPushBroadcast class which is subtype of LocalPushBroadcast is successful`() {
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+
+        coVerify { mockStorage.setBroadcastClass(ValidPushBroadcast::class.java) }
     }
 }

@@ -18,7 +18,6 @@ import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
-import com.appoxee.shared.MappResult
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -33,10 +32,6 @@ interface Appoxee {
         private val TAG = Appoxee::class.java.name
         private lateinit var mInstance: Appoxee
         private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
-        private val internalScope: CoroutineScope =
-            CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
-                Logger.e(TAG, "exception in sdk init: $throwable")
-            })
 
         /**
          * Initialization method for the SDK.
@@ -54,7 +49,6 @@ interface Appoxee {
             mInstance = AppoxeeImpl(
                 context.applicationContext as Application,
                 options,
-                internalScope,
                 dispatchersProvider
             )
             Logger.d(TAG, "engage($context, $options)")

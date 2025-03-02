@@ -95,7 +95,8 @@ internal class AppoxeeAdapter(
 
     internal suspend fun fetchInboxMessages(event: String): InboxMessagesResponse? {
         val response = engageApi.fetchInboxMessages(eventName = event)
-        return response.data
+        return if (response.isSuccess()) response.data
+        else throw Throwable(response.error)
     }
 
     internal suspend fun fetchInappMessages(event: String): InappResponse? {

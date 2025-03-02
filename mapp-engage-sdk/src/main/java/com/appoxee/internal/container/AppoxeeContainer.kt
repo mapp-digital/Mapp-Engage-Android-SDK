@@ -26,7 +26,6 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
-import java.util.concurrent.TimeUnit
 
 internal class AppoxeeContainer private constructor(
     context: Context,
@@ -59,9 +58,8 @@ internal class AppoxeeContainer private constructor(
 
     internal val storage: Storage by lazy {
         PrefsStorageImpl(
-            context,
-            TimeUnit.DAYS.toMillis(1),
-            dispatchersProvider
+            context = context,
+            dispatchersProvider = dispatchersProvider
         )
     }
 
