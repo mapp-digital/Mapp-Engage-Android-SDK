@@ -1,5 +1,3 @@
 <resources>
     <string name="app_name">EngageSample</string>
-    <string name="location_permission_rationale_explanation">For geofencing to work background location permission is required.\n\nPlease select \'Allow all the time\' option, like on the picture bellow.</string>
-    <string name="do_you_want_to_open_application_settings_and_grant_permissions">Do you want to open application settings and grant permissions?</string>
 </resources>

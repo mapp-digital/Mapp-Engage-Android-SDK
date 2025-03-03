@@ -2,9 +2,9 @@ package com.appoxee.shared
 
 import androidx.annotation.IntRange
 import com.appoxee.internal.util.getIntOrDefault
-import com.appoxee.internal.util.getLongOrDefault
 import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
+import com.appoxee.shared.AppoxeeOptions.Server
 import org.json.JSONObject
 
 
@@ -119,11 +119,14 @@ class AppoxeeOptions(
             internalCepUrl = "https://jamie-test.shortest-route.com"
         );
 
-        /**
-         * Returns the Server enum value for the given server's name value
-         */
-        fun get(name: String): Server {
-            return valueOf(name)
+        companion object {
+            /**
+             * Returns the Server enum value for the given server's name value
+             */
+            @JvmStatic
+            fun get(name: String): Server? {
+                return Server.entries.firstOrNull { it.value == name }
+            }
         }
     }
 
@@ -164,8 +167,6 @@ class AppoxeeOptions(
         if (sdkKey != other.sdkKey) return false
         if (appId != other.appId) return false
         if (tenantId != other.tenantId) return false
-        if (logType != other.logType) return false
-        if (notificationMode != other.notificationMode) return false
 
         return true
     }

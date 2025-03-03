@@ -16,8 +16,8 @@ import com.appoxee.internal.ui.push.base.PushManager
 import com.appoxee.internal.ui.push.base.PushManagerImpl
 import com.appoxee.internal.ui.push.model.CategoriesFactory
 import com.appoxee.internal.ui.push.style.NotificationStyleFactory
-import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.DispatchersImpl
+import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.internal.util.DispatchersProviderImpl
 
 internal class PushContainer(
     private val context: Context,
@@ -26,7 +26,7 @@ internal class PushContainer(
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
     private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
 
-    private val dispatchers: Dispatchers = DispatchersImpl()
+    private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
 
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
@@ -60,7 +60,7 @@ internal class PushContainer(
 
     internal val pushManager: PushManager
         get() = PushManagerImpl(
-            dispatchers,
+            dispatchersProvider,
             notify,
             notificationFactory,
             appoxeeContainer,

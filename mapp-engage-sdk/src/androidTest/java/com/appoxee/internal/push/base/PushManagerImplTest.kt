@@ -3,7 +3,7 @@ package com.appoxee.internal.push.base
 import android.app.Notification
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
@@ -35,7 +35,7 @@ class PushManagerImplTest {
     private lateinit var notificationFactory: NotificationFactory
     private lateinit var storage: Storage
     private lateinit var notify: Notify
-    private lateinit var dispatchers: com.appoxee.internal.util.Dispatchers
+    private lateinit var dispatchersProvider: com.appoxee.internal.util.DispatchersProvider
     private lateinit var categoriesFactory: CategoriesFactory
     private lateinit var appoxeeContainer: AppoxeeContainer
     private lateinit var context: Context
@@ -46,7 +46,7 @@ class PushManagerImplTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        dispatchers = TestDispatchers()
+        dispatchersProvider = TestDispatchersProvider()
         notify = mockk(relaxed = true, relaxUnitFun = true)
         notificationFactory = mockk<NotificationFactory>(relaxed = true) {
             coEvery { createSimpleNotification(any(), any()) } coAnswers {
@@ -61,7 +61,7 @@ class PushManagerImplTest {
         appoxeeContainer = spyk(AppoxeeContainer.getInstance(context))
         pushManager = spyk(
             PushManagerImpl(
-                dispatchers,
+                dispatchersProvider,
                 notify,
                 notificationFactory,
                 appoxeeContainer,

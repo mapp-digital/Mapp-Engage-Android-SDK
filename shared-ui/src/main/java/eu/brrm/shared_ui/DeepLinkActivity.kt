@@ -1,6 +1,7 @@
 package eu.brrm.shared_ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -43,8 +44,12 @@ class DeepLinkActivity : AppCompatActivity() {
             binding.tvDeepLinkUri.text = sb.toString()
             binding.btnOpenDeepLink.setOnClickListener {
                 val openingIntent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                startActivity(openingIntent)
-                this@DeepLinkActivity.finishAfterTransition()
+                if(openingIntent.resolveActivity(this.packageManager)!=null) {
+                    startActivity(openingIntent)
+                    this@DeepLinkActivity.finishAfterTransition()
+                }else{
+                    Util.showDialog(this, "Unsupported intent", "No activity can handle provided deeplink!")
+                }
             }
         }
     }

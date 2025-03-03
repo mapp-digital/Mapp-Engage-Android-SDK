@@ -2,9 +2,9 @@ package com.appoxee.internal.storage
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
-import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.google.common.truth.Truth
 import io.mockk.every
 import io.mockk.spyk
@@ -20,7 +20,7 @@ internal class PrefsStorageImplTest {
     private lateinit var application: Application
 
     private lateinit var storage: PrefsStorageImpl
-    private lateinit var dispatchers: Dispatchers
+    private lateinit var dispatchersProvider: DispatchersProvider
 
     private val devicePayload = DevicePayload(
         dmcUserId = "12345",
@@ -32,8 +32,8 @@ internal class PrefsStorageImplTest {
     @Before
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
-        dispatchers = TestDispatchers()
-        storage = spyk(PrefsStorageImpl(application, TimeUnit.SECONDS.toMillis(1), dispatchers))
+        dispatchersProvider = TestDispatchersProvider()
+        storage = spyk(PrefsStorageImpl(application, TimeUnit.SECONDS.toMillis(1), dispatchersProvider))
     }
 
     @After

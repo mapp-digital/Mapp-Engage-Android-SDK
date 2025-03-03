@@ -1,17 +1,16 @@
 package com.appoxee.internal.broadcast
 
 import android.app.NotificationManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.LocalPushBroadcast
 import com.google.common.truth.Truth
@@ -44,11 +43,11 @@ class MappInternalBroadcastReceiverTest {
     private lateinit var statsClient: StatsClient
     private lateinit var pushData: PushData
     private lateinit var bundle: Bundle
-    private lateinit var dispatchers: Dispatchers
+    private lateinit var dispatchersProvider: DispatchersProvider
 
     @Before
     fun setUp() {
-        dispatchers = TestDispatchers()
+        dispatchersProvider = TestDispatchersProvider()
         mockkStatic(Logger::class)
         mockkStatic(Log::class)
         context = mockk(relaxed = true)
@@ -57,7 +56,7 @@ class MappInternalBroadcastReceiverTest {
         pushData = mockk(relaxed = true)
         bundle = mockk(relaxed = true)
 
-        appoxeeContainer = spyk(AppoxeeContainer.getInstance(context, dispatchers))
+        appoxeeContainer = spyk(AppoxeeContainer.getInstance(context, dispatchersProvider))
 
         receiver = spyk(MappInternalBroadcastReceiver(), recordPrivateCalls = true) {
             setAppoxeeContainer(appoxeeContainer)

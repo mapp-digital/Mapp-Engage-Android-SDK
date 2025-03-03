@@ -3,7 +3,7 @@ package com.appoxee.internal.ui.inapp
 import android.app.Activity
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
-import com.appoxee.internal.TestDispatchers
+import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inapp.Message
@@ -13,7 +13,7 @@ import com.appoxee.internal.model.response.inapp.WebInappMessage
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,7 +36,7 @@ class InAppManagerImplTest {
     // Mocks
     private lateinit var nativeFactory: NativeFactory
     private lateinit var webFactory: WebFactory
-    private lateinit var dispatchers: Dispatchers
+    private lateinit var dispatchersProvider: DispatchersProvider
 
     // Class under test
     private lateinit var inAppManager: InAppManagerImpl
@@ -58,7 +58,7 @@ class InAppManagerImplTest {
         context = ApplicationProvider.getApplicationContext()
         nativeFactory = mockk()
         webFactory = mockk()
-        dispatchers = TestDispatchers()
+        dispatchersProvider = TestDispatchersProvider()
         scope = TestScope(StandardTestDispatcher())
         statsClient = mockk(relaxed = true)
         // Create the class under test
@@ -67,7 +67,7 @@ class InAppManagerImplTest {
             webFactory = webFactory,
             statsClient = statsClient,
             scope = scope,
-            dispatchers = dispatchers
+            dispatchersProvider = dispatchersProvider
         )
 
         // Mock other objects

@@ -32,12 +32,16 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
         val webUri =
             Uri.parse("https://play.google.com/store/apps/details?id=${applicationId}")
 
-        val playStoreIntent = Intent(Intent.ACTION_VIEW, playStoreUri)
+        val playStoreIntent = Intent(Intent.ACTION_VIEW, playStoreUri).apply {
+            setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
         try {
             context.startActivity(playStoreIntent, null)
         } catch (e: ActivityNotFoundException) {
             // Play Store app is not installed, fallback to the web browser
-            val webIntent = Intent(Intent.ACTION_VIEW, webUri)
+            val webIntent = Intent(Intent.ACTION_VIEW, webUri).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            }
             context.startActivity(webIntent, null)
         }
     }
@@ -55,9 +59,11 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
             uriBuilder.appendQueryParameter("messageId", it)
         }
 
-        val deeplinkIntent = Intent(Actions.MAPP_DEEP_LINK_ACTION, uriBuilder.build())
-            .setPackage(context.packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        val deeplinkIntent = Intent(Actions.MAPP_DEEP_LINK_ACTION, uriBuilder.build()).apply {
+            setPackage(context.packageName)
+            setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
+
         try {
             if (deeplinkIntent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(deeplinkIntent)
@@ -92,6 +98,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
         Logger.d(TAG, message)
         if (phoneNumber.startsWith("tel")) {
             val intent = Intent(Intent.ACTION_DIAL).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
                 val number = phoneNumber
                     .replace(" ", "")
                     .replace("tel:", "tel:+")
@@ -105,7 +112,9 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
     override fun openLandingPageExternal(url: String) {
         val message = "Landing Page External: $url"
         Logger.d(TAG, message)
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
         context.startActivity(browserIntent)
     }
 
@@ -130,7 +139,10 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
             builder.setCloseButtonIcon(it)
         }
 
-        val customTabsIntent = builder.build()
+        val customTabsIntent = builder.build().apply {
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
+
         customTabsIntent.launchUrl(context, Uri.parse(url))
     }
 

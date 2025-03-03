@@ -1,12 +1,11 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.network.exceptions.CallConsumedException
+import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -14,8 +13,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal class HttpCall<T>(
-    private val coroutineScope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val call: suspend () -> T,
+    private val dispatchersProvider: DispatchersProvider
 ) : Call<T> {
     private val mutex = Mutex()
 
@@ -32,19 +32,21 @@ internal class HttpCall<T>(
 
     override fun execute(): MappResult<T> = runBlocking {
         if (isExecuted()) throw CallConsumedException()
-        return@runBlocking executeWithErrorHandling()
+        executeWithErrorHandling()
     }
 
-    override suspend fun asSuspend(): MappResult<T> = withContext(Dispatchers.IO) {
+    override suspend fun asSuspend(): MappResult<T> {
         if (isExecuted()) throw CallConsumedException()
-        return@withContext executeWithErrorHandling()
+        return withContext(dispatchersProvider.defaultDispatcher) {
+            executeWithErrorHandling()
+        }
     }
 
     override fun enqueue(callback: MappCallback<T>?) {
         if (isExecuted()) throw CallConsumedException()
-        coroutineScope.launch {
+        scope.launch {
             val result = executeWithErrorHandling()
-            withContext(Dispatchers.Main) {
+            withContext(dispatchersProvider.mainDispatcher) {
                 callback?.onResult(result)
             }
         }
@@ -54,13 +56,13 @@ internal class HttpCall<T>(
         return try {
             executed = true
             val result = call.invoke()
-            withContext(Dispatchers.Main) {
-                MappResult.Success(result)
-            }
+            MappResult.Success(result)
+        } catch (e: Throwable) {
+            Logger.e("HttpCall", e.message ?: "Unknown message")
+            MappResult.Error(e)
         } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                MappResult.Error(e)
-            }
+            Logger.e("HttpCall", e.message ?: "Unknown message")
+            MappResult.Error(e)
         }
     }
 }
