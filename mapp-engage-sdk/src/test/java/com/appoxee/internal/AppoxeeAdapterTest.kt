@@ -1,6 +1,5 @@
 package com.appoxee.internal
 
-import TestDispatchers
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -14,7 +13,6 @@ import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.util.Dispatchers
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,15 +31,13 @@ class AppoxeeAdapterTest {
     private lateinit var appoxeeAdapter: AppoxeeAdapter
     private lateinit var engageApi: EngageApi
     private lateinit var storage: Storage
-    private lateinit var dispatchers: Dispatchers
 
     @Before
     fun setUp() {
         engageApi = mockk(relaxed = true)
         storage = mockk(relaxed = true)
-        dispatchers = TestDispatchers()
-        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage, dispatchers))
-        coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
+
+        appoxeeAdapter = spyk(AppoxeeAdapter(engageApi, storage))
     }
 
     @After
@@ -85,21 +81,32 @@ class AppoxeeAdapterTest {
      * Network call is executed and value is returned from a server
      */
     @Test
-    fun `setAlias with new value successful`() = runTest {
-        val testAlias="test@alias.com"
-        coEvery { engageApi.setAlias(testAlias) } answers {
-            Response.success(
-                200,
-                ResponseData(metadata = null, DefaultResponse("123456", emptyList()))
+    fun `setAlias with new value successful`() {
+        runTest {
+            val testAlias = "test@alias.com"
+            val devicePayload = DevicePayload(
+                dmcUserId = "1234",
+                udidHashed = "5678",
+                pushTokenBk = "",
+                pushToken = "abc.1234",
+                alias = "user@test.com"
             )
+            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
+            val mockResponseDefault =
+                Response.success(
+                    200,
+                    ResponseData(payload = DefaultResponse("1234", listOf("", "")))
+                )
+            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
+            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+
+            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
+            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
+
+            val response = appoxeeAdapter.setAlias(testAlias)
+            Truth.assertThat(response).isNotNull()
+            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
         }
-
-        //coEvery { appoxeeAdapter.invokeNoArgs("refreshDevicePayload") } coAnswers { Unit }
-
-        coEvery { storage.getDevicePayload() } answers { null as DevicePayload? }
-        val response = appoxeeAdapter.setAlias(testAlias)
-        Truth.assertThat(response).isNotNull()
-        coVerify { engageApi.setAlias(any(String::class)) }
     }
 
     /**
@@ -132,8 +139,10 @@ class AppoxeeAdapterTest {
             Response.error(TimeoutException())
         }
         coEvery { storage.getDevicePayload() } answers { null }
-        val response = appoxeeAdapter.setAlias(testAlias)
-        Truth.assertThat(response).isNull()
+
+        val response = runCatching { appoxeeAdapter.setAlias(testAlias) }
+
+        Truth.assertThat(response.exceptionOrNull()).isNotNull()
         coVerify { engageApi.setAlias(any(String::class)) }
     }
 
@@ -340,9 +349,9 @@ class AppoxeeAdapterTest {
             }
 
             val eventName = "app_open"
-            val response = appoxeeAdapter.fetchInboxMessages(eventName)
+            val response = runCatching { appoxeeAdapter.fetchInboxMessages(eventName) }
             coVerify { engageApi.fetchInboxMessages(eventName) }
-            Truth.assertThat(response?.messages).isNull()
+            Truth.assertThat(response.exceptionOrNull()).isNotNull()
             Truth.assertThat(engageApi.fetchInboxMessages(eventName).error)
                 .isInstanceOf(ServerException::class.java)
         }

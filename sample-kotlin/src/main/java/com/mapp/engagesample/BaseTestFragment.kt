@@ -340,7 +340,7 @@ class BaseTestFragment : Fragment() {
     private fun handleLocationPermissionsNotGranted() {
         AlertDialog.Builder(requireContext())
             .setTitle("Location permission needed")
-            .setView(R.layout.dialog_location_rationale)
+            .setView(eu.brrm.shared_ui.R.layout.dialog_location_rationale)
             .setPositiveButton("Open settings") { d, i ->
                 val uri = Uri.parse("package:" + requireContext().packageName)
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri)

@@ -67,7 +67,7 @@ public class BaseTestFragment extends Fragment {
         binding.switchReady.setEnabled(false);
 
         binding.btnSetAlias.setOnClickListener(v -> {
-            setAlias();
+            setAliasExecute();
         });
 
         binding.btnGetAlias.setOnClickListener(v -> {
@@ -196,18 +196,38 @@ public class BaseTestFragment extends Fragment {
     private void setAlias() {
         Editable editableAlias = binding.editTextAlias.getText();
         String alias = editableAlias != null ? editableAlias.toString() : null;
-        Appoxee.instance().setAlias(alias).enqueue(mappResult -> {
-            if (mappResult.isSuccess()) {
+        Appoxee.instance().setAlias(alias).enqueue(result -> {
+            if (result.isSuccess()) {
                 if (editableAlias != null) {
                     editableAlias.clear();
                 }
-                String dmcUserId = mappResult.getData();
+                String dmcUserId = result.getData();
                 Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
             } else {
-                String error = mappResult.getError() != null ? mappResult.getError().toString() : "Unknown error";
+                String error = result.getError() != null ? result.getError().toString() : "Unknown error";
                 Util.showDialog(requireContext(), "Error", error);
             }
 
+        });
+    }
+
+    private void setAliasExecute() {
+        Editable editableAlias = binding.editTextAlias.getText();
+        String alias = editableAlias != null ? editableAlias.toString() : null;
+        executor.execute(() -> {
+            MappResult<String> result = Appoxee.instance().setAlias(alias).execute();
+            requireActivity().runOnUiThread(()->{
+                if (result.isSuccess()) {
+                    if (editableAlias != null) {
+                        editableAlias.clear();
+                    }
+                    String dmcUserId = result.getData();
+                    Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
+                } else {
+                    String error = result.getError() != null ? result.getError().toString() : "Unknown error";
+                    Util.showDialog(requireContext(), "Error", error);
+                }
+            });
         });
     }
 
@@ -227,7 +247,7 @@ public class BaseTestFragment extends Fragment {
     private void pushEnable(boolean enabled) {
         Call<Boolean> call = Appoxee.instance().enablePush(enabled, null);
         call.enqueue(result -> {
-            boolean data = Boolean.TRUE.equals(result.getData());
+            boolean data = Boolean.TRUE.equals(result);
             binding.switchPushEnabled.setText((data) ? "Opted In" : "Opted Out");
             binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(data)));
             Util.showDialog(requireContext(), "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
@@ -248,7 +268,7 @@ public class BaseTestFragment extends Fragment {
 
     private void isPushEnabled(@Nullable DevicePayload payload) {
         String pushToken = payload != null ? payload.getPushToken() : null;
-        Boolean enabled = pushToken != null && !pushToken.isEmpty();
+        boolean enabled = pushToken != null && !pushToken.isEmpty();
         binding.switchPushEnabled.setOnCheckedChangeListener(null);
         binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
         binding.switchPushEnabled.setText(enabled ? "Opted In" : "Opted Out");
@@ -261,7 +281,7 @@ public class BaseTestFragment extends Fragment {
     private void handleLocationPermissionNotGranted() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Location permission needed")
-                .setMessage("Open settings to grant location permission?")
+                .setView(eu.brrm.shared_ui.R.layout.dialog_location_rationale)
                 .setPositiveButton("Yes", (d, i) -> {
                     Uri uri = Uri.parse("package:" + requireContext().getPackageName());
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri);

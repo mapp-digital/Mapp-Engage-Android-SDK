@@ -6,13 +6,13 @@ import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.EngageApi
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.withContext
 
 internal class StatsClientImpl(
     private val engageApi: EngageApi,
-    private val dispatchers: Dispatchers,
+    private val dispatchersProvider: DispatchersProvider,
 ) : StatsClient {
     private val TAG = StatsClientImpl::class.java.name
     override suspend fun reportPushEvent(
@@ -21,7 +21,7 @@ internal class StatsClientImpl(
         clickType: ClickType,
         eventType: EventType
     ) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.ioDispatcher) {
             val response = engageApi.pushEvent(messageId, sendoutId, clickType, eventType)
             if (response.isSuccess()) {
                 Logger.d(
@@ -40,7 +40,7 @@ internal class StatsClientImpl(
         trackingKey: TrackingKey,
         trackingAttributes: Map<String, *>
     ) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.ioDispatcher) {
             val response =
                 engageApi.inappEvent(originalEventId, templateId, trackingKey, trackingAttributes)
             if (response.isSuccess()) {
@@ -55,7 +55,7 @@ internal class StatsClientImpl(
     }
 
     override suspend fun reportActivation(seconds: Int) {
-        withContext(dispatchers.ioDispatcher) {
+        withContext(dispatchersProvider.ioDispatcher) {
             val response = engageApi.activate(seconds.toLong())
             if (response.isSuccess()) {
                 Logger.d(
@@ -71,7 +71,7 @@ internal class StatsClientImpl(
     override suspend fun markInboxMessageStatus(
         message: InboxMessage,
         status: MessageStatus
-    ): Boolean = withContext(dispatchers.ioDispatcher) {
+    ): Boolean = withContext(dispatchersProvider.ioDispatcher) {
         val originalEventId = message.eventId
         val templateId = message.templateId
         val trackingKey = status.toTrackingKey()

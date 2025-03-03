@@ -4,6 +4,8 @@ package com.appoxee.internal.container
 
 import android.content.Context
 import com.appoxee.internal.AppoxeeAdapter
+import com.appoxee.internal.migration.MigrationHelper
+import com.appoxee.internal.migration.MigrationHelperImpl
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.NetworkClient
@@ -17,30 +19,29 @@ import com.appoxee.internal.stats.StatsClientImpl
 import com.appoxee.internal.storage.PrefsStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.ActivityLifecycleHandler
-import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.DispatchersImpl
+import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.internal.util.DispatchersProviderImpl
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
-import java.util.concurrent.TimeUnit
 
 internal class AppoxeeContainer private constructor(
     context: Context,
-    dispatchers: Dispatchers,
+    val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl(),
 ) {
     companion object {
         private lateinit var instance: AppoxeeContainer
         private val mutex = Mutex()
         fun getInstance(
             context: Context,
-            dispatchers: Dispatchers = DispatchersImpl()
+            dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
         ): AppoxeeContainer {
             if (!::instance.isInitialized) {
                 synchronized(mutex) {
                     if (!::instance.isInitialized) {
-                        instance = AppoxeeContainer(context, dispatchers)
+                        instance = AppoxeeContainer(context, dispatchersProvider)
                     }
                 }
             }
@@ -57,15 +58,14 @@ internal class AppoxeeContainer private constructor(
 
     internal val storage: Storage by lazy {
         PrefsStorageImpl(
-            context,
-            TimeUnit.DAYS.toMillis(1),
-            dispatchers
+            context = context,
+            dispatchersProvider = dispatchersProvider
         )
     }
 
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = context) }
 
-    internal val baseScope: CoroutineScope by lazy { CoroutineScope(dispatchers.defaultDispatcher + defaultExceptionHandler + SupervisorJob()) }
+    internal val baseScope: CoroutineScope by lazy { CoroutineScope(dispatchersProvider.defaultDispatcher + defaultExceptionHandler + SupervisorJob()) }
 
     internal val networkClient: NetworkClient by lazy {
         NetworkClientImpl(storage)
@@ -80,7 +80,7 @@ internal class AppoxeeContainer private constructor(
     }
 
     internal val statsClient: StatsClient by lazy {
-        StatsClientImpl(engageApi, dispatchers)
+        StatsClientImpl(engageApi, dispatchersProvider)
     }
 
     internal val systemInfoProvider: SystemInfoProvider by lazy { SystemInfoProviderImpl() }
@@ -90,19 +90,20 @@ internal class AppoxeeContainer private constructor(
             context,
             statsClient,
             baseScope,
-            dispatchers
+            dispatchersProvider
         )
     }
 
     internal val geoContainer: GeoContainer by lazy {
-        GeoContainer(context, systemInfoProvider, engageApi, dispatchers)
+        GeoContainer(context, systemInfoProvider, engageApi, dispatchersProvider)
     }
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {
         AppoxeeAdapter(
             engageApi = engageApi,
             storage = storage,
-            dispatchers = dispatchers
         )
     }
+
+    internal val migrationHelper: MigrationHelper by lazy { MigrationHelperImpl(context) }
 }

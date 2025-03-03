@@ -131,9 +131,9 @@ internal class EngageApiImpl(
             .Put(path = devicePathV3, requestBody = requestBody)
             .addHeader(getSdkKeyHeader())
 
-        val response = networkClient.execute(request, BaseAdapter {
-            DefaultResponse.fromJSON(it)
-        })
+        val adapter = BaseAdapter { DefaultResponse.fromJSON(json = it) }
+
+        val response = networkClient.execute(request, adapter)
 
         return response
     }

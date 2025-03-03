@@ -5,8 +5,8 @@ import com.appoxee.internal.ui.inapp.InAppManager
 import com.appoxee.internal.ui.inapp.InAppManagerImpl
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
-import com.appoxee.internal.util.Dispatchers
-import com.appoxee.internal.util.DispatchersImpl
+import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.internal.util.DispatchersProviderImpl
 import kotlinx.coroutines.CoroutineScope
 
 internal class InAppContainer(
@@ -14,17 +14,17 @@ internal class InAppContainer(
     private val statsClient: StatsClient,
     private val actionContainer: ActionContainer,
 ) {
-    internal val dispatchers: Dispatchers by lazy { DispatchersImpl() }
+    internal val dispatchersProvider: DispatchersProvider by lazy { DispatchersProviderImpl() }
 
     private val nativeFactory: NativeFactory by lazy {
-        NativeFactory(scope, dispatchers, actionContainer)
+        NativeFactory(scope, dispatchersProvider, actionContainer)
     }
 
     private val webFactory: WebFactory by lazy {
-        WebFactory(scope, dispatchers, actionContainer)
+        WebFactory(scope, dispatchersProvider, actionContainer)
     }
 
     internal val inappManager: InAppManager by lazy {
-        InAppManagerImpl(nativeFactory, webFactory, statsClient, scope, dispatchers)
+        InAppManagerImpl(nativeFactory, webFactory, statsClient, scope, dispatchersProvider)
     }
 }

@@ -3,6 +3,7 @@ package com.appoxee.internal.geo
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.VisibleForTesting
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.NetworkType
@@ -14,15 +15,19 @@ import com.google.android.gms.location.GeofencingEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
-
     private lateinit var appoxeeContainer: AppoxeeContainer
     private lateinit var scope: CoroutineScope
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getAppoxeeContainer(context: Context): AppoxeeContainer {
         return AppoxeeContainer.getInstance(context.applicationContext)
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun getScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob())
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -34,7 +39,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         appoxeeContainer = getAppoxeeContainer(context)
 
-        scope = CoroutineScope(SupervisorJob())
+        scope = getScope()
 
         val geoContainer = appoxeeContainer.geoContainer
 

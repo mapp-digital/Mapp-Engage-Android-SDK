@@ -4,14 +4,18 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeOptions
+import java.util.concurrent.TimeUnit
 
-internal class InMemoryStorageImpl() : Storage {
+internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MINUTES.toMillis(1)) :
+    Storage {
 
     private var devicePayload: DevicePayload? = null
     private var registerDevice: RegisterDevice? = null
     private var initOptions: AppoxeeOptions? = null
     private var appConfigPayload: AppConfigPayload? = null
     private var clazz: Class<*>? = null
+    private var timestamp: Long = 0
+
     override suspend fun clearRegistration() {
         devicePayload = null
         registerDevice = null
@@ -57,5 +61,17 @@ internal class InMemoryStorageImpl() : Storage {
 
     override suspend fun getBroadcastClass(): Class<*>? {
         return clazz
+    }
+
+    override suspend fun isCacheValid(): Boolean {
+        return System.currentTimeMillis() - timestamp > cacheValidity
+    }
+
+    override suspend fun updateCacheTimestamp() {
+        timestamp = System.currentTimeMillis()
+    }
+
+    override suspend fun getTimestamp(): Long {
+        return timestamp
     }
 }

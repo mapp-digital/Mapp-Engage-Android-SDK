@@ -8,7 +8,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
@@ -27,12 +27,12 @@ interface GeofenceScheduler {
 }
 
 internal class GeofenceSchedulerImpl(
-    dispatchers: Dispatchers,
+    dispatchersProvider: DispatchersProvider,
     private val workManager: WorkManager
 ) : GeofenceScheduler {
     private val TAG = this::class.java.simpleName
 
-    private val coroutineContext = SupervisorJob() + dispatchers.ioDispatcher
+    private val coroutineContext = SupervisorJob() + dispatchersProvider.defaultDispatcher
 
     override suspend fun postGeofenceEvent(data: Data?, constraints: Constraints?) =
         withContext(coroutineContext) {

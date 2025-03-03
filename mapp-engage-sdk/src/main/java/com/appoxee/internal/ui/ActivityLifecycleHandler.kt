@@ -15,7 +15,7 @@ import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.custom.MediaDialog
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.startMainActivity
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -29,7 +29,7 @@ internal class ActivityLifecycleHandler(
     context: Context,
     private val statsClient: StatsClient,
     private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers,
+    private val dispatchersProvider: DispatchersProvider,
 ) : Application.ActivityLifecycleCallbacks {
 
     private val TAG = ActivityLifecycleHandler::class.java.name
@@ -46,7 +46,7 @@ internal class ActivityLifecycleHandler(
     private var isApplicationInForeground: AtomicBoolean = AtomicBoolean(false)
 
     init {
-        scope.launch(dispatchers.mainDispatcher) {
+        scope.launch(dispatchersProvider.mainDispatcher) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleEventObserver {
                 override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                     isApplicationInForeground.set(event <= Lifecycle.Event.ON_RESUME)

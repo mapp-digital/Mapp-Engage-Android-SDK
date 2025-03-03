@@ -10,6 +10,8 @@ import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.migration.MigrationHelper
+import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
@@ -17,8 +19,10 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
+import com.appoxee.internal.provider.DeviceProvider
+import com.appoxee.internal.provider.ObserversProvider
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.ui.custom.MappWebView
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
@@ -31,6 +35,7 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -39,26 +44,29 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("UNCHECKED_CAST")
-internal class AppoxeeImpl(
+internal open class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions? = null,
-    private val dispatchers: com.appoxee.internal.util.Dispatchers,
+    val dispatcherProvider: DispatchersProvider,
+    val observersProvider: ObserversProvider = ObserversProvider(),
+    val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
+        application,
+        dispatcherProvider
+    ),
 ) : Appoxee, AppoxeeObservable {
 
     private val TAG = AppoxeeImpl::class.java.name
 
     private val mutex = Mutex()
 
-    private val internalScope: CoroutineScope =
-        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
-            Logger.e(TAG, "exception in sdk init: $throwable")
-        })
-
-    private val observers: MutableSet<AppoxeeObserver> by lazy { mutableSetOf() }
-
     private val mIsReady by lazy { AtomicBoolean(false) }
 
-    private val pushQueue = mutableSetOf<RemoteMessage>()
+    private val pushQueue by lazy { mutableSetOf<RemoteMessage>() }
+
+    private val internalScope =
+        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+            Logger.e(this.javaClass.name, "exception in sdk init: $throwable")
+        })
 
     private val actionContainer: ActionContainer
         get() = ActionContainer(application)
@@ -66,60 +74,71 @@ internal class AppoxeeImpl(
     private val inappContainer: InAppContainer
         get() = InAppContainer(internalScope, appoxeeContainer.statsClient, actionContainer)
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val pushContainer: PushContainer by lazy {
+        PushContainer(
+            application,
+            appoxeeContainer
+        )
+    }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val appoxeeContainer = AppoxeeContainer.getInstance(
-        context = application, dispatchers = dispatchers
-    )
+    internal val appoxeeAdapter: AppoxeeAdapter by lazy { appoxeeContainer.appoxeeAdapter }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val appoxeeAdapter: AppoxeeAdapter
-        get() = appoxeeContainer.appoxeeAdapter
+    internal open val storage: Storage by lazy { appoxeeContainer.storage }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val storage: Storage
-        get() = appoxeeContainer.storage
+    internal val deviceProvider: DeviceProvider by lazy { appoxeeContainer.deviceProvider }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val pushContainer: PushContainer
-        get() = PushContainer(application, appoxeeContainer)
+    internal val migrationHelper: MigrationHelper by lazy { appoxeeContainer.migrationHelper }
+
 
     init {
-        internalScope.launch(dispatchers.ioDispatcher) {
-            Logger.init(application.applicationContext as Application)
+        internalScope.launch(dispatcherProvider.defaultDispatcher) {
+            // initialize logger
+            Logger.init(application)
 
-            (application.applicationContext as Application).registerActivityLifecycleCallbacks(
+            // attach activity lifecycle listener
+            application.registerActivityLifecycleCallbacks(
                 appoxeeContainer.activityLifecycleHandler
             )
 
-            println("OPTIONS: $options")
-            // save config to local storage if not null
-            options?.let {
-                if (it != storage.getInitOptions()) {
-                    storage.clearRegistration()
-                    storage.saveInitOptions(it)
-                }
-            }
-
-            // check device registration
-            // update if exist or register new device
-            validateRegistration()?.let {
-                withContext(dispatchers.mainDispatcher) {
-                    updateReadyStatus(true, MappResult.Success(it))
-                }
-            }
-
-            // fetch InApp Configuration parameters
-            getAppConfig()
+            // initialize sdk
+            initializeSdk()
 
             //init webview
-            withContext(dispatchers.mainDispatcher) {
-                MappWebView.getInstance(application.applicationContext)
-            }
+//            withContext(dispatchersProvider.mainDispatcher) {
+//                MappWebView.getInstance(application)
+//            }
         }
     }
 
-    private suspend fun validateRegistration(): DevicePayload? {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun initializeSdk() {
+        println("OPTIONS: $options")
+        // save config to local storage if not null
+        options?.let {
+            // save only if current options are changed compared to the saved one
+            if (it != storage.getInitOptions()) {
+                storage.clearRegistration()
+                storage.saveInitOptions(it)
+            }
+        }
+
+        // check device registration
+        // update if exist or register new device
+        validateRegistration()?.let {
+            updateReadyStatus(true, MappResult.Success(it))
+        }
+
+        // fetch InApp Configuration parameters
+        fetchAppConfig()
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun validateRegistration(): DevicePayload? {
         // get saved device from local storage
         var devicePayload: DevicePayload? = storage.getDevicePayload()
 
@@ -127,45 +146,57 @@ internal class AppoxeeImpl(
         val savedRegisterPayload = storage.getRegistrationDevice()
 
         // calculate current registration data of device
-        val newRegisterPayload = appoxeeContainer.deviceProvider.generateRegistrationDevice()
+        val newRegisterPayload = deviceProvider.generateRegistrationDevice()
 
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
             // check if saved registration data and currently calculated registration data differs
             if (savedRegisterPayload != newRegisterPayload) {
-                // when registration data differs, register data again to update valus on server
+                // when registration data differs, register data again to update values on server
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // update optIn or optOut status with firebase token
-                updateOptStatus(devicePayload)
+                // this fulfills requirement to preserve OptIn/OptOut state when channel changed
+                updateOptStatus(devicePayload, null)
 
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
                 devicePayload = appoxeeAdapter.getDevice()
+            } else {
+                // device already registered and channel is unchanged
+                // update only FB token if needed
+                updateOptStatus(devicePayload, null)
             }
         } else {
-            // retrieve registration from server if application was previously registered
-            // then uninstalled and installed again
-            val reusePreviousRegistration = false
-            if (reusePreviousRegistration) {
-                // cached device payload doesn't exist or expired
-                // get new device payload from server
-                Logger.d(TAG, "validateRegistration - cached udidHashed == null")
-                devicePayload = appoxeeAdapter.getDevice()
-            }
             // check if device registered with older version (v6) and needs to be migrated
-            val migrate = false
-            if (migrate) {
-                // TODO migration login to retrieve old saved device registration data and covert to the new device format
+            val oldOptions = migrationHelper.getRegistrationOptions()
+
+            // get old registration options
+            val oldRegistration = migrationHelper.fetchRegistrationData()
+
+            // if channel is unchanged, reuse device registration and do not register device again.
+            // migrate registration to SDK v7 structure and delete SDK v6 registration data.
+            if (options?.equals(oldOptions) == true) {
+                devicePayload = appoxeeAdapter.getDevice()
+
+                // update only optOut state to refresh firebase token if it is changed
+                updateOptStatus(devicePayload, oldRegistration)
+
+                // delete old registration data
+                migrationHelper.deleteOldRegistration()
             }
 
-            // check if device payload exist or not
+            // Device payload is null if device was not previously registered or if channel data were changed.
+            // In this case, register new device and update optIn/optOut state
             if (devicePayload?.udidHashed == null) {
                 // if device payload doesn't exist after all checkins, register device
                 appoxeeAdapter.register(newRegisterPayload)
 
                 // update optIn or optOut status with firebase token
-                updateOptStatus(devicePayload)
+                updateOptStatus(devicePayload, oldRegistration)
+
+                // delete old registration data if still exists
+                migrationHelper.deleteOldRegistration()
 
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
@@ -184,14 +215,18 @@ internal class AppoxeeImpl(
     }
 
 
-    private suspend fun updateOptStatus(devicePayload: DevicePayload?) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun updateOptStatus(
+        devicePayload: DevicePayload?,
+        oldRegistration: OldRegistration?
+    ) {
         Logger.d(TAG, "updateOptStatus()")
         val pushToken = FirebaseMessaging.getInstance().token.await()
         Logger.d(TAG, "PUSH TOKEN: $pushToken")
 
         // if device opted In and optIn token is expired, update optIn token
-        if (devicePayload?.pushToken?.isNotEmpty() == true) {
-            if (pushToken != devicePayload.pushToken) {
+        if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
+            if (pushToken != devicePayload?.pushToken) {
                 appoxeeAdapter.optIn(pushToken)
             }
         } else {
@@ -209,17 +244,16 @@ internal class AppoxeeImpl(
     }
 
     override fun setAlias(alias: String): Call<String?> = buildHttpCall {
-        appoxeeAdapter.setAlias(alias)
+        appoxeeAdapter.setAlias(alias)?.dmcUserId
     }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
         appoxeeAdapter.getAlias()
     }
 
-    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> =
-        buildHttpCall {
-            appoxeeAdapter.fetchInboxMessages("app_inbox")
-        }
+    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> = buildHttpCall {
+        appoxeeAdapter.fetchInboxMessages("app_inbox")
+    }
 
     override fun fetchInboxMessage(templateId: Long): Call<InboxMessage?> =
         buildHttpCall {
@@ -256,7 +290,7 @@ internal class AppoxeeImpl(
         val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
-            withContext(dispatchers.mainDispatcher) {
+            withContext(dispatcherProvider.mainDispatcher) {
                 inappManager.handleMessages(context, sortedMessages)
             }
         }
@@ -334,35 +368,38 @@ internal class AppoxeeImpl(
     }
 
 
-    override fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        mIsReady.set(status)
-        observers.forEach {
-            it.onReadyStatusChanged(status, mappResult)
-        }
-        pushQueue.forEach {
+    override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) =
+        withContext(dispatcherProvider.mainDispatcher) {
+            mIsReady.set(status)
+            observersProvider.notify(status, mappResult)
             internalScope.launch {
-                pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
+                pushQueue.forEach {
+                    pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
+                }
             }
+            Unit
         }
-    }
 
     override fun subscribe(observer: AppoxeeObserver) {
+        println("🚀 subscribe called")
+        println("🔎 internalScope isActive: ${internalScope.isActive}")
         internalScope.launch {
+            println("⚡ Inside coroutine")
             mutex.withLock {
+                println("🔓 Inside mutex block")
                 val payload = storage.getDevicePayload()
-                withContext(dispatchers.mainDispatcher) {
-                    observers.add(observer)
+                withContext(dispatcherProvider.mainDispatcher) {
+                    println("🔓 Inside withContext block")
+                    observersProvider.addObserver(observer)
                     val device = payload ?: return@withContext
-                    observer.onReadyStatusChanged(
-                        isReady(), MappResult.Success(data = device)
-                    )
+                    observersProvider.notify(isReady(), MappResult.Success(data = device))
                 }
             }
         }
     }
 
     override fun unsubscribe(observer: AppoxeeObserver) {
-        observers.remove(observer)
+        observersProvider.removeObserver(observer)
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
@@ -384,14 +421,18 @@ internal class AppoxeeImpl(
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
 
-    private suspend fun getAppConfig() {
-        withContext(dispatchers.ioDispatcher) {
-            val result = appoxeeAdapter.getAppConfig()
-            if (result.isSuccess()) {
-                storage.saveAppConfig(result.data?.payload)
-                Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
-            } else {
-                Logger.e(TAG, result.error?.toString() ?: "Error")
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun fetchAppConfig() {
+        withContext(dispatcherProvider.defaultDispatcher) {
+            if (!storage.isCacheValid()) {
+                val result = appoxeeAdapter.getAppConfig()
+                if (result.isSuccess()) {
+                    storage.saveAppConfig(result.data?.payload)
+                    storage.updateCacheTimestamp()
+                    Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
+                } else {
+                    Logger.e(TAG, result.error?.toString() ?: "Error")
+                }
             }
         }
     }
@@ -405,7 +446,7 @@ internal class AppoxeeImpl(
             val requiredClass = LocalPushBroadcast::class.java
             if (clazz.superclass == requiredClass) {
                 appoxeeContainer.localPushBroadcast = clazz
-                withContext(dispatchers.ioDispatcher) {
+                withContext(dispatcherProvider.defaultDispatcher) {
                     storage.setBroadcastClass(clazz)
                 }
 
@@ -415,9 +456,14 @@ internal class AppoxeeImpl(
         }
     }
 
-    private fun <T> buildHttpCall(
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
-        return HttpCall(coroutineScope = appoxeeContainer.baseScope, call)
+        return HttpCall(
+            scope = internalScope,
+            call = call,
+            dispatchersProvider = dispatcherProvider
+        )
     }
 }

@@ -11,7 +11,7 @@ import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappButton
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.toColor
 import com.appoxee.internal.util.LibraryExtensions.toPx
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 internal abstract class Template(
     private val inappActionHandler: InappActionHandler,
     private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers
+    private val dispatchersProvider: DispatchersProvider
 ) {
     val TAG
         get() = this::class.java.name
@@ -94,7 +94,7 @@ internal abstract class Template(
         message.behaviour?.displaySeconds?.toLong()?.let { seconds ->
             job = scope.launch {
                 delay(TimeUnit.SECONDS.toMillis(seconds))
-                withContext(dispatchers.mainDispatcher) {
+                withContext(dispatchersProvider.mainDispatcher) {
                     expirationDismissed {
                         onDismiss?.invoke()
                     }

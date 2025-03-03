@@ -1,7 +1,6 @@
 package com.appoxee.internal.ui.inapp.web
 
 import android.app.Activity
-import android.content.Context
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import com.appoxee.internal.container.ActionContainer
@@ -9,12 +8,9 @@ import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappType
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.ui.action.ActionHandler
-import com.appoxee.internal.ui.action.MessageActionHandler
 import com.appoxee.internal.ui.inapp.InappActionHandler
-import com.appoxee.internal.ui.inapp.InappActionHandlerImpl
 import com.appoxee.internal.ui.inapp.Template
-import com.appoxee.internal.util.Dispatchers
+import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -25,7 +21,7 @@ import java.util.concurrent.TimeUnit
 
 internal class WebFactory(
     private val scope: CoroutineScope,
-    private val dispatchers: Dispatchers,
+    private val dispatchersProvider: DispatchersProvider,
     private val actionContainer: ActionContainer,
 ) {
     private val TAG = this::class.java.name
@@ -43,7 +39,7 @@ internal class WebFactory(
         job = scope.launch {
             Logger.d(TAG, "createBanner: ${message.type.name}")
             delay(TimeUnit.SECONDS.toMillis(delaySeconds))
-            withContext(dispatchers.mainDispatcher) {
+            withContext(dispatchersProvider.mainDispatcher) {
                 template = createTemplate(context, inappActionHandler, message, onMessageClosed)
                 template.show()
                 onShow?.invoke(message)
@@ -65,7 +61,7 @@ internal class WebFactory(
                     actionHandler,
                     message,
                     scope,
-                    dispatchers,
+                    dispatchersProvider,
                     onMessageClosed
                 )
             }
@@ -76,7 +72,7 @@ internal class WebFactory(
                     actionHandler,
                     message,
                     scope,
-                    dispatchers,
+                    dispatchersProvider,
                     onMessageClosed
                 )
             }
@@ -87,7 +83,7 @@ internal class WebFactory(
                     actionHandler,
                     message,
                     scope,
-                    dispatchers,
+                    dispatchersProvider,
                     onMessageClosed
                 )
             }
