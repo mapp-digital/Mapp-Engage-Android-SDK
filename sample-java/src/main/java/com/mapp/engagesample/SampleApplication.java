@@ -26,5 +26,7 @@ public class SampleApplication extends Application {
         options.setLogType(AppoxeeOptions.LogLevel.DEBUG);
         options.setNotificationMode(NotificationMode.BACKGROUND_AND_FOREGROUND);
         Appoxee.engage(this, options);
+
+        Appoxee.instance().setPushBroadcast(MyPushBroadcast.class);
     }
 }

@@ -1,8 +1,6 @@
 package com.appoxee.internal.ui.push.model
 
-import com.appoxee.internal.model.response.Category
-
-enum class CategoryType(val value: String) {
+enum class CategoryType(val categoryName: String) {
     APX_YES_NO_OPEN("apx_yes_no_open"),
     APX_YES_NO_DISMISS("apx_yes_no_dismiss"),
     APX_ACC_DEC_OPEN("apx_acc_dec_open"),
@@ -23,7 +21,7 @@ enum class CategoryType(val value: String) {
     companion object {
         fun fromString(value: String): CategoryType? {
             return try {
-                CategoryType.valueOf(value.lowercase())
+                CategoryType.entries.firstOrNull { value == it.categoryName }
             } catch (e: Exception) {
                 null
             }

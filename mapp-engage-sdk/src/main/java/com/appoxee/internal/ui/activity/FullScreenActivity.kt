@@ -53,6 +53,7 @@ class FullScreenActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        intent.action
         val pushData = intent.extras?.getParcelableCompat<PushData>("pushData")
         val notificationId = intent.getIntExtra("notificationId", 0)
         val eventType =

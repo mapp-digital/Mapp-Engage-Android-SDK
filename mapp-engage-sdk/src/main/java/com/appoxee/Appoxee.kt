@@ -100,7 +100,7 @@ interface Appoxee {
      * <b>This token shouldn't be sent for a regular usage.
      * It's primary purpose is for use case where [MappMessagingService] is disabled, and client has it's own service
      * for handling firebase push messaging. </b>
-     * @return [Boolean] true if push enabled; false if not.
+     * @return [Boolean] true if push enabled; false if push disabled.
      */
     fun enablePush(enabled: Boolean, token: String? = null): Call<Boolean>
 
@@ -165,8 +165,16 @@ interface Appoxee {
      */
     fun triggerInApp(context: Activity, eventName: String): Call<Boolean>
 
+    /**
+     * Start Geofence tracking
+     * @param enterDelaySeconds number of seconds for enter event to trigger.
+     * If set to 0, Enter is triggered, otherwise DWELL is triggered.
+     */
     fun <T : GeoStatus> startGeofencing(enterDelaySeconds: Int = 0): Call<T>
 
+    /**
+     * Stop Geofence tracking
+     */
     fun <T : GeoStatus> stopGeofencing(): Call<T>
 
     /**

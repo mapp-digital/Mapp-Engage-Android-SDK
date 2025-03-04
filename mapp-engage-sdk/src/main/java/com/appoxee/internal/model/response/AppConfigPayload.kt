@@ -87,19 +87,19 @@ data class AppConfigPayload constructor(
 @Parcelize
 data class Category(
     val buttons: List<Button> = emptyList(),
-    val categoryId: Long = 0,
+    val categoryId: Long,
     val isContextMinimal: Boolean = false,
     val isCustomCategory: Boolean = false,
-    val name: CategoryType?,
+    val categoryType: CategoryType?,
     val title: String? = null,
-    val type: Long = 0,
+    val type: Long,
 ) : Parcelable {
     fun toJSON(): JSONObject {
         return JSONObject().apply {
             put("categoryId", categoryId)
             put("isContextMinimal", isContextMinimal)
             put("isCustomCategory", isCustomCategory)
-            put("name", name?.value)
+            put("name", categoryType?.categoryName)
             put("title", title)
             put("type", type)
             put("buttons", JSONArray().apply {
@@ -122,7 +122,7 @@ data class Category(
                 categoryId = json.getLongOrDefault("categoryId", 0),
                 isContextMinimal = json.getBoolean("isContextMinimal"),
                 isCustomCategory = json.getBoolean("isCustomCategory"),
-                name = CategoryType.fromString(categoryName),
+                categoryType = CategoryType.fromString(categoryName),
                 title = json.getStringOrEmpty("title"),
                 type = json.getLongOrDefault("type", 0)
             )

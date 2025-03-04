@@ -33,7 +33,7 @@
         <receiver
             android:name=".MyPushBroadcast"
             android:enabled="true"
-            android:exported="false"></receiver>
+            android:exported="false"/>
     </application>
 
 </manifest>

@@ -13,6 +13,7 @@ import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappPush
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -20,14 +21,17 @@ import org.jetbrains.annotations.TestOnly
 import java.util.Objects
 
 class MappInternalBroadcastReceiver : BroadcastReceiver() {
-    private val TAG = MappInternalBroadcastReceiver::class.java.name
+    internal val TAG = this.javaClass.name
 
     private lateinit var appoxeeContainer: AppoxeeContainer
-    private val scope = CoroutineScope(SupervisorJob())
+    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { c, throwable ->
+        Logger.e(TAG, throwable)
+    })
 
     override fun onReceive(context: Context?, i: Intent?) {
         val action = i?.action
         Logger.d(TAG, "onReceive: $action")
+
 
         context?.let { ctx ->
             i?.extras?.let { bundle ->
@@ -52,11 +56,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
 
                         // if event is dismiss, then try to clear notification from system status bar
                         if (Objects.equals(eventType, EventType.DISMISS)) {
-                            if (notificationId != 0) {
-                                val notificationManager =
-                                    ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                                notificationManager?.cancel(notificationId)
-                            }
+                            dismissNotification(context, notificationId)
                         }
                     }
                 }
@@ -64,7 +64,17 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun notifyClientApp(
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun dismissNotification(context: Context, notificationId: Int) {
+        if (notificationId != 0) {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            notificationManager?.cancel(notificationId)
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun notifyClientApp(
         context: Context?,
         pushData: PushData,
         action: String?,
@@ -82,7 +92,8 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         context?.sendBroadcast(intent)
     }
 
-    private suspend fun sendReportEvent(
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun sendReportEvent(
         pushData: PushData?,
         clickType: ClickType,
         eventType: EventType,

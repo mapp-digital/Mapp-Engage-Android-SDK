@@ -19,13 +19,12 @@ import com.appoxee.internal.ui.push.style.NotificationStyleFactory
 import com.appoxee.shared.LocalPushBroadcast
 
 internal class NotificationFactory(
-    private val categoriesFactory: CategoriesFactory,
     private val notificationStyleFactory: NotificationStyleFactory,
     private val notificationBuilderFactory: NotificationBuilder,
     private val iconProvider: IconProvider,
     private val pendingIntentProvider: PendingIntentProvider,
 ) {
-    suspend fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
+    fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
 
         val notificationStyle = notificationStyleFactory.buildNotificationStyle(pushData).getStyle()
 
@@ -73,7 +72,7 @@ internal class NotificationFactory(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal suspend fun addButtons(
+    internal fun addButtons(
         builder: NotificationBuilder,
         pushData: PushData,
         notificationId: Int
