@@ -7,7 +7,9 @@ import com.appoxee.internal.storage.Storage
 internal class CategoriesFactory(private val storage: Storage) {
     private val defaultCategories = listOf(
         Category(
-            name = CategoryType.APX_YES_NO_OPEN,
+            categoryId = 1,
+            type = 22,
+            categoryType = CategoryType.APX_YES_NO_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -28,7 +30,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_YES_NO_DISMISS,
+            categoryId = 2,
+            type = 11,
+            categoryType = CategoryType.APX_YES_NO_DISMISS,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -49,7 +53,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_ACC_DEC_OPEN,
+            categoryId = 3,
+            type = 22,
+            categoryType = CategoryType.APX_ACC_DEC_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -70,7 +76,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_ACC_DEC_DISMISS,
+            categoryId = 4,
+            type = 11,
+            categoryType = CategoryType.APX_ACC_DEC_DISMISS,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -91,7 +99,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_PLAY_OPEN,
+            categoryId = 5,
+            type = 11,
+            categoryType = CategoryType.APX_PLAY_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -105,7 +115,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_BUY_OPEN,
+            categoryId = 6,
+            type = 22,
+            categoryType = CategoryType.APX_BUY_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -119,7 +131,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_FOLLOW_DISMISS,
+            categoryId = 7,
+            type = 11,
+            categoryType = CategoryType.APX_FOLLOW_DISMISS,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -133,7 +147,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_REMIND_ME_DISMISS,
+            categoryId = 8,
+            type = 11,
+            categoryType = CategoryType.APX_REMIND_ME_DISMISS,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -147,7 +163,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_REDEEM_OPEN,
+            categoryId = 9,
+            type = 11,
+            categoryType = CategoryType.APX_REDEEM_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -168,7 +186,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_READ_OPEN,
+            categoryId = 10,
+            type = 22,
+            categoryType = CategoryType.APX_READ_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -182,7 +202,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_ACCEPT_NOTIFICATION_SETTINGS_OPEN,
+            categoryId = 11,
+            type = 11,
+            categoryType = CategoryType.APX_ACCEPT_NOTIFICATION_SETTINGS_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -203,7 +225,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_YES_NOTIFICATION_SETTINGS_OPEN,
+            categoryId = 12,
+            type = 11,
+            categoryType = CategoryType.APX_YES_NOTIFICATION_SETTINGS_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -224,7 +248,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_CUSTOM_PUSH_1,
+            categoryId = 13,
+            type = 11,
+            categoryType = CategoryType.APX_CUSTOM_PUSH_1,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -245,7 +271,9 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_FULL_CUSTOM_PUSH,
+            categoryId = 14,
+            type = 11,
+            categoryType = CategoryType.APX_FULL_CUSTOM_PUSH,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
@@ -266,12 +294,25 @@ internal class CategoriesFactory(private val storage: Storage) {
             )
         ),
         Category(
-            name = CategoryType.APX_SHOP_REMIND_OPEN,
+            categoryId = 15,
+            type = 11,
+            categoryType = CategoryType.APX_SHOP_REMIND_OPEN,
             isCustomCategory = false,
             isContextMinimal = false,
             buttons = listOf(
                 Button(1, "Shop Now", true, false, false),
                 Button(2, "Remind Me Later", false, true, false)
+            )
+        ),
+        Category(
+            categoryId = 16,
+            type = 31,
+            categoryType = CategoryType.APX_SPECIFIC_ANDROID,
+            isCustomCategory = false,
+            isContextMinimal = false,
+            buttons = listOf(
+                Button(1, "Play", false, false, false),
+                Button(2, "Turn off", false, false, false)
             )
         ),
     )

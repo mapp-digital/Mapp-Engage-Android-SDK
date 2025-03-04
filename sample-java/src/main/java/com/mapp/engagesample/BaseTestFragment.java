@@ -247,10 +247,10 @@ public class BaseTestFragment extends Fragment {
     private void pushEnable(boolean enabled) {
         Call<Boolean> call = Appoxee.instance().enablePush(enabled, null);
         call.enqueue(result -> {
-            boolean data = Boolean.TRUE.equals(result);
+            boolean data = Boolean.TRUE.equals(result.getData());
             binding.switchPushEnabled.setText((data) ? "Opted In" : "Opted Out");
             binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(data)));
-            Util.showDialog(requireContext(), "Push Status", "ACTION " + (data ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
+            Util.showDialog(requireContext(), "Push Status", "ACTION " + (result.isSuccess() ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
         });
     }
 

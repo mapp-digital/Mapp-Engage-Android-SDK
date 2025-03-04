@@ -14,6 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
+import io.mockk.verifyOrder
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -82,4 +83,54 @@ class GeofenceBroadcastReceiverTest {
         }
     }
 
+    @Test
+    fun `onReceive doesn't trigger event when geofencing event has error`() {
+        mockkStatic(GeofencingEvent::class)
+        mockkStatic(Log::class)
+
+        val mockGeofencingEvent = mockk<GeofencingEvent>(relaxed = true)
+
+        every { mockGeofencingEvent.hasError() } returns true
+        every { GeofencingEvent.fromIntent(intent) } returns mockGeofencingEvent
+        every { Log.e(any(), any(), any()) } returns 0
+
+        receiver.onReceive(context, intent)
+
+        verifyOrder {
+            Log.e(any(), any(), any())
+        }
+
+        coVerify(exactly = 0) {
+            receiver.postEvent(any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `onReceive doesn't trigger event when geofencing event is not enter exit or dwell`() {
+        mockkStatic(GeofencingEvent::class)
+        mockkStatic(Log::class)
+
+        val geofence = mockk<Geofence>().apply {
+            every { requestId } returns "geo1"
+            every { latitude } returns 10.0
+            every { longitude } returns 20.0
+            every { transitionTypes } returns Geofence.GEOFENCE_TRANSITION_ENTER
+        }
+
+        every { geofencingEvent.hasError() } returns false
+        every { geofencingEvent.geofenceTransition } returns 0
+        every { geofencingEvent.triggeringGeofences } returns listOf(geofence)
+        every { GeofencingEvent.fromIntent(intent) } returns geofencingEvent
+        every { Log.e(any(), any(), any()) } returns 0
+
+        receiver.onReceive(context, intent)
+
+        verifyOrder {
+            Log.e(any(), any(), any())
+        }
+
+        coVerify(exactly = 0) {
+            receiver.postEvent(any(), any(), any())
+        }
+    }
 }

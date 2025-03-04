@@ -8,6 +8,7 @@ import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.NetworkType
 import com.appoxee.internal.container.AppoxeeContainer
+import com.appoxee.internal.container.GeoContainer
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.util.Logger
 import com.google.android.gms.location.Geofence
@@ -25,11 +26,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         return AppoxeeContainer.getInstance(context.applicationContext)
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun getScope(): CoroutineScope {
-        return CoroutineScope(SupervisorJob())
-    }
-
     override fun onReceive(context: Context, intent: Intent?) {
         val geofencingEvent = intent?.let { GeofencingEvent.fromIntent(it) }
         if (geofencingEvent?.hasError() == true) {
@@ -37,9 +33,9 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             return
         }
 
-        appoxeeContainer = getAppoxeeContainer(context)
+        scope = CoroutineScope(SupervisorJob())
 
-        scope = getScope()
+        appoxeeContainer = getAppoxeeContainer(context)
 
         val geoContainer = appoxeeContainer.geoContainer
 
@@ -62,40 +58,39 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
                     Logger.i("GeofenceReceiver", "Entered geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.ENTER.ordinal)
-                    scope.launch {
-                        geoContainer.geofenceScheduler.postGeofenceEvent(
-                            data = data.build(),
-                            constraints = constraints,
-                        )
-                    }
+                    postEvent(geoContainer, data, constraints)
                 }
 
                 Geofence.GEOFENCE_TRANSITION_EXIT -> {
                     Logger.i("GeofenceReceiver", "Exited geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.EXIT.ordinal)
-                    scope.launch {
-                        geoContainer.geofenceScheduler.postGeofenceEvent(
-                            data = data.build(),
-                            constraints = constraints,
-                        )
-                    }
+                    postEvent(geoContainer, data, constraints)
                 }
 
                 Geofence.GEOFENCE_TRANSITION_DWELL -> {
                     Logger.i("GeofenceReceiver", "Dwell geofence with ID: $requestId")
                     data.putInt(GeoData.EVENT_KEY, GeoEvent.DWELL.ordinal)
-                    scope.launch {
-                        geoContainer.geofenceScheduler.postGeofenceEvent(
-                            data = data.build(),
-                            constraints = constraints,
-                        )
-                    }
+                    postEvent(geoContainer, data, constraints)
                 }
 
                 else -> {
                     Logger.e("GeofenceReceiver", "Unknown transition type")
                 }
             }
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun postEvent(
+        geoContainer: GeoContainer,
+        data: Data.Builder,
+        constraints: Constraints
+    ) {
+        scope.launch {
+            geoContainer.geofenceScheduler.postGeofenceEvent(
+                data = data.build(),
+                constraints = constraints,
+            )
         }
     }
 }

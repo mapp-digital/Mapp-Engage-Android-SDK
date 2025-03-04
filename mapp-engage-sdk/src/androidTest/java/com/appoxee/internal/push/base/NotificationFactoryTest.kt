@@ -93,7 +93,6 @@ class NotificationFactoryTest {
 
         notificationFactory = spyk(
             NotificationFactory(
-                categoriesFactory,
                 notificationStyleFactory,
                 notificationBuilderFactory,
                 iconProvider,

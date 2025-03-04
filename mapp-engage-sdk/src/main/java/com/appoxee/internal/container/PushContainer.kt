@@ -51,7 +51,6 @@ internal class PushContainer(
 
     private val notificationFactory: NotificationFactory
         get() = NotificationFactory(
-            categoriesFactory,
             notificationStyleFactory,
             notificationBuilder,
             iconProvider,

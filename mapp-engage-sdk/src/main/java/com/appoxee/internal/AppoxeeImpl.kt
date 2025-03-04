@@ -381,15 +381,10 @@ internal open class AppoxeeImpl(
         }
 
     override fun subscribe(observer: AppoxeeObserver) {
-        println("🚀 subscribe called")
-        println("🔎 internalScope isActive: ${internalScope.isActive}")
         internalScope.launch {
-            println("⚡ Inside coroutine")
             mutex.withLock {
-                println("🔓 Inside mutex block")
                 val payload = storage.getDevicePayload()
                 withContext(dispatcherProvider.mainDispatcher) {
-                    println("🔓 Inside withContext block")
                     observersProvider.addObserver(observer)
                     val device = payload ?: return@withContext
                     observersProvider.notify(isReady(), MappResult.Success(data = device))

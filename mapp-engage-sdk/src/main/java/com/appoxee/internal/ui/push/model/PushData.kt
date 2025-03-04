@@ -33,19 +33,22 @@ internal data class PushData(
     val priority: Int? = null,
 ) : Parcelable {
 
-    fun getContentUriType(): PushUriType? {
-        if (internalUriType.isNullOrEmpty()) return null
-        return when (internalUriType) {
-            PushUriType.KEY_APP_PACKAGE.value -> PushUriType.KEY_APP_PACKAGE
-            PushUriType.KEY_DEEP_LINK.value -> {
-                if (actionUri?.toString()?.startsWith(PushUriType.KEY_DIALER.value) == true)
-                    PushUriType.KEY_DIALER
-                else
-                    PushUriType.KEY_DEEP_LINK
-            }
+    fun getContentUriType(): PushUriType {
+        return if (internalUriType.isNullOrEmpty()) {
+            PushUriType.KEY_LAUNCH_APP
+        } else {
+            when (internalUriType) {
+                PushUriType.KEY_APP_PACKAGE.value -> PushUriType.KEY_APP_PACKAGE
+                PushUriType.KEY_DEEP_LINK.value -> {
+                    if (actionUri?.toString()?.startsWith(PushUriType.KEY_DIALER.value) == true)
+                        PushUriType.KEY_DIALER
+                    else
+                        PushUriType.KEY_DEEP_LINK
+                }
 
-            PushUriType.KEY_URL.value -> PushUriType.KEY_URL
-            else -> null
+                PushUriType.KEY_URL.value -> PushUriType.KEY_URL
+                else -> PushUriType.KEY_LAUNCH_APP
+            }
         }
     }
 
@@ -87,7 +90,7 @@ internal data class PushData(
             val actionUriPath = getPushOpenUriString(map)
             val categoryName = map.getData(CATEGORY)
             val category = categoryName?.let { catName ->
-                categories.firstOrNull { catName == it.name?.value }
+                categories.firstOrNull { catName == it.categoryType?.categoryName }
             }
 
             return PushData(
