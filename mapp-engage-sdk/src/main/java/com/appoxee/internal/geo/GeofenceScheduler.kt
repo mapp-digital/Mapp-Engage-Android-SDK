@@ -7,10 +7,12 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
@@ -22,6 +24,8 @@ interface GeofenceScheduler {
         constraints: Constraints? = null,
         repeatIntervalMs: Long = TimeUnit.HOURS.toMillis(2)
     )
+
+    suspend fun isGeofencingActive(): Boolean
 
     fun cancel()
 }
@@ -77,6 +81,19 @@ internal class GeofenceSchedulerImpl(
         )
 
         Logger.d(TAG, "Work scheduled successfully!")
+    }
+
+    override suspend fun isGeofencingActive(): Boolean {
+        val state = workManager.getWorkInfosForUniqueWorkFlow(LocationUpdateWorker.WORK_NAME)
+            .first()
+            .firstOrNull()
+            ?.state
+
+        val statuses = listOf(
+            WorkInfo.State.ENQUEUED,
+            WorkInfo.State.RUNNING
+        )
+        return state?.let { statuses.contains(it) } ?: false
     }
 
     override fun cancel() {

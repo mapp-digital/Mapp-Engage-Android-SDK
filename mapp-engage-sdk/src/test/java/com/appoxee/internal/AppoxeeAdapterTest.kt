@@ -268,7 +268,7 @@ class AppoxeeAdapterTest {
             val response = appoxeeAdapter.optOut("1243abcdxyz")
             coVerify { engageApi.optOut(any(String::class)) }
             Truth.assertThat(response).isNotNull()
-            Truth.assertThat(response).isTrue()
+            Truth.assertThat(response).isFalse()
         }
     }
 

@@ -24,12 +24,12 @@ internal class GeofenceRegistryImpl(
     private val systemInfoProvider: SystemInfoProvider,
     private val geofenceScheduler: GeofenceScheduler
 ) : GeofenceRegistry {
-    private val pendingIntent = geofenceClient.createGeofencePendingIntent()
 
     override suspend fun startGeofencing(enterDelaySeconds: Int): GeoStatus {
         if (!hasRequiredPermissions())
             return GeoStatus.GeoLocationPermissionsNotGranted()
 
+        val pendingIntent = geofenceClient.createGeofencePendingIntent()
         return try {
             val location = geofenceClient.getLocation()
             val regions = geofenceClient.getRegions(location)
@@ -47,8 +47,9 @@ internal class GeofenceRegistryImpl(
 
     override suspend fun stopGeofencing(): GeoStatus {
         return try {
-            geofenceClient.removeGeofences(pendingIntent)
+            val pendingIntent = geofenceClient.createGeofencePendingIntent()
             geofenceScheduler.cancel()
+            geofenceClient.removeGeofences(pendingIntent)
             GeoStatus.GeoStoppedOk()
         } catch (e: GeofenceException) {
             e.geoStatus

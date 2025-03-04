@@ -21,35 +21,21 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         action: String?
     ): PendingIntent? {
         val pushUriType = pushData.getContentUriType()
-        val intent = if (pushUriType == null) {
-            context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-                this.action = Intent.ACTION_MAIN
-                setPackage(context.packageName)
-                addCategory(Intent.CATEGORY_LAUNCHER)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                putExtra("pushData", pushData)
-                putExtra("eventType", EventType.CLICK.ordinal)
-                putExtra("buttonPosition", -1)
-            }
-        } else {
-            FullScreenActivity.getIntent(context).apply {
-                this.action = action
-                putExtra("clickType", pushUriType.toPushAction().value)
-                putExtra("pushData", pushData)
-                putExtra("eventType", EventType.CLICK.ordinal)
-                putExtra("buttonPosition", -1)
-                setData(pushData.actionUri)
-            }
+        val intent = FullScreenActivity.getIntent(context).apply {
+            this.action = action
+            putExtra("clickType", pushUriType.toPushAction().value)
+            putExtra("pushData", pushData)
+            putExtra("eventType", EventType.CLICK.ordinal)
+            putExtra("buttonPosition", -1)
+            setData(pushData.actionUri)
         }
 
-        return intent?.let {
-            PendingIntent.getActivity(
-                context,
-                notificationId,
-                it,
-                CompatExt.PENDING_INTENT_CANCEL_FLAGS
-            )
-        }
+        return PendingIntent.getActivity(
+            context,
+            notificationId,
+            intent,
+            CompatExt.PENDING_INTENT_UPDATE_CURRENT_FLAGS
+        )
     }
 
     override fun createDismissPendingIntent(
@@ -68,7 +54,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
             context,
             notificationId,
             intent,
-            CompatExt.PENDING_INTENT_CANCEL_FLAGS
+            CompatExt.PENDING_INTENT_UPDATE_CURRENT_FLAGS
         )
     }
 
@@ -95,7 +81,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
                 context,
                 notificationId,
                 intent,
-                CompatExt.PENDING_INTENT_CANCEL_FLAGS
+                CompatExt.PENDING_INTENT_UPDATE_CURRENT_FLAGS
             )
         }
     }

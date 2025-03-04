@@ -113,49 +113,19 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnStartGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().startGeofencing(0).enqueue(result -> {
-                GeoStatus status = result.getData();
-                Log.d(TAG, status.getClass().getName());
-                if (status instanceof GeoStatus.GeoStartedOk) {
-                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing started successfully!");
-                } else if (status instanceof GeoStatus.GeoLocationPermissionsNotGranted) {
-                    handleLocationPermissionNotGranted();
-                } else {
-                    Util.showDialog(requireContext(), "Geofencing Status", status.getStatus());
-                }
-            });
+            startGeofencing();
         });
 
         binding.btnStopGeofencing.setOnClickListener(v -> {
-            Appoxee.instance().stopGeofencing().enqueue(result -> {
-                GeoStatus status = result.getData();
-                if (status instanceof GeoStatus.GeoStoppedOk) {
-                    Util.showDialog(requireContext(), "Geofencing Status", "Geofencing stopped successfully!");
-                } else {
-                    Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
-                }
-            });
+            stopGeofencing();
         });
 
         binding.btnGetFbToken.setOnClickListener(v -> {
-            Appoxee.instance().getFirebaseToken().enqueue(result -> {
-                if (!result.isSuccess() || result.getData() == null) return;
+            getFirebaseToken();
+        });
 
-                String token = result.getData();
-                Log.d(TAG, "FIREBASE TOKEN: " + token);
-                // copy token to clipboard
-                ClipboardManager clipboard = ContextCompat.getSystemService(
-                        requireContext(),
-                        ClipboardManager.class
-                );
-                ClipData clip = ClipData.newPlainText("token", token);
-                if (clip != null && clipboard != null) {
-                    clipboard.setPrimaryClip(clip);
-
-                    // show dialog with token value
-                    Util.showDialog(requireContext(), "Firebase token", token);
-                }
-            });
+        binding.btnGeofencingStatus.setOnClickListener(v -> {
+            checkGeofencingStatus();
         });
     }
 
@@ -216,7 +186,7 @@ public class BaseTestFragment extends Fragment {
         String alias = editableAlias != null ? editableAlias.toString() : null;
         executor.execute(() -> {
             MappResult<String> result = Appoxee.instance().setAlias(alias).execute();
-            requireActivity().runOnUiThread(()->{
+            requireActivity().runOnUiThread(() -> {
                 if (result.isSuccess()) {
                     if (editableAlias != null) {
                         editableAlias.clear();
@@ -292,6 +262,61 @@ public class BaseTestFragment extends Fragment {
                 .setNegativeButton("Cancel", null)
                 .create()
                 .show();
+    }
+
+    private void startGeofencing(){
+        Appoxee.instance().startGeofencing(0).enqueue(result -> {
+            GeoStatus status = result.getData();
+            Log.d(TAG, status.getClass().getName());
+            if (status instanceof GeoStatus.GeoStartedOk) {
+                Util.showDialog(requireContext(), "Geofencing Status", "Geofencing started successfully!");
+            } else if (status instanceof GeoStatus.GeoLocationPermissionsNotGranted) {
+                handleLocationPermissionNotGranted();
+            } else {
+                Util.showDialog(requireContext(), "Geofencing Status", status.getStatus());
+            }
+        });
+    }
+
+    private void stopGeofencing(){
+        Appoxee.instance().stopGeofencing().enqueue(result -> {
+            GeoStatus status = result.getData();
+            if (status instanceof GeoStatus.GeoStoppedOk) {
+                Util.showDialog(requireContext(), "Geofencing Status", "Geofencing stopped successfully!");
+            } else {
+                Util.showDialog(requireContext(), "Geofencing Status", status != null ? status.getStatus() : "N/A");
+            }
+        });
+    }
+
+    private void getFirebaseToken(){
+        Appoxee.instance().getFirebaseToken().enqueue(result -> {
+            if (!result.isSuccess() || result.getData() == null) return;
+
+            String token = result.getData();
+            Log.d(TAG, "FIREBASE TOKEN: " + token);
+            // copy token to clipboard
+            ClipboardManager clipboard = ContextCompat.getSystemService(
+                    requireContext(),
+                    ClipboardManager.class
+            );
+            ClipData clip = ClipData.newPlainText("token", token);
+            if (clip != null && clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+
+                // show dialog with token value
+                Util.showDialog(requireContext(), "Firebase token", token);
+            }
+        });
+    }
+
+    private void checkGeofencingStatus() {
+        Appoxee.instance().isGeofencingActive().enqueue(result -> {
+            if (result.isSuccess()) {
+                String message = Boolean.TRUE.equals(result.getData()) ? "Geofencing is active" : "Geofencing is inactive";
+                Util.showDialog(requireContext(), "Geofencing Status", message);
+            }
+        });
     }
 
     private void setToken() {

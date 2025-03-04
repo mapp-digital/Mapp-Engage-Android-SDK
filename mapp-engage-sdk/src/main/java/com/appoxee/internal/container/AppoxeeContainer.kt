@@ -65,8 +65,6 @@ internal class AppoxeeContainer private constructor(
 
     internal val deviceProvider: DeviceProvider by lazy { DeviceProviderImpl(context = context) }
 
-    internal val baseScope: CoroutineScope by lazy { CoroutineScope(dispatchersProvider.defaultDispatcher + defaultExceptionHandler + SupervisorJob()) }
-
     internal val networkClient: NetworkClient by lazy {
         NetworkClientImpl(storage)
     }
@@ -89,7 +87,6 @@ internal class AppoxeeContainer private constructor(
         ActivityLifecycleHandler(
             context,
             statsClient,
-            baseScope,
             dispatchersProvider
         )
     }

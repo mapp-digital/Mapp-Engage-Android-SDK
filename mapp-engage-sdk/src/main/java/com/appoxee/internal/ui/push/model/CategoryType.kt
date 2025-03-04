@@ -19,6 +19,7 @@ enum class CategoryType(val categoryName: String) {
     APX_SPECIFIC_ANDROID("apx_specific_android");
 
     companion object {
+        @JvmStatic
         fun fromString(value: String): CategoryType? {
             return try {
                 CategoryType.entries.firstOrNull { value == it.categoryName }

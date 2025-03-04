@@ -35,7 +35,6 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -72,7 +71,7 @@ internal open class AppoxeeImpl(
         get() = ActionContainer(application)
 
     private val inappContainer: InAppContainer
-        get() = InAppContainer(internalScope, appoxeeContainer.statsClient, actionContainer)
+        get() = InAppContainer(appoxeeContainer.statsClient, actionContainer)
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer by lazy {
@@ -317,6 +316,14 @@ internal open class AppoxeeImpl(
             Logger.d(TAG, "Exception : $e")
             GeoStatus.GeoErrorStopping()
         } as T
+    }
+
+    override fun isGeofencingActive(): Call<Boolean> = buildHttpCall {
+        val geoContainer = appoxeeContainer.geoContainer
+        val isWorkerActive = geoContainer.geofenceScheduler.isGeofencingActive()
+        val isPendingIntentActive = geoContainer.geofenceClient.isGeofencingActive()
+
+        isWorkerActive && isPendingIntentActive
     }
 
     override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
