@@ -18,7 +18,9 @@ import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.startMainActivity
 import com.appoxee.internal.util.Logger
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.Objects
 import java.util.concurrent.atomic.AtomicBoolean
@@ -28,11 +30,14 @@ import kotlin.reflect.KClass
 internal class ActivityLifecycleHandler(
     context: Context,
     private val statsClient: StatsClient,
-    private val scope: CoroutineScope,
     private val dispatchersProvider: DispatchersProvider,
 ) : Application.ActivityLifecycleCallbacks {
 
     private val TAG = ActivityLifecycleHandler::class.java.name
+
+    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { c, t ->
+        Logger.e(this.javaClass.name, t)
+    })
 
     private val launchingIntent =
         context.packageManager.getLaunchIntentForPackage(context.packageName)

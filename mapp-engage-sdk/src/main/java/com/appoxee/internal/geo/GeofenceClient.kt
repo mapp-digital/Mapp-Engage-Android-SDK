@@ -5,10 +5,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.location.Location
-import android.os.Build
 import androidx.annotation.RequiresPermission
 import com.appoxee.internal.model.response.geo.Region
 import com.appoxee.internal.network.EngageApi
+import com.appoxee.internal.util.CompatExt
 import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.GeofenceException
 import com.google.android.gms.location.Geofence
@@ -24,6 +24,7 @@ interface GeofenceClient {
     fun removeGeofences(pendingIntent: PendingIntent)
     fun createGeofencePendingIntent(): PendingIntent
     fun getGeofencingRequestBuilder(): GeofencingRequest.Builder
+    fun isGeofencingActive(): Boolean
 }
 
 internal class GeofenceClientImpl(
@@ -79,22 +80,33 @@ internal class GeofenceClientImpl(
         }
     }
 
+
     override fun removeGeofences(pendingIntent: PendingIntent) {
         geofencingClient.removeGeofences(pendingIntent)
     }
 
     override fun createGeofencePendingIntent(): PendingIntent {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        val flags = CompatExt.PENDING_INTENT_MUTABLE_UPDATE_FLAGS
         return PendingIntent.getBroadcast(
             context,
             102,
             intent,
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
+            flags
         )
     }
 
     override fun getGeofencingRequestBuilder(): GeofencingRequest.Builder {
         return GeofencingRequest.Builder()
+    }
+
+    override fun isGeofencingActive(): Boolean {
+        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        val flags = CompatExt.PENDING_INTENT_NO_CREATE_FLAGS
+        val pendingIntent =
+            PendingIntent.getBroadcast(context, 102, intent, flags)
+
+        return (pendingIntent != null)
     }
 
 }

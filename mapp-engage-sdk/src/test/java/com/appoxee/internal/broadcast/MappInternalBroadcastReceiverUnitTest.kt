@@ -101,7 +101,7 @@ class MappInternalBroadcastReceiverUnitTest {
 
 
     @Test
-    fun `onReceive executes doesn't send report for PUSH_RECEIVED`() = runTest {
+    fun `onReceive doesn't send report for PUSH_RECEIVED`() = runTest {
         val mockIntent = mockk<Intent>(relaxed = true)
         val mockExtras = mockk<Bundle>(relaxed = true)
         val mockPushData = mockk<PushData>(relaxed = true)

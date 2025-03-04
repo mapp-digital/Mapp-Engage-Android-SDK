@@ -116,6 +116,10 @@ class BaseTestFragment : Fragment() {
         binding.btnStopGeofencing.setOnClickListener {
             stopGeofencing()
         }
+
+        binding.btnGeofencingStatus.setOnClickListener {
+            checkGeofencingStatus()
+        }
     }
 
     override fun onResume() {
@@ -135,7 +139,12 @@ class BaseTestFragment : Fragment() {
             val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
             binding.switchPushEnabled.text =
                 if (result.getData() == true) "Opted In" else "Opted Out"
-            binding.switchPushEnabled.setTextColor(ContextCompat.getColor(requireContext(), enabled.toColor()))
+            binding.switchPushEnabled.setTextColor(
+                ContextCompat.getColor(
+                    requireContext(),
+                    enabled.toColor()
+                )
+            )
             Util.showDialog(
                 requireContext(),
                 "Push status",
@@ -333,6 +342,23 @@ class BaseTestFragment : Fragment() {
                 } else {
                     Util.showDialog(requireContext(), "Geofencing Error", geoStatus.status)
                 }
+            }
+        }
+    }
+
+    private fun checkGeofencingStatus() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().isGeofencingActive().asSuspend()
+            if (result.isSuccess()) {
+                val message =
+                    if (result.getData() == true) "Geofencing is active" else "Geofencing is inactive"
+                Util.showDialog(requireContext(), "Geofencing status", message)
+            } else {
+                Util.showDialog(
+                    requireContext(),
+                    "Geofencing status error",
+                    result.getError()?.message
+                )
             }
         }
     }

@@ -98,8 +98,8 @@ internal class InAppManagerImpl(
     override suspend fun markInboxMessageStatus(
         message: InboxMessage,
         status: MessageStatus
-    ): Boolean = withContext(dispatchersProvider.ioDispatcher) {
-        statsClient.markInboxMessageStatus(message, status)
+    ): Boolean {
+        return statsClient.markInboxMessageStatus(message, status)
     }
 
 }

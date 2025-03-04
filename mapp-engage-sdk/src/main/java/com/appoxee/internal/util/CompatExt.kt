@@ -7,12 +7,27 @@ import android.os.Build
 import android.os.Bundle
 
 object CompatExt {
-
-    val PENDING_INTENT_CANCEL_FLAGS by lazy {
+    val PENDING_INTENT_MUTABLE_UPDATE_FLAGS by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         } else {
-            PendingIntent.FLAG_ONE_SHOT
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+    }
+
+    val PENDING_INTENT_NO_CREATE_FLAGS by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+        } else {
+            PendingIntent.FLAG_NO_CREATE
+        }
+    }
+
+    val PENDING_INTENT_UPDATE_CURRENT_FLAGS by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
         }
     }
 

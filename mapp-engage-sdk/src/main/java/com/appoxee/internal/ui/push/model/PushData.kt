@@ -144,7 +144,7 @@ internal data class PushData(
         }
 
         private fun getUriType(data: MutableMap<String, String?>): String {
-            if (data.isNullOrEmpty()) return ""
+            if (data.isEmpty()) return ""
             if (data.containsKey(KEY_DEEP_LINK)) return KEY_DEEP_LINK
             if (data.containsKey(KEY_URL)) return KEY_URL
             if (data.containsKey(KEY_APP_PACKAGE)) return KEY_APP_PACKAGE

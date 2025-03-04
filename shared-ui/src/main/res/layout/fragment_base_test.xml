@@ -130,6 +130,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Stop Geofencing" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGeofencingStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Check Geofencing Status" />
         </LinearLayout>
     </ScrollView>
 

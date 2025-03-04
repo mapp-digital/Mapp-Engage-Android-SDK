@@ -19,9 +19,6 @@ import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.LocalPushBroadcast
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 
 /**
  * Engage SDK public API for usage in client's application
@@ -176,6 +173,8 @@ interface Appoxee {
      * Stop Geofence tracking
      */
     fun <T : GeoStatus> stopGeofencing(): Call<T>
+
+    fun isGeofencingActive(): Call<Boolean>
 
     /**
      * Log out a user. Alias will reset.

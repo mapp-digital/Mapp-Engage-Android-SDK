@@ -27,7 +27,7 @@ internal class GeoContainer(
         LocationProvider(context)
     }
 
-    private val geofenceClient: GeofenceClient by lazy {
+    internal val geofenceClient: GeofenceClient by lazy {
         GeofenceClientImpl(context, locationProvider, engageApi)
     }
 
