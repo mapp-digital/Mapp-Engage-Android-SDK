@@ -13,6 +13,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.appoxee.Appoxee
+import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.shared.AppoxeeObserver
+import com.appoxee.shared.MappResult
 import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.camelCaseToWords
@@ -65,6 +68,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    private val appoxeeObserver = object : AppoxeeObserver {
+        override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
+            if (!mappResult.isSuccess()) {
+                val errMessage = mappResult.getError()?.message ?: "Unknown message"
+                Util.showDialog(this@MainActivity, "Error", errMessage)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -74,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
         Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
+        Appoxee.instance().subscribe(appoxeeObserver)
         navigate(HomeFragment())
     }
 

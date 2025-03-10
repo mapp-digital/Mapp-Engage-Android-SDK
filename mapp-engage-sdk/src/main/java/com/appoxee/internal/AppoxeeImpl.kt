@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Suppress("UNCHECKED_CAST")
 internal open class AppoxeeImpl(
     private val application: Application,
-    private val options: AppoxeeOptions? = null,
+    private val options: AppoxeeOptions?,
     val dispatcherProvider: DispatchersProvider,
     val observersProvider: ObserversProvider = ObserversProvider(),
     val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
@@ -65,6 +65,7 @@ internal open class AppoxeeImpl(
     private val internalScope =
         CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(this.javaClass.name, "exception in sdk init: $throwable")
+            observersProvider.notify(isReady(), MappResult.Error(throwable))
         })
 
     private val actionContainer: ActionContainer
@@ -118,11 +119,15 @@ internal open class AppoxeeImpl(
     internal suspend fun initializeSdk() {
         println("OPTIONS: $options")
         // save config to local storage if not null
-        options?.let {
+        if (options != null) {
             // save only if current options are changed compared to the saved one
-            if (it != storage.getInitOptions()) {
+            if (options != storage.getInitOptions()) {
                 storage.clearRegistration()
-                storage.saveInitOptions(it)
+                storage.saveInitOptions(options)
+            }
+        } else {
+            if (storage.getInitOptions() == null) {
+                throw IllegalStateException("Engage SDK wasn't supplied with initialization parameters!")
             }
         }
 
@@ -321,9 +326,9 @@ internal open class AppoxeeImpl(
     override fun isGeofencingActive(): Call<Boolean> = buildHttpCall {
         val geoContainer = appoxeeContainer.geoContainer
         val isWorkerActive = geoContainer.geofenceScheduler.isGeofencingActive()
-        val isPendingIntentActive = geoContainer.geofenceClient.isGeofencingActive()
+        //val isPendingIntentActive = geoContainer.geofenceClient.isGeofencingActive()
 
-        isWorkerActive && isPendingIntentActive
+        isWorkerActive /*&& isPendingIntentActive*/
     }
 
     override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
@@ -393,8 +398,11 @@ internal open class AppoxeeImpl(
                 val payload = storage.getDevicePayload()
                 withContext(dispatcherProvider.mainDispatcher) {
                     observersProvider.addObserver(observer)
-                    val device = payload ?: return@withContext
-                    observersProvider.notify(isReady(), MappResult.Success(data = device))
+                    val result =
+                        if (payload != null) MappResult.Success(payload) else MappResult.Error(
+                            Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
+                        )
+                    observersProvider.notify(isReady(), result)
                 }
             }
         }
@@ -455,6 +463,15 @@ internal open class AppoxeeImpl(
             } else {
                 throw IllegalArgumentException("PushBroadcast must be subtype of LocalPushBroadcast")
             }
+        }
+    }
+
+    override fun updateFirebaseToken(token: String): Call<Boolean> = buildHttpCall {
+        val device = appoxeeAdapter.getDevice() ?: return@buildHttpCall false
+        if (device.pushToken?.isNotEmpty() == true && token.equals(device.pushToken, false)) {
+            appoxeeAdapter.optIn(token)
+        } else {
+            appoxeeAdapter.optOut(token)
         }
     }
 

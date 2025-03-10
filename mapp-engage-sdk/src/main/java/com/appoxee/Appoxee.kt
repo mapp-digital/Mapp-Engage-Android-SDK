@@ -38,7 +38,7 @@ interface Appoxee {
         @JvmStatic
         fun engage(
             context: Context,
-            options: AppoxeeOptions,
+            options: AppoxeeOptions?=null,
         ) {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
@@ -249,4 +249,11 @@ interface Appoxee {
      * Client app can use those events to execute some custom actions.
      */
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
+
+    /**
+     * Update firebase token for a registered device
+     *
+     * OptIn/OptOut state won't be changed.
+     */
+    fun updateFirebaseToken(token: String): Call<Boolean>
 }

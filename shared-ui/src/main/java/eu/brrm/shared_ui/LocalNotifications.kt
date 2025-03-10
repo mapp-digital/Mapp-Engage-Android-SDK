@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
-import com.appoxee.internal.ui.push.base.MappMessagingService
+import com.appoxee.shared.MappMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONArray
 import org.json.JSONObject
@@ -28,7 +28,7 @@ object LocalNotifications {
         val connection = object : ServiceConnection {
 
             override fun onServiceConnected(className: ComponentName, service: IBinder) {
-                com.appoxee.internal.ui.push.base.MappMessagingService.instance?.onMessageReceived(RemoteMessage(bundle))
+                MappMessagingService.instance?.onMessageReceived(RemoteMessage(bundle))
                 context.unbindService(this)
             }
 

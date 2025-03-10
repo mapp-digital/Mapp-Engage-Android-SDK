@@ -4,9 +4,17 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.VectorDrawable
 import android.net.Uri
+import android.os.Build
 import android.util.DisplayMetrics
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.ui.push.model.PushData
@@ -115,4 +123,74 @@ object LibraryExtensions {
         if (this.isNullOrEmpty()) return ""
         return Base64.decode(this, 0, this.length).decodeToString()
     }
+
+    fun Context.getBitmap(iconResId: Int): Bitmap? {
+        return try {
+            if (iconResId == 0) return null
+
+            val drawable = ContextCompat.getDrawable(this, iconResId)
+
+            return if (drawable is BitmapDrawable) {
+                drawable.bitmap
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && drawable is AdaptiveIconDrawable) {
+                // Convert AdaptiveIconDrawable to Bitmap
+                val bitmap = Bitmap.createBitmap(
+                    drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(bitmap)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                bitmap
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+
+    fun Context.isValidSmallIcon(iconResId: Int): Boolean {
+        val drawable = ContextCompat.getDrawable(this, iconResId) ?: return false
+
+        return when (drawable) {
+            is BitmapDrawable -> {
+                // Check if the bitmap is monochrome (white with transparency)
+                drawable.bitmap.isMonochrome()
+            }
+
+            is VectorDrawable -> {
+                // Vector drawables are fine for small icons if they're monochrome
+                true
+            }
+
+            else -> {
+                false  // Not suitable if it's neither bitmap nor vector drawable
+            }
+        }
+    }
+
+    fun Bitmap?.isMonochrome(): Boolean {
+        // Check the pixel colors of the bitmap to see if it's monochrome
+        val width = this?.width ?: return false
+        val height = this.height
+
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val pixel = this.getPixel(x, y)
+                val alpha = Color.alpha(pixel)
+                val red = Color.red(pixel)
+                val green = Color.green(pixel)
+                val blue = Color.blue(pixel)
+
+                // Allow transparency (alpha > 0), but red, green, and blue should be the same (monochrome)
+                if (alpha > 0 && (red != green || green != blue)) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
 }

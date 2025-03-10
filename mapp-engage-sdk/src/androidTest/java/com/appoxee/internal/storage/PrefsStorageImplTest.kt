@@ -33,7 +33,8 @@ internal class PrefsStorageImplTest {
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
         dispatchersProvider = TestDispatchersProvider()
-        storage = spyk(PrefsStorageImpl(application, TimeUnit.SECONDS.toMillis(1), dispatchersProvider))
+        storage =
+            spyk(PrefsStorageImpl(application, dispatchersProvider, TimeUnit.SECONDS.toMillis(1)))
     }
 
     @After

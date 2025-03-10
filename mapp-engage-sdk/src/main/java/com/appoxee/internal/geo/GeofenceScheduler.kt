@@ -22,7 +22,7 @@ interface GeofenceScheduler {
     suspend fun scheduleRefreshGeofencesPeriodicWorker(
         data: Data?,
         constraints: Constraints? = null,
-        repeatIntervalMs: Long = TimeUnit.HOURS.toMillis(2)
+        repeatIntervalMs: Long = TimeUnit.HOURS.toMillis(4)
     )
 
     suspend fun isGeofencingActive(): Boolean
@@ -76,7 +76,7 @@ internal class GeofenceSchedulerImpl(
         val periodicWork = workBuilder.build()
         workManager.enqueueUniquePeriodicWork(
             LocationUpdateWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+            ExistingPeriodicWorkPolicy.UPDATE,
             periodicWork
         )
 

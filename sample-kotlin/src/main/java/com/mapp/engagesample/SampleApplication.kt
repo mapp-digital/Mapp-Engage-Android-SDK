@@ -21,6 +21,7 @@ class SampleApplication : Application() {
             it.connectionTimeout = 5000
         }
 
+
         Appoxee.engage(this, options)
 
         Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)

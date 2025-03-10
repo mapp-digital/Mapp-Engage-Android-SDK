@@ -7,8 +7,6 @@ import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.IconProviderImpl
 import com.appoxee.internal.provider.PendingIntentProvider
 import com.appoxee.internal.provider.PendingIntentProviderImpl
-import com.appoxee.internal.ui.push.base.NotificationBuilder
-import com.appoxee.internal.ui.push.base.NotificationBuilderImpl
 import com.appoxee.internal.ui.push.base.NotificationFactory
 import com.appoxee.internal.ui.push.base.Notify
 import com.appoxee.internal.ui.push.base.NotifyImpl
@@ -44,10 +42,8 @@ internal class PushContainer(
     internal val pendingIntentProvider: PendingIntentProvider
         get() = PendingIntentProviderImpl(context)
 
-    private val notificationBuilder: NotificationBuilder
-        get() = NotificationBuilderImpl(
-            NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-        )
+    private val notificationBuilder: NotificationCompat.Builder
+        get() = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
 
     private val notificationFactory: NotificationFactory
         get() = NotificationFactory(

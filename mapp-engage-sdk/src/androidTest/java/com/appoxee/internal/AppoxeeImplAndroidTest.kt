@@ -49,9 +49,7 @@ class AppoxeeImplAndroidTest {
     private lateinit var appoxee: AppoxeeImpl
     private lateinit var engageApiImpl: EngageApiImpl
     private lateinit var storage: Storage
-    private val testScheduler = TestCoroutineScheduler()
     private val testDispatchers = TestDispatchersProvider()
-    private val testScope = TestScope()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before
@@ -59,24 +57,23 @@ class AppoxeeImplAndroidTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
         Dispatchers.setMain(testDispatchers.mainDispatcher)
-        val appoxeeOptions = spyk(
-            AppoxeeOptions(
-                server = AppoxeeOptions.Server.L3,
-                sdkKey = "12345.67890",
-                tenantId = "12345",
-                appId = "6789"
-            ).also {
-                it.readTimeout = 5000
-                it.connectionTimeout = 5000
-            })
+        val appoxeeOptions = spyk(AppoxeeOptions(
+            server = AppoxeeOptions.Server.L3,
+            sdkKey = "12345.67890",
+            tenantId = "12345",
+            appId = "6789"
+        ).also {
+            it.readTimeout = 5000
+            it.connectionTimeout = 5000
+        })
 
         engageApiImpl = mockk<EngageApiImpl>(relaxed = true)
 
         storage = mockk<InMemoryStorageImpl>(relaxed = true)
 
-        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, testDispatchers, testScope))
+        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, testDispatchers))
 
-        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage, testDispatchers)) {
+        val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage)) {
             coEvery { this@spyk["refreshDevicePayload"]() as Unit } just Runs
         }
 
@@ -132,8 +129,7 @@ class AppoxeeImplAndroidTest {
             val inboxMessage = mockk<InboxMessage>()
             coEvery { engageApiImpl.fetchInboxMessages(any()) } coAnswers {
                 Response.success(
-                    200,
-                    InboxMessagesResponse("app_open", listOf(inboxMessage))
+                    200, InboxMessagesResponse("app_open", listOf(inboxMessage))
                 )
             }
 
@@ -150,8 +146,7 @@ class AppoxeeImplAndroidTest {
             val inappMessage = mockk<NativeInappMessage>()
             coEvery { engageApiImpl.fetchInApp(any()) } coAnswers {
                 Response.success(
-                    200,
-                    InappResponse(
+                    200, InappResponse(
                         eventId = "app_open",
                         eventKey = "",
                         webMessages = emptyList(),
@@ -175,11 +170,9 @@ class AppoxeeImplAndroidTest {
             val dmcUserId = UUID.randomUUID().toString()
             coEvery { engageApiImpl.optIn(pushToken = token) } coAnswers {
                 Response.success(
-                    200,
-                    ResponseData(
+                    200, ResponseData(
                         payload = DefaultResponse(
-                            dmcUserId = dmcUserId,
-                            set = emptyList()
+                            dmcUserId = dmcUserId, set = emptyList()
                         )
                     )
                 )
@@ -227,8 +220,7 @@ class AppoxeeImplAndroidTest {
             val tags = listOf<String>("TAG 1", "TAG 2")
             coEvery { engageApiImpl.addTags(any()) } coAnswers {
                 Response.success(
-                    200,
-                    ResponseData(
+                    200, ResponseData(
                         metadata = null, payload = DefaultResponse("", emptyList())
                     )
                 )
@@ -248,8 +240,7 @@ class AppoxeeImplAndroidTest {
             val tags = listOf<String>("TAG 1", "TAG 2")
             coEvery { engageApiImpl.removeTags(any()) } coAnswers {
                 Response.success(
-                    200,
-                    ResponseData(
+                    200, ResponseData(
                         metadata = null, payload = DefaultResponse("", emptyList())
                     )
                 )
@@ -269,8 +260,7 @@ class AppoxeeImplAndroidTest {
             val attributes = mapOf<String, Any>("a" to "TAG 1", "b" to "TAG 2")
             coEvery { engageApiImpl.addCustomAttributes(any()) } coAnswers {
                 Response.success(
-                    200,
-                    ResponseData(
+                    200, ResponseData(
                         metadata = null, payload = DefaultResponse("", emptyList())
                     )
                 )
@@ -290,8 +280,7 @@ class AppoxeeImplAndroidTest {
             val attributes = mapOf<String, Any>("a" to "TAG 1", "b" to "TAG 2")
             coEvery { engageApiImpl.getCustomAttributes(any()) } coAnswers {
                 Response.success(
-                    200,
-                    ResponseData(
+                    200, ResponseData(
                         metadata = null, payload = attributes
                     )
                 )
@@ -312,10 +301,8 @@ class AppoxeeImplAndroidTest {
             val alias = "test@mapp.com"
             coEvery { engageApiImpl.getDevice() } coAnswers {
                 Response.success(
-                    200,
-                    data = ResponseData(
-                        metadata = null,
-                        payload = DevicePayload(alias = alias, pushToken = token)
+                    200, data = ResponseData(
+                        metadata = null, payload = DevicePayload(alias = alias, pushToken = token)
                     )
                 )
 
@@ -338,7 +325,6 @@ class AppoxeeImplAndroidTest {
             val observer = mockk<AppoxeeObserver>(relaxed = true, relaxUnitFun = true)
 
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
-            every { appoxee.observers } returns mutableSetOf(observer)
             appoxee.updateReadyStatus(status, result)
 
             coVerify(exactly = 1) { observer.onReadyStatusChanged(any(), any()) }
