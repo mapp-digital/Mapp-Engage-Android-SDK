@@ -318,13 +318,4 @@ public class BaseTestFragment extends Fragment {
             }
         });
     }
-
-    private void setToken() {
-        Call<String> call = Appoxee.instance().getFirebaseToken();
-        call.enqueue(result -> {
-            if (result.isSuccess()) {
-                String token = result.getData();
-            }
-        });
-    }
 }

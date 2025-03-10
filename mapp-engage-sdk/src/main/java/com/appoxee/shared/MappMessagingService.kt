@@ -1,4 +1,4 @@
-package com.appoxee.internal.ui.push.base
+package com.appoxee.shared
 
 import android.annotation.SuppressLint
 import com.appoxee.internal.container.AppoxeeContainer
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
 
 @SuppressLint("MissingFirebaseInstanceTokenRefresh")
-class MappMessagingService : FirebaseMessagingService() {
+open class MappMessagingService : FirebaseMessagingService() {
 
     private val TAG = MappMessagingService::class.java.name
 

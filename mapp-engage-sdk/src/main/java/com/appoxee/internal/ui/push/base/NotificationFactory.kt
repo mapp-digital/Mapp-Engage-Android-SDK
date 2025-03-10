@@ -4,14 +4,13 @@ package com.appoxee.internal.ui.push.base
 
 import android.app.Notification
 import android.app.Notification.FLAG_AUTO_CANCEL
-import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.appoxee.internal.Actions
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.PendingIntentProvider
-import com.appoxee.internal.ui.push.model.CategoriesFactory
 import com.appoxee.internal.ui.push.model.NotificationType
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.ui.push.model.PushUriType
@@ -20,7 +19,7 @@ import com.appoxee.shared.LocalPushBroadcast
 
 internal class NotificationFactory(
     private val notificationStyleFactory: NotificationStyleFactory,
-    private val notificationBuilderFactory: NotificationBuilder,
+    private val notificationBuilder: NotificationCompat.Builder,
     private val iconProvider: IconProvider,
     private val pendingIntentProvider: PendingIntentProvider,
 ) {
@@ -28,16 +27,19 @@ internal class NotificationFactory(
 
         val notificationStyle = notificationStyleFactory.buildNotificationStyle(pushData).getStyle()
 
-        val builder = notificationBuilderFactory
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+        val builder = notificationBuilder
             .setAutoCancel(true)
             .setStyle(notificationStyle)
             .setContentTitle(pushData.title)
             .setContentText(pushData.bigText ?: "")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        iconProvider.getLargeIcon()?.let {
+
+        iconProvider.getCustomLargeIcon()?.let {
             builder.setLargeIcon(it)
         }
+
+        setSmallIcon(builder)
 
         pendingIntentProvider.createPendingIntent(
             pushData,
@@ -51,8 +53,6 @@ internal class NotificationFactory(
             builder.setDeleteIntent(it)
         }
 
-        setSmallIcon(builder)
-
         addButtons(builder, pushData, notificationId)
 
         val notification = builder.build()
@@ -63,17 +63,15 @@ internal class NotificationFactory(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun setSmallIcon(builder: NotificationBuilder) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            builder.setSmallIcon(iconProvider.getSmallIconApi23())
-        } else {
-            builder.setSmallIcon(iconProvider.getSmallIcon())
-        }
+    internal fun setSmallIcon(builder: NotificationCompat.Builder) {
+        val icon = iconProvider.getCustomSmallIcon()
+        builder.setSmallIcon(icon)
+        builder.setColor(iconProvider.getCustomIconColor())
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun addButtons(
-        builder: NotificationBuilder,
+        builder: NotificationCompat.Builder,
         pushData: PushData,
         notificationId: Int
     ) {
@@ -133,7 +131,7 @@ internal class NotificationFactory(
     }
 
     private fun addSpecificButtons(
-        builder: NotificationBuilder,
+        builder: NotificationCompat.Builder,
         pushData: PushData,
         isDestructive: Boolean,
         buttonTitle: String,

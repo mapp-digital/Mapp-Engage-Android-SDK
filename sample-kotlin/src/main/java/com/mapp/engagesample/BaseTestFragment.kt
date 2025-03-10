@@ -45,13 +45,14 @@ class BaseTestFragment : Fragment() {
                     isEnabled = false
                     isChecked = status
                 }
+                if (mappResult.isSuccess()) {
+                    val devicePayload = mappResult.getData()
+                    isPushEnabled(devicePayload)
 
-                val devicePayload = mappResult.getData()
-                isPushEnabled(devicePayload)
-
-                devicePayload?.let {
-                    val device = "UDIDHashed\n${it.udidHashed}"
-                    binding.tvDevice.text = device
+                    devicePayload?.let {
+                        val device = "UDIDHashed\n${it.udidHashed}"
+                        binding.tvDevice.text = device
+                    }
                 }
             }
         }

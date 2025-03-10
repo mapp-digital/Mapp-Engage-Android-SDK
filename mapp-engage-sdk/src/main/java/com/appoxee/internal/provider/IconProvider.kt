@@ -1,10 +1,20 @@
 package com.appoxee.internal.provider
 
 import android.graphics.Bitmap
-import androidx.core.graphics.drawable.IconCompat
+import androidx.annotation.ColorInt
+import androidx.annotation.DrawableRes
 
 interface IconProvider {
     fun getLargeIcon(): Bitmap?
+
+    @DrawableRes
     fun getSmallIcon(): Int
-    fun getSmallIconApi23(): IconCompat?
+
+    @DrawableRes
+    fun getCustomSmallIcon(): Int
+
+    fun getCustomLargeIcon(): Bitmap?
+
+    @ColorInt
+    fun getCustomIconColor(): Int
 }

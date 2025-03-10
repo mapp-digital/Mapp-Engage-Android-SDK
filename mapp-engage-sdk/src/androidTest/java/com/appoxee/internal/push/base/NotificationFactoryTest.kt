@@ -1,9 +1,11 @@
 package com.appoxee.internal.push.base
 
 import android.app.Notification
+import android.graphics.Bitmap
+import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.appoxee.internal.provider.IconProvider
 import com.appoxee.internal.provider.PendingIntentProvider
-import com.appoxee.internal.ui.push.base.NotificationBuilder
 import com.appoxee.internal.ui.push.base.NotificationFactory
 import com.appoxee.internal.ui.push.model.CategoriesFactory
 import com.appoxee.internal.ui.push.model.PushData
@@ -25,7 +27,7 @@ class NotificationFactoryTest {
 
     private lateinit var categoriesFactory: CategoriesFactory
     private lateinit var notificationStyleFactory: NotificationStyleFactory
-    private lateinit var notificationBuilderFactory: NotificationBuilder
+    private lateinit var notificationBuilderFactory: NotificationCompat.Builder
     private lateinit var iconProvider: IconProvider
     private lateinit var pendingIntentProvider: PendingIntentProvider
 
@@ -45,7 +47,8 @@ class NotificationFactoryTest {
         iconProvider = mockk<IconProvider>(relaxed = true).also {
             every { it.getLargeIcon() } returns null
             every { it.getSmallIcon() } returns 0
-            every { it.getSmallIconApi23() } returns null
+            every { it.getCustomLargeIcon() } returns null
+            every { it.getCustomSmallIcon() } returns 1
         }
 
         pendingIntentProvider = mockk<PendingIntentProvider>(relaxed = true)
@@ -77,15 +80,15 @@ class NotificationFactoryTest {
             }
         }
 
-        notificationBuilderFactory = mockk<NotificationBuilder>(relaxed = true).also {
+        notificationBuilderFactory = mockk<NotificationCompat.Builder>(relaxed = true).also {
             every { it.setPriority(any()) } returns it
             every { it.setAutoCancel(true) } returns it
             every { it.setContentTitle(any()) } returns it
             every { it.setContentText(any()) } returns it
-            every { it.setLargeIcon(any()) } returns it
+            every { it.setLargeIcon(any<Bitmap>()) } returns it
             every { it.setStyle(any()) } returns it
             every { it.setSmallIcon(any<Int>()) } returns it
-            every { it.setSmallIcon(null) } returns it
+            every { it.setSmallIcon(any<IconCompat>()) } returns it
             every { it.setDeleteIntent(any()) } returns it
             every { it.setContentIntent(any()) } returns it
             every { it.build() } returns mockk<Notification>(relaxed = true)

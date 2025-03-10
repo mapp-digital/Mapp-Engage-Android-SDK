@@ -17,6 +17,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.appoxee.Appoxee;
+import com.appoxee.internal.model.response.DevicePayload;
+import com.appoxee.shared.AppoxeeObserver;
+import com.appoxee.shared.MappResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +76,14 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
+        if (!mappResult.isSuccess()) {
+            Throwable error = mappResult.getError();
+            String errorMessage = error != null ? error.getMessage() : "Unknown message";
+            Util.showDialog(MainActivity.this, "Error", errorMessage);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager().addOnBackStackChangedListener(onBackStackChangedListener);
         navigate(new HomeFragment());
         Appoxee.instance().setPushBroadcast(MyPushBroadcast.class);
+        Appoxee.instance().subscribe(appoxeeObserver);
     }
 
     @Override
