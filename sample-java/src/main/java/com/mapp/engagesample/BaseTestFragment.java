@@ -43,7 +43,7 @@ public class BaseTestFragment extends Fragment {
     private final Executor executor = Executors.newCachedThreadPool();
     private final Handler mainExecutor = new Handler(Looper.getMainLooper());
     private FragmentBaseTestBinding binding;
-
+    private ClipboardManager clipboard;
 
     private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
         Log.d(TAG, "SUCCESS IN BASE TEST FRAGMENT - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
@@ -64,6 +64,8 @@ public class BaseTestFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        clipboard = ContextCompat.getSystemService(requireContext(), ClipboardManager.class);
+
         binding.switchReady.setEnabled(false);
 
         binding.btnSetAlias.setOnClickListener(v -> {
@@ -76,6 +78,10 @@ public class BaseTestFragment extends Fragment {
 
         binding.btnGetDevice.setOnClickListener(v -> {
             getDevice();
+        });
+
+        binding.btnGetFbToken.setOnClickListener(v -> {
+            getFbToken();
         });
 
         binding.btnFetchInboxMessages.setOnClickListener(v -> {
@@ -228,10 +234,31 @@ public class BaseTestFragment extends Fragment {
         Appoxee.instance().getDevice().enqueue(result -> {
             if (result.isSuccess()) {
                 DevicePayload device = result.getData();
-                Util.showDialog(requireContext(), "Device", device != null ? device.toString() : "null");
+                Util.showDeviceInfoDialog(requireContext(), device, clipboard);
             } else {
                 String error = result.getError() != null ? result.getError().toString() : "Unknown error";
                 Util.showDialog(requireContext(), "Get Device Error", error);
+            }
+        });
+    }
+
+    private void getFbToken() {
+        Appoxee.instance().getFirebaseToken().enqueue(result -> {
+            if (!result.isSuccess() || result.getData() == null) return;
+
+            String token = result.getData();
+            Log.d(TAG, "FIREBASE TOKEN: " + token);
+            // copy token to clipboard
+            ClipboardManager clipboard = ContextCompat.getSystemService(
+                    requireContext(),
+                    ClipboardManager.class
+            );
+            ClipData clip = ClipData.newPlainText("token", token);
+            if (clip != null && clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+
+                // show dialog with token value
+                Util.showDialog(requireContext(), "Firebase token", token);
             }
         });
     }
@@ -264,7 +291,7 @@ public class BaseTestFragment extends Fragment {
                 .show();
     }
 
-    private void startGeofencing(){
+    private void startGeofencing() {
         Appoxee.instance().startGeofencing(0).enqueue(result -> {
             GeoStatus status = result.getData();
             Log.d(TAG, status.getClass().getName());
@@ -278,7 +305,7 @@ public class BaseTestFragment extends Fragment {
         });
     }
 
-    private void stopGeofencing(){
+    private void stopGeofencing() {
         Appoxee.instance().stopGeofencing().enqueue(result -> {
             GeoStatus status = result.getData();
             if (status instanceof GeoStatus.GeoStoppedOk) {
@@ -289,7 +316,7 @@ public class BaseTestFragment extends Fragment {
         });
     }
 
-    private void getFirebaseToken(){
+    private void getFirebaseToken() {
         Appoxee.instance().getFirebaseToken().enqueue(result -> {
             if (!result.isSuccess() || result.getData() == null) return;
 

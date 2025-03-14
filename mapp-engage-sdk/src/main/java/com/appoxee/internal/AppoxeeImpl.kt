@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal open class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions?,
-    val dispatcherProvider: DispatchersProvider,
+    private val dispatcherProvider: DispatchersProvider,
     val observersProvider: ObserversProvider = ObserversProvider(),
     val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
         application,
@@ -398,11 +398,16 @@ internal open class AppoxeeImpl(
                 val payload = storage.getDevicePayload()
                 withContext(dispatcherProvider.mainDispatcher) {
                     observersProvider.addObserver(observer)
-                    val result =
-                        if (payload != null) MappResult.Success(payload) else MappResult.Error(
-                            Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
-                        )
-                    observersProvider.notify(isReady(), result)
+                    if (isReady()) {
+                        val result =
+                            if (payload != null)
+                                MappResult.Success(payload)
+                            else
+                                MappResult.Error(
+                                    Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
+                                )
+                        observersProvider.notify(true, result)
+                    }
                 }
             }
         }
