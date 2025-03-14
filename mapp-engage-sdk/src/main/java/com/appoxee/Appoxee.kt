@@ -38,7 +38,7 @@ interface Appoxee {
         @JvmStatic
         fun engage(
             context: Context,
-            options: AppoxeeOptions?=null,
+            options: AppoxeeOptions? = null,
         ) {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")

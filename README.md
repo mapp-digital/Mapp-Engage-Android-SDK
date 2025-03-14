@@ -1,0 +1,1 @@
+Official documentation: https://docs.mapp.com/v1/docs/android-sdk-1

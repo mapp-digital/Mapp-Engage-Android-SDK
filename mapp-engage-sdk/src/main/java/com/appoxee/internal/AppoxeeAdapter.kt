@@ -71,7 +71,7 @@ internal class AppoxeeAdapter(
 
     internal suspend fun optIn(pushToken: String): Boolean {
         val device = storage.getDevicePayload()
-        if (Objects.equals(pushToken, device?.pushToken)) {
+        if (pushToken == device?.pushToken) {
             return true
         }
         val response = engageApi.optIn(pushToken = pushToken)

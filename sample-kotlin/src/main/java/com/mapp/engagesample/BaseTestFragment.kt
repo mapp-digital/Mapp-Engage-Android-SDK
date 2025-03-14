@@ -37,6 +37,7 @@ class BaseTestFragment : Fragment() {
     private val binding: FragmentBaseTestBinding
         get() = _binding!!
 
+    private var clipboard: ClipboardManager? = null
 
     private val appoxeeObserver = object : AppoxeeObserver {
         override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
@@ -68,6 +69,8 @@ class BaseTestFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        clipboard = getSystemService(requireContext(), ClipboardManager::class.java)
+
         binding.switchReady.isEnabled = false
         binding.btnSetAlias.setOnClickListener {
             setAlias()
@@ -78,7 +81,7 @@ class BaseTestFragment : Fragment() {
         }
 
         binding.btnGetDevice.setOnClickListener {
-            getDevice()
+            getDevice(clipboard)
         }
 
         binding.btnGetFbToken.setOnClickListener {
@@ -215,13 +218,10 @@ class BaseTestFragment : Fragment() {
         }
     }
 
-    private fun getDevice() {
+    private fun getDevice(clipboard: ClipboardManager?) {
         lifecycleScope.launch {
             val result = Appoxee.instance().getDevice().asSuspend()
-            Util.showDialog(
-                requireContext(), "Device", if (result.isSuccess()) result.getData().toString()
-                else result.getError().toString()
-            )
+            Util.showDeviceInfoDialog(requireContext(),result.getData(), clipboard)
         }
     }
 
