@@ -17,9 +17,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.appoxee.Appoxee;
-import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.shared.AppoxeeObserver;
-import com.appoxee.shared.MappResult;
 
 import java.util.ArrayList;
 import java.util.List;
