@@ -195,7 +195,8 @@ internal class EngageApiImpl(
                 id = UUID.randomUUID().toString(),
                 userId = device.dmcUserId ?: "",
                 alias = device.alias ?: "",
-                eventKey = eventName
+                eventKey = eventName,
+                deviceId = device.udidHashed ?: "",
             )
 
         val request = Request.Post(path = inboxPathV5, requestBody = requestBody)
@@ -216,7 +217,8 @@ internal class EngageApiImpl(
                 id = UUID.randomUUID().toString(),
                 userId = device.dmcUserId ?: "",
                 alias = device.alias ?: "",
-                eventKey = eventName
+                eventKey = eventName,
+                deviceId = device.udidHashed ?: ""
             )
 
         val request = Request.Post(path = inappPathV5, requestBody = requestBody)

@@ -2,8 +2,8 @@ import com.google.common.collect.ImmutableList
 
 plugins {
     id("com.android.library")
-    id("kotlin-parcelize")
     id("org.jetbrains.kotlin.android")
+    id("kotlin-parcelize")
 }
 
 val sdkVersion = project.properties["VERSION"]
