@@ -8,7 +8,8 @@ data class MessageBody(
     val id: String,
     val userId: String,
     val alias: String,
-    val eventKey: String
+    val eventKey: String,
+    val deviceId:String,
 ) : NetworkData {
     private lateinit var json: JSONObject
     override fun asJson(): JSONObject {
@@ -19,6 +20,7 @@ data class MessageBody(
                 put("user_id", userId)
                 put("alias", alias)
                 put("event_key", eventKey)
+                put("device_id",deviceId)
             }
         }
         return json
