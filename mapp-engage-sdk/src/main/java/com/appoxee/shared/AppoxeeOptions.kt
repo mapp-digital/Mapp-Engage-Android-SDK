@@ -52,6 +52,8 @@ class AppoxeeOptions(
                 field = value
             }
         }
+
+    // Url for InApp messages
     private var cepUrl: String? = null
         get() {
             return if (field.isNullOrEmpty()) server.internalCepUrl else field

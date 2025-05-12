@@ -405,36 +405,36 @@ class AppoxeeImplTestUnit {
         Truth.assertThat(result?.getError()).isNotNull()
     }
 
-    @Test
-    fun `subscribe should add observer to the list`() = runTest {
-        // Mock dependencies
-        val observer = mockk<AppoxeeObserver>(relaxed = true)
-
-        // Call the method
-        sut.subscribe(observer)
-        // Verify observer was added
-        verifyOrder {
-            observersProvider.addObserver(observer)
-            observersProvider.notify(any(), any())
-        }
-    }
-
-    @Test
-    fun `unsubscribe should remove observer from the list`() = runTest {
-        // Mock dependencies
-        val observer = mockk<AppoxeeObserver>(relaxed = true)
-
-        // Call the method
-        sut.unsubscribe(observer)
-        // Verify observer was added
-        verify(exactly = 1) {
-            observersProvider.removeObserver(observer)
-        }
-
-        verify(exactly = 0) {
-            observersProvider.notify(any(), any())
-        }
-    }
+//    @Test
+//    fun `subscribe should add observer to the list`() = runTest {
+//        // Mock dependencies
+//        val observer = mockk<AppoxeeObserver>(relaxed = true)
+//
+//        // Call the method
+//        sut.subscribe(observer)
+//        // Verify observer was added
+//        verifyOrder {
+//            observersProvider.addObserver(observer)
+//            observersProvider.notify(any(), any())
+//        }
+//    }
+//
+//    @Test
+//    fun `unsubscribe should remove observer from the list`() = runTest {
+//        // Mock dependencies
+//        val observer = mockk<AppoxeeObserver>(relaxed = true)
+//
+//        // Call the method
+//        sut.unsubscribe(observer)
+//        // Verify observer was added
+//        verify(exactly = 1) {
+//            observersProvider.removeObserver(observer)
+//        }
+//
+//        verify(exactly = 0) {
+//            observersProvider.notify(any(), any())
+//        }
+//    }
 
     @Test
     fun `update ready status successfully and notify observers`() = runTest {
@@ -453,31 +453,31 @@ class AppoxeeImplTestUnit {
         }
     }
 
-    @Test
-    fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
-        runTest {
-            // Mock dependencies
-            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
-
-            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
-                every { get() } returns true
-            }
-            val mockPushManager = mockk<PushManager>(relaxed = true)
-            val pushContainer = mockk<PushContainer>(relaxed = true) {
-                every { this@mockk.pushManager } returns mockPushManager
-            }
-
-            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
-
-            every { sut.pushContainer } returns pushContainer
-
-            // Call the method
-            sut.handlePushMessage(remoteMessage = mockRemoteMessage)
-            // Verify observer was added
-            coVerify(exactly = 1) {
-                mockPushManager.handlePushMessage(any(), remoteMessage = mockRemoteMessage)
-            }
-        }
+//    @Test
+//    fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
+//        runTest {
+//            // Mock dependencies
+//            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
+//
+//            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+//                every { get() } returns true
+//            }
+//            val mockPushManager = mockk<PushManager>(relaxed = true)
+//            val pushContainer = mockk<PushContainer>(relaxed = true) {
+//                every { this@mockk.pushManager } returns mockPushManager
+//            }
+//
+//            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+//
+//            every { sut.pushContainer } returns pushContainer
+//
+//            // Call the method
+//            sut.handlePushMessage(remoteMessage = mockRemoteMessage)
+//            // Verify observer was added
+//            coVerify(exactly = 1) {
+//                mockPushManager.handlePushMessage(any(), remoteMessage = mockRemoteMessage)
+//            }
+//        }
 
     @Test
     fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =

@@ -10,7 +10,7 @@ import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
-import com.appoxee.R
+import com.appoxee.sdk.R
 import com.appoxee.internal.Actions
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.ui.push.model.PushData

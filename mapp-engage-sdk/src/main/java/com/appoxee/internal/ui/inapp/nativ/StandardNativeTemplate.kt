@@ -19,7 +19,7 @@ import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.size.Scale
-import com.appoxee.R
+import com.appoxee.sdk.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
