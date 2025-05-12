@@ -5,7 +5,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
-import com.appoxee.R
+import com.appoxee.sdk.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappButton

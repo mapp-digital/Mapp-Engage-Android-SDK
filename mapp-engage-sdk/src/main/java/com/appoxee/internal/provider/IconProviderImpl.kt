@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.core.content.ContextCompat
-import com.appoxee.R
+import com.appoxee.sdk.R
 import com.appoxee.internal.util.LibraryExtensions.getBitmap
 import com.appoxee.internal.util.LibraryExtensions.isValidSmallIcon
 

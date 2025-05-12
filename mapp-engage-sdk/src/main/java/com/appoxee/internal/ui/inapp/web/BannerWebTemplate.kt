@@ -12,7 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
-import com.appoxee.R
+import com.appoxee.sdk.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.BannerPosition
 import com.appoxee.internal.model.response.inapp.Message
