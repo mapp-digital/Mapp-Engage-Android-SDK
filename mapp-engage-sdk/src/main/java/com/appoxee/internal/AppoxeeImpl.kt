@@ -286,9 +286,9 @@ internal open class AppoxeeImpl(
         )
     }
 
-    override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
-        appoxeeAdapter.fetchInappMessages(eventName)
-    }
+//    override fun fetchInappMessages(eventName: String): Call<InappResponse?> = buildHttpCall {
+//        appoxeeAdapter.fetchInappMessages(eventName)
+//    }
 
     override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
         val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)

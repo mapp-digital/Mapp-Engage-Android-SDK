@@ -37,7 +37,7 @@ android {
         flavorDimensions += listOf("main")
     }
     productFlavors {
-        create("app") {
+        create("prod") {
             dimension = flavorDimensions[0]
             minSdk = 21
         }
