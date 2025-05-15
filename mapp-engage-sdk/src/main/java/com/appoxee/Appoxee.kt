@@ -149,15 +149,6 @@ interface Appoxee {
     fun showInboxMessage(context: Activity, message: InboxMessage)
 
     /**
-     * Get list of active inapp messages
-     * @param eventName to filter inapp messages
-     * @return [InappResponse] that holds list of inapp messages
-     */
-//    fun fetchInappMessages(
-//        eventName: String,
-//    ): Call<InappResponse?>
-
-    /**
      * Get list of inapp messages from server and show them as proper dialog or fullscreen page
      */
     fun triggerInApp(context: Activity, eventName: String): Call<Boolean>
