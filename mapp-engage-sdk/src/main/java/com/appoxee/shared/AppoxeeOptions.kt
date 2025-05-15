@@ -35,7 +35,7 @@ class AppoxeeOptions(
      * Sets connection timeout in milliseconds
      */
     @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
-    var connectionTimeout: Int = DEFAULT_TIMEOUT
+    internal var connectionTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
             if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
                 field = value
@@ -46,7 +46,7 @@ class AppoxeeOptions(
      * Sets connection read timeout in milliseconds
      */
     @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
-    var readTimeout: Int = DEFAULT_TIMEOUT
+    internal var readTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
             if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
                 field = value
@@ -72,7 +72,7 @@ class AppoxeeOptions(
     /**
      * Defines the level for outputting logs
      */
-    var logType: LogLevel = LogLevel.RELEASE
+    internal var logType: LogLevel = LogLevel.RELEASE
 
     /**
      * Defines notification mode; It can be one of the following values:

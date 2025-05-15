@@ -57,19 +57,19 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
-        //flavorDimensions += listOf("main")
+        flavorDimensions += listOf("main")
     }
 
-//    productFlavors {
-//        create("app"){
-//            dimension=flavorDimensions[0]
-//            minSdk=21
-//        }
+    productFlavors {
+        create("prod"){
+            dimension=flavorDimensions[0]
+            minSdk=21
+        }
 //        create("tst") {
-//            dimension = flavorDimensions.get(0)
+//            dimension = flavorDimensions[0]
 //            minSdk=23
 //        }
-//    }
+    }
 
     testOptions {
         unitTests.isIncludeAndroidResources = false
@@ -101,56 +101,13 @@ dependencies {
     androidTestImplementation(libs.bundles.android.test)
 }
 
-// Task for publishing to Central Portal
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("engageSdk") {
-                from(components["release"])
-
-                groupId = PUBLISHED_GROUP_ID
-                artifactId = ARTIFACT
-                version = VERSION
-
-                pom {
-                    name.set(LIBRARY_NAME)
-                    description.set(LIBRARY_DESC)
-                    url.set(GIT_URL)
-
-                    licenses {
-                        license {
-                            name.set(LICENSE_NAME)
-                            url.set(LICENSE_URL)
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id.set(DEVELOPER_ID)
-                            name.set(DEVELOPER_NAME)
-                            url.set(DEVELOPER_URL)
-                        }
-                    }
-
-                    scm {
-                        url.set(GIT_URL)
-                        connection.set(GIT_CONNECTION)
-                        developerConnection.set(GIT_DEVELOPER_CONNECTION)
-                    }
-                }
-            }
-        }
-    }
-
-    tasks.named("signMavenPublication").configure {
-        dependsOn("releaseSourcesJar")
-    }
-
-    tasks.named("generateMetadataFileForEngageSdkPublication").configure {
-        dependsOn("sourcesJar")
-    }
-
-    tasks.named("signEngageSdkPublication").configure {
-        dependsOn("publishMavenPublicationToMavenLocal")
-    }
+centralPortalPublisher {
+    componentName = "prodRelease"
+    groupId = PUBLISHED_GROUP_ID
+    artifactId = ARTIFACT
+    version = VERSION
 }
+
+//tasks.withType<Test>().configureEach {
+//    enabled = false
+//}

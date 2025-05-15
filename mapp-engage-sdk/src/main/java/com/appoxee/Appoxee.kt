@@ -153,9 +153,9 @@ interface Appoxee {
      * @param eventName to filter inapp messages
      * @return [InappResponse] that holds list of inapp messages
      */
-    fun fetchInappMessages(
-        eventName: String,
-    ): Call<InappResponse?>
+//    fun fetchInappMessages(
+//        eventName: String,
+//    ): Call<InappResponse?>
 
     /**
      * Get list of inapp messages from server and show them as proper dialog or fullscreen page
@@ -183,7 +183,7 @@ interface Appoxee {
     fun logout(pushEnabled: Boolean): Call<Boolean>
 
     /**
-     * Add list of tags on a device
+     * Add list of tags to a device
      * @param tags list of tags to add
      * @return [Boolean] status of method execution. True if successful, otherwise false.
      */

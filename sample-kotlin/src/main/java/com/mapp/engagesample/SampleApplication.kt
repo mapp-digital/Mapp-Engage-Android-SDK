@@ -15,10 +15,7 @@ class SampleApplication : Application() {
             tenantId = "5963",
             appId = "206974",
         ).also {
-            it.logType = AppoxeeOptions.LogLevel.DEBUG
             it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
-            it.readTimeout = 5000
-            it.connectionTimeout = 5000
         }
 
 

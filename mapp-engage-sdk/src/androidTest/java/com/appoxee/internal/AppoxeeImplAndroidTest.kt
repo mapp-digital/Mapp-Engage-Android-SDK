@@ -140,28 +140,28 @@ class AppoxeeImplAndroidTest {
         }
     }
 
-    @Test
-    fun fetchInappMessages() {
-        runBlocking {
-            val inappMessage = mockk<NativeInappMessage>()
-            coEvery { engageApiImpl.fetchInApp(any()) } coAnswers {
-                Response.success(
-                    200, InappResponse(
-                        eventId = "app_open",
-                        eventKey = "",
-                        webMessages = emptyList(),
-                        nativeMessages = listOf(inappMessage)
-                    )
-                )
-            }
-
-            val result = appoxee.fetchInappMessages("").asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.fetchInApp(any()) }
-            Truth.assertThat(result.isSuccess()).isTrue()
-            Truth.assertThat(result.getData()?.nativeMessages).hasSize(1)
-            Truth.assertThat(result.getData()?.webMessages).hasSize(0)
-        }
-    }
+//    @Test
+//    fun fetchInappMessages() {
+//        runBlocking {
+//            val inappMessage = mockk<NativeInappMessage>()
+//            coEvery { engageApiImpl.fetchInApp(any()) } coAnswers {
+//                Response.success(
+//                    200, InappResponse(
+//                        eventId = "app_open",
+//                        eventKey = "",
+//                        webMessages = emptyList(),
+//                        nativeMessages = listOf(inappMessage)
+//                    )
+//                )
+//            }
+//
+//            val result = appoxee.fetchInappMessages("").asSuspend()
+//            coVerify(exactly = 1) { engageApiImpl.fetchInApp(any()) }
+//            Truth.assertThat(result.isSuccess()).isTrue()
+//            Truth.assertThat(result.getData()?.nativeMessages).hasSize(1)
+//            Truth.assertThat(result.getData()?.webMessages).hasSize(0)
+//        }
+//    }
 
     @Test
     fun enablePush() {

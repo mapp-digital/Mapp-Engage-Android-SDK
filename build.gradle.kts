@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.github.tafilovic:central-portal-publisher:1.0.5")
+        classpath("com.github.tafilovic:central-portal-publisher:2.0.3")
     }
 }
 
