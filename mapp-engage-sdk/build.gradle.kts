@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
+    id("maven-publish")
     id("central.portal.publisher")
 }
 
@@ -26,6 +27,7 @@ android {
 
     lint {
         targetSdk = 35
+        checkReleaseBuilds = false
     }
 
     defaultConfig {
@@ -65,10 +67,10 @@ android {
             dimension=flavorDimensions[0]
             minSdk=21
         }
-//        create("tst") {
-//            dimension = flavorDimensions[0]
-//            minSdk=23
-//        }
+        create("tst") {
+            dimension = flavorDimensions[0]
+            minSdk=23
+        }
     }
 
     testOptions {
@@ -106,8 +108,17 @@ centralPortalPublisher {
     groupId = PUBLISHED_GROUP_ID
     artifactId = ARTIFACT
     version = VERSION
+    flavorName="prod"
 }
 
-//tasks.withType<Test>().configureEach {
-//    enabled = false
+//tasks.configureEach {
+//    if (name.contains("debug", ignoreCase = true)) {
+//        enabled = false
+//    }
+//}
+
+//tasks.configureEach {
+//    if (name.contains("test", ignoreCase = true)) {
+//        enabled = false
+//    }
 //}

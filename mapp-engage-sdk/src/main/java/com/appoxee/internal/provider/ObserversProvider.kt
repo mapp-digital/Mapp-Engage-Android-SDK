@@ -1,9 +1,11 @@
 package com.appoxee.internal.provider
 
+import androidx.annotation.Keep
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappResult
 
+@Keep
 class ObserversProvider {
 
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
