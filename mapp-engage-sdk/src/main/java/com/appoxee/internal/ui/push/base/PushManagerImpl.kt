@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.Keep
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.network.exceptions.DeviceNotRegisteredException
@@ -21,6 +22,7 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
+@Keep
 internal class PushManagerImpl(
     private val dispatchersProvider: com.appoxee.internal.util.DispatchersProvider,
     private val notify: Notify,
@@ -46,7 +48,7 @@ internal class PushManagerImpl(
     }
 
     override suspend fun handlePushMessage(context: Context, remoteMessage: RemoteMessage) {
-        withContext(dispatchersProvider.ioDispatcher) {
+        withContext(dispatchersProvider.defaultDispatcher) {
             if (!isPushMessageFromMapp(remoteMessage)) return@withContext
             val notificationMode = getNotificationMode()
             Logger.d(TAG, "NOTIFICATION MODE: $notificationMode")

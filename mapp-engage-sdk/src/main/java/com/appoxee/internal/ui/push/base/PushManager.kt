@@ -2,9 +2,11 @@ package com.appoxee.internal.ui.push.base
 
 import android.app.Notification
 import android.content.Context
+import androidx.annotation.Keep
 import com.appoxee.internal.ui.push.model.PushData
 import com.google.firebase.messaging.RemoteMessage
 
+@Keep
 internal interface PushManager {
     suspend fun handlePushMessage(context: Context, remoteMessage: RemoteMessage)
 

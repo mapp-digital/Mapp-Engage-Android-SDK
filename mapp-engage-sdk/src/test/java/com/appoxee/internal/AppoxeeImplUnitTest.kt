@@ -40,10 +40,16 @@ import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import io.mockk.verifyOrder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -82,13 +88,15 @@ class AppoxeeImplTestUnit {
     private lateinit var testDispatcher: TestDispatcher
 
     private lateinit var testDispatchersProvider: TestDispatchersProvider
+    private lateinit var testScope: TestScope
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
-        testDispatcher = UnconfinedTestDispatcher()
+        testDispatcher = StandardTestDispatcher()
         testDispatchersProvider = TestDispatchersProvider(testDispatcher)
-        //Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
+        testScope = TestScope(testDispatcher)
+        Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
         mockkStatic(Log::class)
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
@@ -181,13 +189,15 @@ class AppoxeeImplTestUnit {
         every { sut.storage } returns mockStorage
         every { sut.deviceProvider } returns mockDeviceProvider
         every { sut.migrationHelper } returns mockMigrationHelper
+        every { sut.internalScope } returns testScope
+        every { sut.observersProvider } returns observersProvider
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @After
     fun tearDown() {
         unmockkAll()
-        //Dispatchers.resetMain()
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -410,6 +420,9 @@ class AppoxeeImplTestUnit {
         // Mock dependencies
         val observer = mockk<AppoxeeObserver>(relaxed = true)
 
+        every { sut.internalScope } answers { testScope }
+        every { sut.isReady() } answers { true }
+        every { observersProvider.addObserver(any()) } just runs
         // Call the method
         sut.subscribe(observer)
         // Verify observer was added
@@ -449,6 +462,7 @@ class AppoxeeImplTestUnit {
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
         runTest {
@@ -459,16 +473,20 @@ class AppoxeeImplTestUnit {
                 every { get() } returns true
             }
             val mockPushManager = mockk<PushManager>(relaxed = true)
-            val pushContainer = mockk<PushContainer>(relaxed = true) {
-                every { this@mockk.pushManager } returns mockPushManager
-            }
+            val pushContainer = mockk<PushContainer>(relaxed = true)
+
+            every { pushContainer.pushManager } coAnswers { mockPushManager }
 
             coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
 
             every { sut.pushContainer } returns pushContainer
+            every { sut.internalScope } returns testScope
 
             // Call the method
             sut.handlePushMessage(remoteMessage = mockRemoteMessage)
+
+            testScope.advanceUntilIdle()
+
             // Verify observer was added
             coVerify(exactly = 1) {
                 mockPushManager.handlePushMessage(any(), remoteMessage = mockRemoteMessage)
@@ -613,10 +631,11 @@ class AppoxeeImplTestUnit {
 
     private abstract class ValidPushBroadcast : LocalPushBroadcast()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `setPushBroadcast class which is subtype of LocalPushBroadcast is successful`() {
         sut.setPushBroadcast(ValidPushBroadcast::class.java)
-
-        coVerify { mockStorage.setBroadcastClass(ValidPushBroadcast::class.java) }
+        testScope.advanceUntilIdle()
+        coVerify(exactly = 1) { mockStorage.setBroadcastClass(ValidPushBroadcast::class.java) }
     }
 }

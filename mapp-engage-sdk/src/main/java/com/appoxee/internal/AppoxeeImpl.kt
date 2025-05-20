@@ -4,6 +4,7 @@ package com.appoxee.internal
 
 import android.app.Activity
 import android.app.Application
+import androidx.annotation.Keep
 import androidx.annotation.VisibleForTesting
 import com.appoxee.Appoxee
 import com.appoxee.internal.container.ActionContainer
@@ -13,7 +14,6 @@ import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
@@ -43,6 +43,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("UNCHECKED_CAST")
+@Keep
 internal open class AppoxeeImpl(
     private val application: Application,
     private val options: AppoxeeOptions?,
@@ -62,7 +63,8 @@ internal open class AppoxeeImpl(
 
     private val pushQueue by lazy { mutableSetOf<RemoteMessage>() }
 
-    private val internalScope =
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val internalScope =
         CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(this.javaClass.name, "exception in sdk init: $throwable")
             observersProvider.notify(isReady(), MappResult.Error(throwable))
@@ -392,16 +394,16 @@ internal open class AppoxeeImpl(
         internalScope.launch {
             mutex.withLock {
                 val payload = storage.getDevicePayload()
-                withContext(dispatcherProvider.mainDispatcher) {
-                    observersProvider.addObserver(observer)
-                    if (isReady()) {
-                        val result =
-                            if (payload != null)
-                                MappResult.Success(payload)
-                            else
-                                MappResult.Error(
-                                    Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
-                                )
+                observersProvider.addObserver(observer)
+                if (isReady()) {
+                    val result =
+                        if (payload != null)
+                            MappResult.Success(payload)
+                        else
+                            MappResult.Error(
+                                Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
+                            )
+                    withContext(dispatcherProvider.mainDispatcher) {
                         observersProvider.notify(true, result)
                     }
                 }
