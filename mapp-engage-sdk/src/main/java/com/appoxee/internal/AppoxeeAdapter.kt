@@ -3,6 +3,7 @@ package com.appoxee.internal
 import android.annotation.SuppressLint
 import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.UpdateDevice
 import com.appoxee.internal.model.request.geo.GeoEvent
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -40,6 +41,12 @@ internal class AppoxeeAdapter(
     internal suspend fun register(deviceModel: RegisterDevice): RegisterPayload? {
         val response = engageApi.registerDevice(deviceModel)
         return if (response.isSuccess()) response.data?.payload else null
+    }
+
+    internal suspend fun updateDevice(params:Map<String,String>): Response<ResponseData<DefaultResponse>>{
+        val deviceToUpdate=UpdateDevice(params)
+        val response=engageApi.updateDevice(deviceToUpdate)
+        return response
     }
 
     internal suspend fun setAlias(alias: String): DevicePayload? {

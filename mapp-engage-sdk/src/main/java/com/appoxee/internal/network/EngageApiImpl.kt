@@ -14,6 +14,7 @@ import com.appoxee.internal.model.request.SetAlias
 import com.appoxee.internal.model.request.SetAttributes
 import com.appoxee.internal.model.request.Tags
 import com.appoxee.internal.model.request.TagsAction
+import com.appoxee.internal.model.request.UpdateDevice
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.InappEvent
@@ -86,6 +87,18 @@ internal class EngageApiImpl(
 
         val response = networkClient.execute(request, BaseAdapter {
             RegisterPayload.fromJSON(it)
+        })
+
+        return response
+    }
+
+    override suspend fun updateDevice(updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>> {
+        val updateModel = RequestBody(key = uniqueDeviceId, actions = updateDevice)
+        val request = Request.Put(path = devicePathV3, requestBody = updateModel)
+            .addHeader(getSdkKeyHeader())
+
+        val response = networkClient.execute(request, BaseAdapter {
+            DefaultResponse.fromJSON(it)
         })
 
         return response

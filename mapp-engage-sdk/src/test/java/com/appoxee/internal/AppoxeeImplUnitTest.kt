@@ -18,9 +18,11 @@ import com.appoxee.internal.network.NetworkClient
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.provider.ObserversProvider
+import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.base.PushManager
 import com.appoxee.internal.ui.push.base.PushManagerImpl
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
@@ -39,13 +41,11 @@ import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
-import io.mockk.verifyOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -98,6 +98,8 @@ class AppoxeeImplTestUnit {
         testScope = TestScope(testDispatcher)
         Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
         mockkStatic(Log::class)
+        mockkStatic(Logger::class)
+        every { Logger.d(any(), any()) } just runs
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
 
@@ -131,7 +133,7 @@ class AppoxeeImplTestUnit {
         mockRegisterDevice = RegisterDevice(
             osName = "Android",
             appVersion = "1.0.0",
-            clientVersion = "A1",
+            clientVersion = "7.0.0",
             locale = "en",
             timeZone = "n/a",
             hardwareType = "samsung s24",
@@ -290,7 +292,7 @@ class AppoxeeImplTestUnit {
         val savedRegistrationDevice = RegisterDevice(
             osName = "Android",
             appVersion = "1.0.0",
-            clientVersion = "A1",
+            clientVersion = "7.0.0",
             locale = "en",
             timeZone = "n/a",
             hardwareType = "samsung s24",
@@ -319,29 +321,51 @@ class AppoxeeImplTestUnit {
     @Test
     fun `validate registration when already on v7 and channel changed`() = runTest {
         val appoxeeOptions = AppoxeeOptions(AppoxeeOptions.Server.L3, "abcd.efgh", "001122", "0987")
-        val storage = mockk<Storage>(relaxed = true) {
-            coEvery { this@mockk.getInitOptions() } coAnswers { appoxeeOptions }
-        }
 
-        coEvery { sut.storage } coAnswers { storage }
-
-        coEvery { sut.updateReadyStatus(any(), any()) } just runs
-        coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
         coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.storage } coAnswers { mockStorage }
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
 
+        // this is in case when new options with changed value are passed;
+        // the cached value will be deleted and method will return null
+        coEvery { mockStorage.getDevicePayload() } coAnswers { null }
         // execute validation
         sut.initializeSdk()
 
-        coVerifyOrder {
-            storage.getInitOptions()
-            storage.clearRegistration()
-            storage.saveInitOptions(any())
-            sut.validateRegistration()
-            mockAppoxeeAdapter.register(mockRegisterDevice)
-            sut.updateOptStatus(any(), any())
-            mockAppoxeeAdapter.getDevice()
+        coVerify {
+            mockAppoxeeAdapter.register(any())
         }
     }
+
+    @Test
+    fun `update device should be called when some device param changed`() =
+        runTest {
+            val savedRegistrationDevice = RegisterDevice(
+                osName = "Android",
+                appVersion = "1.0.0",
+                clientVersion = "7.0.2", //changed value from 7.0.0
+                locale = "en",
+                timeZone = "n/a",
+                hardwareType = "samsung s24",
+                density = "380dpi",
+                vendorID = "Samsung",
+                osNumber = "34",
+                resolution = "1920x1080"
+            )
+
+            coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
+            coEvery { mockStorage.getRegistrationDevice() } coAnswers { mockRegisterDevice }
+            coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { savedRegistrationDevice }
+            coEvery { sut.updateOptStatus(any(), any()) } just runs
+
+            // execute validation
+            sut.validateRegistration()
+
+            // verify that no registration, get device or updating OPT state was called
+            coVerify(exactly = 1) {
+                mockAppoxeeAdapter.updateDevice(any())
+            }
+        }
 
     @Test
     fun `set alias with empty string throws exception`() = runTest {
