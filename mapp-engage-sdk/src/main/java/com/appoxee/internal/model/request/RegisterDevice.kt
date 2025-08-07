@@ -63,4 +63,42 @@ internal data class RegisterDevice(
     override fun asString(): String {
         return asJson().toString()
     }
+
+    fun getChangedParams(other: RegisterDevice?): Map<String, String> {
+        val changedParams = mutableMapOf<String, String>()
+
+        if (other == null) return changedParams
+
+        if (osName != other.osName)
+            changedParams["osName"] = other.osName ?: ""
+
+        if (appVersion != other.appVersion)
+            changedParams["appVersion"] = other.appVersion ?: ""
+
+        if (clientVersion != other.clientVersion)
+            changedParams["clientVersion"] = other.clientVersion ?: ""
+
+        if (locale != other.locale)
+            changedParams["locale"] = other.locale ?: ""
+
+        if (timeZone != other.timeZone)
+            changedParams["timeZone"] = other.timeZone ?: ""
+
+        if (hardwareType != other.hardwareType)
+            changedParams["hardwareType"] = other.hardwareType ?: ""
+
+        if (density != other.density)
+            changedParams["density"] = other.density ?: ""
+
+        if (vendorID != other.vendorID)
+            changedParams["vendorID"] = other.vendorID ?: ""
+
+        if (osNumber != other.osNumber)
+            changedParams["osNumber"] = other.osNumber ?: ""
+
+        if (resolution != other.resolution)
+            changedParams["resolution"] = other.resolution ?: ""
+
+        return changedParams.filter { it.value.isNotEmpty() }.toMap()
+    }
 }

@@ -123,7 +123,7 @@ internal open class AppoxeeImpl(
         // save config to local storage if not null
         if (options != null) {
             // save only if current options are changed compared to the saved one
-            if (options != storage.getInitOptions()) {
+            if (!options.areEquals(storage.getInitOptions())) {
                 storage.clearRegistration()
                 storage.saveInitOptions(options)
             }
@@ -145,10 +145,10 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun validateRegistration(): DevicePayload? {
-        // get saved device from local storage
+        // get cached device from local storage
         var devicePayload: DevicePayload? = storage.getDevicePayload()
 
-        // get registration data used to register device on server
+        // get cached registration data used to register device on server
         val savedRegisterPayload = storage.getRegistrationDevice()
 
         // calculate current registration data of device
@@ -156,8 +156,19 @@ internal open class AppoxeeImpl(
 
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
+            println("has device payload")
             // check if saved registration data and currently calculated registration data differs
-            if (savedRegisterPayload != newRegisterPayload) {
+            if(savedRegisterPayload!=null){
+
+                println("has registration payload")
+                val updatedParams=savedRegisterPayload.getChangedParams(newRegisterPayload)
+
+                if(updatedParams.isNotEmpty()){
+                    appoxeeAdapter.updateDevice(updatedParams)
+                }
+                // device already registered and channel is unchanged
+                updateOptStatus(devicePayload, null)
+            } else  {
                 // when registration data differs, register data again to update values on server
                 appoxeeAdapter.register(newRegisterPayload)
 
@@ -168,10 +179,6 @@ internal open class AppoxeeImpl(
                 // get device payload from server after new registration
                 Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
                 devicePayload = appoxeeAdapter.getDevice()
-            } else {
-                // device already registered and channel is unchanged
-                // update only FB token if needed
-                updateOptStatus(devicePayload, null)
             }
         } else {
             // check if device registered with older version (v6) and needs to be migrated
@@ -182,7 +189,7 @@ internal open class AppoxeeImpl(
 
             // if channel is unchanged, reuse device registration and do not register device again.
             // migrate registration to SDK v7 structure and delete SDK v6 registration data.
-            if (options?.equals(oldOptions) == true) {
+            if (options?.areEquals(oldOptions) == true) {
                 devicePayload = appoxeeAdapter.getDevice()
 
                 // update only optOut state to refresh firebase token if it is changed
@@ -219,7 +226,6 @@ internal open class AppoxeeImpl(
         // returns device payload
         return devicePayload
     }
-
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun updateOptStatus(

@@ -1,6 +1,7 @@
 package com.appoxee.internal.network
 
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.request.UpdateDevice
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
@@ -74,4 +75,6 @@ internal interface EngageApi {
         regionId: Long,
         version: Int
     ): Response<ResponseData<DefaultResponse>>
+
+    suspend fun updateDevice(updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>>
 }

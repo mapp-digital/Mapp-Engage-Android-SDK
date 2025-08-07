@@ -159,6 +159,17 @@ class AppoxeeOptions(
         }
     }
 
+    fun areEquals(other: AppoxeeOptions?):Boolean{
+        if(this===other) return true
+
+        if (server != other?.server) return false
+        if (sdkKey != other.sdkKey) return false
+        if (appId != other.appId) return false
+        if (tenantId != other.tenantId) return false
+
+        return true
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
