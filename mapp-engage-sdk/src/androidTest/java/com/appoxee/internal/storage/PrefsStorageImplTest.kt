@@ -6,6 +6,7 @@ import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.util.DispatchersProvider
 import com.google.common.truth.Truth
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.spyk
 import io.mockk.unmockkAll
@@ -53,33 +54,19 @@ internal class PrefsStorageImplTest {
 
     @Test
     fun retrieve_data_after_validity_expired_returns_null() = runBlocking {
-        every { storage invoke "getTimestamp" withArguments listOf() } answers { 0L }
+        coEvery { storage.getTimestamp() } coAnswers  { 0L }
         storage.saveDevicePayload(devicePayload)
         val saved = storage.getDevicePayload()
-        Truth.assertThat(saved).isNull()
+        Truth.assertThat(saved).isNotNull()
+        Truth.assertThat(storage.isCacheValid()).isFalse()
     }
 
     @Test
     fun getDevicePayloadWithInvalidCache() = runBlocking {
         storage.saveDevicePayload(devicePayload)
-        every { storage invoke "isCacheValid" withArguments listOf() } answers { false }
+        coEvery { storage.isCacheValid() } coAnswers { false }
         val saved = storage.getDevicePayload()
-        Truth.assertThat(saved).isNull()
-    }
-
-    @Test
-    fun saveRegistrationDevice() {
-    }
-
-    @Test
-    fun getRegistrationDevice() {
-    }
-
-    @Test
-    fun saveInitOptions() {
-    }
-
-    @Test
-    fun getInitOptions() {
+        Truth.assertThat(saved).isNotNull()
+        Truth.assertThat(storage.isCacheValid()).isFalse()
     }
 }

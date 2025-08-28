@@ -1,5 +1,6 @@
 package com.appoxee.internal.storage
 
+import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
@@ -15,6 +16,9 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
     private var appConfigPayload: AppConfigPayload? = null
     private var clazz: Class<*>? = null
     private var timestamp: Long = 0
+
+    private var customAttributes: CustomAttributesCache =
+        CustomAttributesCache(attributes = emptyMap())
 
     override suspend fun clearRegistration() {
         devicePayload = null
@@ -73,5 +77,13 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
 
     override suspend fun getTimestamp(): Long {
         return timestamp
+    }
+
+    override suspend fun setCustomAttributesCache(attributes: Map<String, Any?>) {
+        this.customAttributes= CustomAttributesCache(attributes = attributes)
+    }
+
+    override suspend fun getCustomAttributesCache(): CustomAttributesCache {
+        return customAttributes
     }
 }

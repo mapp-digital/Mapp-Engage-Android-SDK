@@ -43,13 +43,13 @@ internal class AppoxeeAdapter(
         return if (response.isSuccess()) response.data?.payload else null
     }
 
-    internal suspend fun updateDevice(params:Map<String,String>): Response<ResponseData<DefaultResponse>>{
-        val deviceToUpdate=UpdateDevice(params)
-        val response=engageApi.updateDevice(deviceToUpdate)
+    internal suspend fun updateDevice(params: Map<String, String>): Response<ResponseData<DefaultResponse>> {
+        val deviceToUpdate = UpdateDevice(params)
+        val response = engageApi.updateDevice(deviceToUpdate)
         return response
     }
 
-    internal suspend fun setAlias(alias: String): DevicePayload? {
+    internal suspend fun setAlias(alias: String, resendCustomAttributes: Boolean=false): DevicePayload? {
         if (alias.isEmpty()) throw IllegalArgumentException("Alias can not be empty!")
         val device = storage.getDevicePayload()
         // new alias same as old alias
@@ -59,6 +59,9 @@ internal class AppoxeeAdapter(
         // alias has changed, update value to a server
         val response = engageApi.setAlias(alias)
         if (response.isSuccess()) {
+            if(resendCustomAttributes){
+                resyncCustomAttributes()
+            }
             val updatedDevice = refreshDevicePayload()
             return updatedDevice
         } else {
@@ -93,7 +96,7 @@ internal class AppoxeeAdapter(
         }
         val response = engageApi.optOut(pushTokenBk = pushToken)
         refreshDevicePayload()
-        return if(response.isSuccess()) false else !device?.pushToken.isNullOrEmpty()
+        return if (response.isSuccess()) false else !device?.pushToken.isNullOrEmpty()
     }
 
     internal suspend fun getAppConfig(): Response<ResponseData<AppConfigPayload>> {
@@ -119,8 +122,48 @@ internal class AppoxeeAdapter(
         return engageApi.removeTags(tags)
     }
 
+    internal suspend fun resyncCustomAttributes(){
+        // get cached attributes
+        val cachedAttributes = storage.getCustomAttributesCache().attributes
+        val response = engageApi.addCustomAttributes(cachedAttributes)
+        if (response.isSuccess()) {
+            storage.setCustomAttributesCache(cachedAttributes)
+        }
+    }
+
     internal suspend fun addCustomAttributes(attributes: Map<String, Any?>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.addCustomAttributes(attributes)
+        // get cached attributes
+        val cachedAttributes = storage.getCustomAttributesCache()
+
+        // holder map for real updates to a backend
+        val attributesToUpdate = mutableMapOf<String, Any?>()
+
+        // cache validity indicator
+        val cacheIsValid = cachedAttributes.isCacheValid()
+
+        // iterate over custom attributes and compare with cached values
+        // take only non-existing or changed value to update to a backend
+        attributes.forEach { (key, value) ->
+            val cachedValue = cachedAttributes.attributes.getOrElse(key) { null }
+            if (!cacheIsValid || cachedValue != value) {
+                attributesToUpdate.put(key, value)
+            }
+        }
+
+        // send custom attributes to a backend if map is not empty
+        if (attributesToUpdate.isNotEmpty()) {
+            val response = engageApi.addCustomAttributes(attributesToUpdate)
+            if (response.isSuccess()) {
+                storage.setCustomAttributesCache(attributesToUpdate)
+            }
+            return response
+        } else {
+            // return success for case when there is no new custom attributes to update
+            return Response.success(
+                data = ResponseData(),
+                statusCode = 200
+            )
+        }
     }
 
     internal suspend fun getCustomAttributes(attributes: List<String>): Response<ResponseData<Map<String, Any?>>> {

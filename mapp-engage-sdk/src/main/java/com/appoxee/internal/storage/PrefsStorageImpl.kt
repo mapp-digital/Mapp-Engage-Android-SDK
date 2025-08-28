@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
@@ -37,6 +38,8 @@ internal class PrefsStorageImpl(
     private val appConfigKey = stringPreferencesKey("appConfig")
     private val broadcastKey = stringPreferencesKey("localBroadcast")
 
+    private val customAttributesKey = stringPreferencesKey("customAttributes")
+
     private val dataStore: DataStore<Preferences> by lazy { (context.applicationContext as Application).dataStore }
 
     private val mutex = Mutex()
@@ -44,6 +47,40 @@ internal class PrefsStorageImpl(
     override suspend fun getTimestamp(): Long {
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
+        }
+    }
+
+    override suspend fun setCustomAttributesCache(attributes: Map<String, Any?>) {
+        withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    val customAttrCache = prefs[customAttributesKey]?.let {
+                        CustomAttributesCache.fromJson(
+                            JSONObject(it)
+                        )
+                    } ?: CustomAttributesCache(attributes = emptyMap())
+
+                    val map = mutableMapOf<String, Any?>()
+
+                    if (customAttrCache.attributes.isNotEmpty()) {
+                        map.putAll(customAttrCache.attributes)
+                    }
+                    if (attributes.isNotEmpty()) {
+                        map.putAll(attributes)
+                    }
+
+                    val customAttributesCache = CustomAttributesCache(map)
+                    prefs[customAttributesKey] = customAttributesCache.toJson().toString()
+                }
+            }
+        }
+    }
+
+    override suspend fun getCustomAttributesCache(): CustomAttributesCache {
+        return withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.data.first()[customAttributesKey]?.let { json ->
+                CustomAttributesCache.fromJson(JSONObject(json))
+            } ?: CustomAttributesCache(attributes = emptyMap())
         }
     }
 

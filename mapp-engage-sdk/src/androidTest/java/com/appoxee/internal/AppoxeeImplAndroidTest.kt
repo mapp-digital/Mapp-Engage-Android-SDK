@@ -12,6 +12,7 @@ import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.response.Response
+import com.appoxee.internal.provider.ObserversProvider
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.base.PushManagerImpl
@@ -20,12 +21,15 @@ import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
 import com.google.firebase.messaging.RemoteMessage
+import io.mockk.MockK
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -51,27 +55,32 @@ class AppoxeeImplAndroidTest {
     private lateinit var storage: Storage
     private val testDispatchers = TestDispatchersProvider()
 
+    private lateinit var observersProvider: ObserversProvider
+
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
         Dispatchers.setMain(testDispatchers.mainDispatcher)
-        val appoxeeOptions = spyk(AppoxeeOptions(
-            server = AppoxeeOptions.Server.L3,
-            sdkKey = "12345.67890",
-            tenantId = "12345",
-            appId = "6789"
-        ).also {
-            it.readTimeout = 5000
-            it.connectionTimeout = 5000
-        })
+        val appoxeeOptions = spyk(
+            AppoxeeOptions(
+                server = AppoxeeOptions.Server.L3,
+                sdkKey = "12345.67890",
+                tenantId = "12345",
+                appId = "6789"
+            ).also {
+                it.readTimeout = 5000
+                it.connectionTimeout = 5000
+            })
+
+        observersProvider = spyk(ObserversProvider())
 
         engageApiImpl = mockk<EngageApiImpl>(relaxed = true)
 
         storage = mockk<InMemoryStorageImpl>(relaxed = true)
 
-        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, testDispatchers))
+        appoxee = spyk(AppoxeeImpl(context, appoxeeOptions, testDispatchers, observersProvider))
 
         val appoxeeAdapter = spyk(AppoxeeAdapter(engageApiImpl, storage)) {
             coEvery { this@spyk["refreshDevicePayload"]() as Unit } just Runs
@@ -299,28 +308,23 @@ class AppoxeeImplAndroidTest {
             val devicePayload = mockk<DevicePayload>(relaxed = true, relaxUnitFun = true)
             val result = MappResult.Success(devicePayload)
 
-            val observer = mockk<AppoxeeObserver>(relaxed = true, relaxUnitFun = true)
+            val observersProvider = mockk<ObserversProvider>(relaxed = true)
+            every { appoxee.observersProvider } returns observersProvider
 
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
             appoxee.updateReadyStatus(status, result)
 
-            coVerify(exactly = 1) { observer.onReadyStatusChanged(any(), any()) }
+            coVerify { observersProvider.notify(any(), any()) }
         }
     }
 
     @Test
     fun unsubscribe() {
         runBlocking {
-            val observer = mockk<AppoxeeObserver>() {
-                every { onReadyStatusChanged(any(), any()) } just Runs
-            }
-
-            val observers: MutableSet<AppoxeeObserver> = mockk(relaxed = true)
-
-            every { appoxee.getProperty("observers") as MutableSet<*> } answers { observers }
-
+            val observer = mockk<AppoxeeObserver>(relaxed = true)
+            observersProvider.addObserver(observer)
             appoxee.unsubscribe(observer)
-            verify(exactly = 1) { observers.remove(observer) }
+            verify { observersProvider.removeObserver(observer) }
         }
     }
 
