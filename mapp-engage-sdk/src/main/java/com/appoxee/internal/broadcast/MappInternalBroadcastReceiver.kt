@@ -32,7 +32,6 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         val action = i?.action
         Logger.d(TAG, "onReceive: $action")
 
-
         context?.let { ctx ->
             i?.extras?.let { bundle ->
                 if (!::appoxeeContainer.isInitialized) {

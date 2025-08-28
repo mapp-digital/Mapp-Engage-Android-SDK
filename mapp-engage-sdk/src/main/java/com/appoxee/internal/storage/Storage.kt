@@ -1,5 +1,6 @@
 package com.appoxee.internal.storage
 
+import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
@@ -34,4 +35,14 @@ internal interface Storage {
     suspend fun updateCacheTimestamp()
 
     suspend fun getTimestamp(): Long
+
+    /**
+     * Store to a local cache custom attributes
+     */
+    suspend fun setCustomAttributesCache(attributes: Map<String, Any?>)
+
+    /**
+     * Get custom attributes local cached value
+     */
+    suspend fun getCustomAttributesCache(): CustomAttributesCache
 }

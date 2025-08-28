@@ -44,9 +44,9 @@ interface Appoxee {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
             mInstance = AppoxeeImpl(
-                context.applicationContext as Application,
-                options,
-                dispatchersProvider
+                application =  context.applicationContext as Application,
+                options =  options,
+                dispatcherProvider = dispatchersProvider
             )
             Logger.d(TAG, "engage($context, $options)")
         }
@@ -81,8 +81,10 @@ interface Appoxee {
      * Set custom alias for a registered device/user
      * @param alias custom alias to set
      * @return [String] dmcDeviceId string identification for a registered device if setAlias was successful
+     * @param [resendCustomAttributes] if set to true and alias value was changed compared to the last saved one,
+     * all cached custom attributes will be synced again to a backend
      */
-    fun setAlias(alias: String): Call<String?>
+    fun setAlias(alias: String, resendCustomAttributes: Boolean = false): Call<String?>
 
     /**
      * Get alias for a registered device

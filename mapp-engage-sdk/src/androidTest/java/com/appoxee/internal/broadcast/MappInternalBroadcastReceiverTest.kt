@@ -23,6 +23,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.mockkStatic
+import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.unmockkStatic
@@ -50,6 +51,7 @@ class MappInternalBroadcastReceiverTest {
         dispatchersProvider = TestDispatchersProvider()
         mockkStatic(Logger::class)
         mockkStatic(Log::class)
+        every { Log.d(any(),any(),any()) } answers {0}
         context = mockk(relaxed = true)
         intent = mockk(relaxed = true)
         notificationManager = mockk(relaxed = true)
@@ -58,9 +60,8 @@ class MappInternalBroadcastReceiverTest {
 
         appoxeeContainer = spyk(AppoxeeContainer.getInstance(context, dispatchersProvider))
 
-        receiver = spyk(MappInternalBroadcastReceiver(), recordPrivateCalls = true) {
-            setAppoxeeContainer(appoxeeContainer)
-        }
+        receiver = spyk(MappInternalBroadcastReceiver(), recordPrivateCalls = true)
+        receiver.setAppoxeeContainer(appoxeeContainer)
 
         statsClient = mockkClass(StatsClient::class, relaxed = true, relaxUnitFun = true)
 
@@ -84,6 +85,10 @@ class MappInternalBroadcastReceiverTest {
     @Test
     fun should_Handle_DISMISS_action_and_send_report_event() = runBlocking {
         val action = LocalPushBroadcast.Action.PUSH_DISMISSED
+        mockkStatic(Logger::class)
+        mockkStatic(Log::class)
+        every { Log.d(any(),any(),any()) } answers {0}
+
         every { intent.action } returns action
         every { intent.getIntExtra("notificationId", 123) } returns 123
 
@@ -103,6 +108,7 @@ class MappInternalBroadcastReceiverTest {
 
         Truth.assertThat(appoxeeContainer.statsClient).isNotNull()
         coVerify {
+            receiver.sendReportEvent(any(),any(),any())
             appoxeeContainer.statsClient.reportPushEvent(
                 any(),
                 any(),
