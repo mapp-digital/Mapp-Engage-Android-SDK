@@ -24,6 +24,7 @@ import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
 import com.mapp.engagesample.inbox.InboxMessagesActivity
 import eu.brrm.shared_ui.Util
+import eu.brrm.shared_ui.Util.showDialog
 import eu.brrm.shared_ui.Util.toColor
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
 import kotlinx.coroutines.Dispatchers
@@ -195,11 +196,20 @@ class BaseTestFragment : Fragment() {
         lifecycleScope.launch {
             val etAlias = binding.editTextAlias
             val alias = etAlias.text?.toString() ?: ""
-            val result = Appoxee.instance().setAlias(alias).asSuspend()
+            if (alias.isBlank()) {
+                showDialog(
+                    requireContext(),
+                    "Set Alias Error",
+                    "Alias can't be empty. Please enter alias value!"
+                )
+                return@launch
+            }
+
+            val result = Appoxee.instance().setAlias(alias, true).asSuspend()
             if (result.isSuccess()) {
                 etAlias.text?.clear()
             }
-            Util.showDialog(
+            showDialog(
                 requireContext(),
                 "DmcUserId",
                 if (result.isSuccess()) result.getData().toString()
@@ -221,7 +231,7 @@ class BaseTestFragment : Fragment() {
     private fun getDevice(clipboard: ClipboardManager?) {
         lifecycleScope.launch {
             val result = Appoxee.instance().getDevice().asSuspend()
-            Util.showDeviceInfoDialog(requireContext(),result.getData(), clipboard)
+            Util.showDeviceInfoDialog(requireContext(), result.getData(), clipboard)
         }
     }
 
