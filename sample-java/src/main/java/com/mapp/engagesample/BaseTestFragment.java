@@ -169,34 +169,18 @@ public class BaseTestFragment extends Fragment {
         }
     }
 
-    private void setAlias() {
-        Editable editableAlias = binding.editTextAlias.getText();
-        String alias = editableAlias != null ? editableAlias.toString() : null;
-        Appoxee.instance().setAlias(alias).enqueue(result -> {
-            if (result.isSuccess()) {
-                if (editableAlias != null) {
-                    editableAlias.clear();
-                }
-                String dmcUserId = result.getData();
-                Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
-            } else {
-                String error = result.getError() != null ? result.getError().toString() : "Unknown error";
-                Util.showDialog(requireContext(), "Error", error);
-            }
-
-        });
-    }
-
     private void setAliasExecute() {
         Editable editableAlias = binding.editTextAlias.getText();
-        String alias = editableAlias != null ? editableAlias.toString() : null;
+        String alias = editableAlias != null ? editableAlias.toString() : "";
+        if (alias.isBlank()) {
+            Util.showDialog(requireContext(),"Set Alias Error", "Alias can't be empty. Please enter alias value!");
+            return;
+        }
         executor.execute(() -> {
-            MappResult<String> result = Appoxee.instance().setAlias(alias).execute();
+            MappResult<String> result = Appoxee.instance().setAlias(alias, true).execute();
             requireActivity().runOnUiThread(() -> {
                 if (result.isSuccess()) {
-                    if (editableAlias != null) {
-                        editableAlias.clear();
-                    }
+                    editableAlias.clear();
                     String dmcUserId = result.getData();
                     Util.showDialog(requireContext(), "DmcUserID", dmcUserId);
                 } else {
