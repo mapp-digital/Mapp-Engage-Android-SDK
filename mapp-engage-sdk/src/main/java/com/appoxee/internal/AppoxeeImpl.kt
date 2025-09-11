@@ -158,17 +158,17 @@ internal open class AppoxeeImpl(
         if (devicePayload?.udidHashed != null /* && not expired */) {
             println("has device payload")
             // check if saved registration data and currently calculated registration data differs
-            if(savedRegisterPayload!=null){
+            if (savedRegisterPayload != null) {
 
                 println("has registration payload")
-                val updatedParams=savedRegisterPayload.getChangedParams(newRegisterPayload)
+                val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
 
-                if(updatedParams.isNotEmpty()){
+                if (updatedParams.isNotEmpty()) {
                     appoxeeAdapter.updateDevice(updatedParams)
                 }
                 // device already registered and channel is unchanged
                 updateOptStatus(devicePayload, null)
-            } else  {
+            } else {
                 // when registration data differs, register data again to update values on server
                 appoxeeAdapter.register(newRegisterPayload)
 
@@ -255,9 +255,10 @@ internal open class AppoxeeImpl(
         return mIsReady.get()
     }
 
-    override fun setAlias(alias: String, resendCustomAttributes: Boolean): Call<String?> = buildHttpCall {
-        appoxeeAdapter.setAlias(alias)?.dmcUserId
-    }
+    override fun setAlias(alias: String, resendCustomAttributes: Boolean): Call<String?> =
+        buildHttpCall {
+            appoxeeAdapter.setAlias(alias)?.dmcUserId
+        }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
         appoxeeAdapter.getAlias()
@@ -370,14 +371,47 @@ internal open class AppoxeeImpl(
     }
 
     override fun addCustomAttributes(attributes: Map<String, Any?>): Call<Boolean> = buildHttpCall {
-        appoxeeAdapter.addCustomAttributes(attributes).isSuccess()
+        val result = appoxeeAdapter.addCustomAttributes(attributes)
+
+        if (result.isSuccess()) {
+            true
+        } else {
+            throw result.error ?: Throwable("Unknown error")
+        }
+    }
+
+    private suspend fun loadCustomAttributesFromBackend(result: MutableMap<String, Any?>) {
+        val attributesWithNoValue = result.filter { it.value == null }
+        if (attributesWithNoValue.isNotEmpty()) {
+            val response =
+                appoxeeAdapter.getCustomAttributes(attributesWithNoValue.keys.toList())
+            if (response.isSuccess()) {
+                response.data?.payload?.forEach { (key, value) ->
+                    result[key] = value
+                }
+            }
+        }
     }
 
     override fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>> =
         buildHttpCall {
-            val response = appoxeeAdapter.getCustomAttributes(attributes)
-            return@buildHttpCall response.data?.payload ?: emptyMap()
+            val cachedAttributes = storage.getCustomAttributesCache().attributes
+            val result = mutableMapOf<String, Any?>()
+            for (attributeKey in attributes.toSet()) {
+                val attributeValue = cachedAttributes.getOrElse(attributeKey) { null }
+                result.put(attributeKey, attributeValue)
+            }
+//            TODO uncomment this block if we want to request attribute values from backed
+//             for values which are null in the local cache
+            loadCustomAttributesFromBackend(result)
+            result
         }
+
+//    override fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>> =
+//        buildHttpCall {
+//            val response = appoxeeAdapter.getCustomAttributes(attributes)
+//            return@buildHttpCall response.data?.payload ?: emptyMap()
+//        }
 
     override fun getDevice(): Call<DevicePayload?> = buildHttpCall {
         appoxeeAdapter.getDevice()

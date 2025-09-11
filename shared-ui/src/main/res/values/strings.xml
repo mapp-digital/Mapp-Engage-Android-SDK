@@ -5,4 +5,12 @@
     <string name="open_settings">Open settings</string>
     <string name="location_permission_rationale_explanation">For geofencing to work background location permission is required.\n\nPlease select \'Allow all the time\' option, like on the picture bellow.</string>
     <string name="do_you_want_to_open_application_settings_and_grant_permissions">Do you want to open application settings and grant permissions?</string>
+    <string name="create_attribute">Create Attribute</string>
+    <string name="update_attributes">Update attributes</string>
+    <string name="no_attributes_create_new_attributes_to_update_them_to_the_backend">No attributes. Create new attributes to update them to the backend.</string>
+    <string name="please_wait">Please wait…</string>
+    <string name="create">Create</string>
+    <string name="cancel">Cancel</string>
+    <string name="get_attributes">Get attributes</string>
+    <string name="add_to_the_list_attributes_for_which_you_want_to_read_values">Add to the list attributes for which you want to read values</string>
 </resources>

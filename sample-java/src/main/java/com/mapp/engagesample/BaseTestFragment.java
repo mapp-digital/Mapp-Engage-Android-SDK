@@ -30,10 +30,11 @@ import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import eu.brrm.shared_ui.attributes.get.GetCustomAttributesActivity;
+import eu.brrm.shared_ui.attributes.set.SetCustomAttributesActivity;
 import eu.brrm.shared_ui.Util;
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding;
 
@@ -109,13 +110,13 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnSetCustomAttributes.setOnClickListener(v -> {
-            Appoxee.instance().addCustomAttributes(Map.of("currency", "EUR", "phone", "+381991234567")).enqueue(result -> Util.showDialog(requireContext(), "Set custom attribute", String.valueOf(result.getData())));
+            Intent intent=new Intent(requireContext(), SetCustomAttributesActivity.class);
+            startActivity(intent);
         });
 
         binding.btnGetCustomAttributes.setOnClickListener(v -> {
-            Appoxee.instance().getCustomAttributes(List.of("currency", "phone")).enqueue(result -> {
-                Util.showDialog(requireContext(), "Set custom attribute", String.valueOf(result.getData()));
-            });
+            Intent intent=new Intent(requireContext(), GetCustomAttributesActivity.class);
+            startActivity(intent);
         });
 
         binding.btnStartGeofencing.setOnClickListener(v -> {

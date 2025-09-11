@@ -111,13 +111,13 @@
                 android:id="@+id/btnSetCustomAttributes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Set custom attributes" />
+                android:text="Set Custom attributes" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGetCustomAttributes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Get custom attributes" />
+                android:text="Get Custom attributes" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartGeofencing"

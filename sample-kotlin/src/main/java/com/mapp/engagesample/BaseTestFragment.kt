@@ -23,9 +23,11 @@ import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.MappResult
 import com.google.android.material.button.MaterialButton
 import com.mapp.engagesample.inbox.InboxMessagesActivity
+import eu.brrm.shared_ui.attributes.set.SetCustomAttributesActivity
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.showDialog
 import eu.brrm.shared_ui.Util.toColor
+import eu.brrm.shared_ui.attributes.get.GetCustomAttributesActivity
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,11 +109,11 @@ class BaseTestFragment : Fragment() {
         }
 
         binding.btnSetCustomAttributes.setOnClickListener {
-            setCustomAttributes()
+            openCustomAttributesSetup()
         }
 
         binding.btnGetCustomAttributes.setOnClickListener {
-            getCustomAttributes()
+            openGetCustomAttributes()
         }
 
         binding.btnStartGeofencing.setOnClickListener {
@@ -280,44 +282,17 @@ class BaseTestFragment : Fragment() {
         }
     }
 
-    private fun setCustomAttributes() {
+    private fun openCustomAttributesSetup() {
         lifecycleScope.launch {
-            val result = Appoxee.instance()
-                .addCustomAttributes(mapOf("currency" to "EUR", "phone" to "+381991234567"))
-                .asSuspend()
-            if (result.isSuccess()) {
-                Util.showDialog(
-                    requireContext(),
-                    "Set Custom Attributes",
-                    result.getData().toString()
-                )
-            } else {
-                Util.showDialog(
-                    requireContext(),
-                    "Error",
-                    result.getError()?.message ?: "Unknown error"
-                )
-            }
+            val intent = Intent(requireContext(), SetCustomAttributesActivity::class.java)
+            startActivity(intent)
         }
     }
 
-    private fun getCustomAttributes() {
+    private fun openGetCustomAttributes(){
         lifecycleScope.launch {
-            val result =
-                Appoxee.instance().getCustomAttributes(listOf("currency", "phone")).asSuspend()
-            if (result.isSuccess()) {
-                Util.showDialog(
-                    requireContext(),
-                    "Get Custom Attributes",
-                    result.getData().toString()
-                )
-            } else {
-                Util.showDialog(
-                    requireContext(),
-                    "Error",
-                    result.getError()?.message ?: "Unknown error"
-                )
-            }
+            val intent = Intent(requireContext(), GetCustomAttributesActivity::class.java)
+            startActivity(intent)
         }
     }
 
