@@ -7,7 +7,7 @@ internal abstract class Response<T>(
 ) {
 
     fun isSuccess(): Boolean {
-        return error == null
+        return  (statusCode in 200..299) && error == null
     }
 
     companion object {

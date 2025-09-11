@@ -30,6 +30,7 @@ import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.attributes.CustomAttributesPayload
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
@@ -296,8 +297,8 @@ internal class EngageApiImpl(
             .Put(path = devicePathV3, requestBody = requestBody)
             .addHeader(getSdkKeyHeader())
 
-        val response = networkClient.execute(request, BaseAdapter {
-            it.toMap<Any?>(excludeNulls = false)
+        val response = networkClient.execute(request, BaseAdapter{
+            CustomAttributesPayload.fromJson(it)
         })
 
         return response

@@ -8,9 +8,15 @@ import android.widget.Toast
 import androidx.annotation.ColorRes
 import com.appoxee.internal.model.response.DevicePayload
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 import java.util.regex.Pattern
 
 object Util {
+    private val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+
     @JvmStatic
     fun showDialog(context: Context, title: String, message: String? = "") {
         MaterialAlertDialogBuilder(context)
@@ -85,5 +91,15 @@ object Util {
     @ColorRes
     fun Boolean.toColor(): Int {
         return if (this) return R.color.green else R.color.red
+    }
+
+    @JvmStatic
+    fun Date?.toUtcString(): String? {
+        if (this == null) return null
+        return try {
+            sdf.format(this)
+        } catch (e: Exception) {
+            null
+        }
     }
 }
