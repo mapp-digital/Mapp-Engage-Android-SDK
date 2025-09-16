@@ -33,9 +33,10 @@ class StringListAdapter(private val onDelete: (String) -> Unit) :
         holder: TextViewHolder,
         position: Int
     ) {
-        holder.bind(getItem(position))
+        val attribute=getItem(position)
+        holder.bind(attribute)
         holder.binding.btnDelete.setOnClickListener {
-            onDelete(getItem(position))
+            onDelete(attribute)
         }
     }
 }
