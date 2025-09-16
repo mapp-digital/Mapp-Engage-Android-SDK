@@ -257,7 +257,7 @@ internal open class AppoxeeImpl(
 
     override fun setAlias(alias: String, resendCustomAttributes: Boolean): Call<String?> =
         buildHttpCall {
-            appoxeeAdapter.setAlias(alias)?.dmcUserId
+            appoxeeAdapter.setAlias(alias, resendCustomAttributes)?.dmcUserId
         }
 
     override fun getAlias(): Call<String?> = buildHttpCall {
