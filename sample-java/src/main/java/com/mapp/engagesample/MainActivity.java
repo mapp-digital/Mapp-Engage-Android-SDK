@@ -60,11 +60,11 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultCallback<Map<String, Boolean>> postNotificationPermissionCallback = (result) -> {
         String permission = Manifest.permission.POST_NOTIFICATIONS;
         if (Boolean.TRUE.equals(result.get(permission))) {
-            Toast.makeText(
-                    this,
-                    "Permission(s) granted: \n" + Util.permissionsToString(result),
-                    Toast.LENGTH_SHORT
-            ).show();
+//            Toast.makeText(
+//                    this,
+//                    "Permission(s) granted: \n" + Util.permissionsToString(result),
+//                    Toast.LENGTH_SHORT
+//            ).show();
             binding.topPanel.setVisibility(View.GONE);
         } else {
             binding.topPanel.setVisibility(View.VISIBLE);
