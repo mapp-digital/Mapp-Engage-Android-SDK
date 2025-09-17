@@ -370,6 +370,10 @@ internal open class AppoxeeImpl(
         appoxeeAdapter.removeTags(tags).isSuccess()
     }
 
+    override fun getTags(): Call<List<String>> = buildHttpCall{
+        appoxeeAdapter.getTags()
+    }
+
     override fun addCustomAttributes(attributes: Map<String, Any?>): Call<Boolean> = buildHttpCall {
         val result = appoxeeAdapter.addCustomAttributes(attributes)
 

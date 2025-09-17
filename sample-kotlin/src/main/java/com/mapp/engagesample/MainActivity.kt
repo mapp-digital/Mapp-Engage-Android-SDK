@@ -54,11 +54,6 @@ class MainActivity : AppCompatActivity() {
     private val postNotificationResultCallback: ActivityResultCallback<MutableMap<String, Boolean>> =
         ActivityResultCallback { result ->
             if (java.lang.Boolean.TRUE == result[Manifest.permission.POST_NOTIFICATIONS]) {
-//                Toast.makeText(
-//                    this@MainActivity,
-//                    "Permission(s) granted: \n" + Util.permissionsToString(result),
-//                    Toast.LENGTH_SHORT
-//                ).show()
                 binding.topPanel.isVisible = false
             } else {
                 binding.topPanel.isVisible = true

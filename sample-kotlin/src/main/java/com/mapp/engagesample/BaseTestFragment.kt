@@ -108,6 +108,10 @@ class BaseTestFragment : Fragment() {
             removeTags()
         }
 
+        binding.btnGetTags.setOnClickListener {
+            getTags()
+        }
+
         binding.btnSetCustomAttributes.setOnClickListener {
             openCustomAttributesSetup()
         }
@@ -271,13 +275,22 @@ class BaseTestFragment : Fragment() {
         lifecycleScope.launch {
             val result = Appoxee.instance().removeTags(listOf("female", "makeup")).asSuspend()
             if (result.isSuccess()) {
-                Util.showDialog(requireContext(), "Remove tags", result.getData().toString())
+                showDialog(requireContext(), "Remove tags", result.getData().toString())
             } else {
-                Util.showDialog(
+                showDialog(
                     requireContext(),
                     "Error",
                     result.getError()?.message ?: "Unknown error"
                 )
+            }
+        }
+    }
+
+    private fun getTags() {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().getTags().asSuspend()
+            if (result.isSuccess()) {
+                showDialog(requireContext(), "Tags", result.getData()?.joinToString(", "))
             }
         }
     }
@@ -289,7 +302,7 @@ class BaseTestFragment : Fragment() {
         }
     }
 
-    private fun openGetCustomAttributes(){
+    private fun openGetCustomAttributes() {
         lifecycleScope.launch {
             val intent = Intent(requireContext(), GetCustomAttributesActivity::class.java)
             startActivity(intent)

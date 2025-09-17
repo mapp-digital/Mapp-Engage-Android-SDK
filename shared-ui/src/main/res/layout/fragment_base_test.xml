@@ -108,6 +108,12 @@
                 android:text="Remove Tags" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Get Tags" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSetCustomAttributes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

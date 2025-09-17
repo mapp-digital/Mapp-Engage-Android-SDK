@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
@@ -38,6 +39,8 @@ internal class PrefsStorageImpl(
     private val appConfigKey = stringPreferencesKey("appConfig")
     private val broadcastKey = stringPreferencesKey("localBroadcast")
 
+    private val tagsKey = stringSetPreferencesKey("tags")
+
     private val customAttributesKey = stringPreferencesKey("customAttributes")
 
     private val dataStore: DataStore<Preferences> by lazy { (context.applicationContext as Application).dataStore }
@@ -47,6 +50,36 @@ internal class PrefsStorageImpl(
     override suspend fun getTimestamp(): Long {
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
+        }
+    }
+
+    override suspend fun addTags(tags: List<String>) {
+        withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
+                    existingTags.addAll(tags)
+                    prefs[tagsKey] = existingTags
+                }
+            }
+        }
+    }
+
+    override suspend fun removeTags(tags: List<String>) {
+        withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
+                    existingTags.removeAll(tags)
+                    prefs[tagsKey] = existingTags
+                }
+            }
+        }
+    }
+
+    override suspend fun getTags(): List<String> {
+        return withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.data.first()[tagsKey].orEmpty().toList()
         }
     }
 

@@ -36,6 +36,12 @@ internal interface Storage {
 
     suspend fun getTimestamp(): Long
 
+    suspend fun addTags(tags: List<String>)
+
+    suspend fun removeTags(tags: List<String>)
+
+    suspend fun getTags(): List<String>
+
     /**
      * Store to a local cache custom attributes
      */

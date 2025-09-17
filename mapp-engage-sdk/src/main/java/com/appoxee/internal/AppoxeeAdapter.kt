@@ -49,7 +49,10 @@ internal class AppoxeeAdapter(
         return response
     }
 
-    internal suspend fun setAlias(alias: String, resendCustomAttributes: Boolean=false): DevicePayload? {
+    internal suspend fun setAlias(
+        alias: String,
+        resendCustomAttributes: Boolean = false
+    ): DevicePayload? {
         if (alias.isEmpty()) throw IllegalArgumentException("Alias can not be empty!")
         val device = storage.getDevicePayload()
         // new alias same as old alias
@@ -59,7 +62,7 @@ internal class AppoxeeAdapter(
         // alias has changed, update value to a server
         val response = engageApi.setAlias(alias)
         if (response.isSuccess()) {
-            if(resendCustomAttributes){
+            if (resendCustomAttributes) {
                 resyncCustomAttributes()
             }
             val updatedDevice = refreshDevicePayload()
@@ -115,14 +118,36 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.addTags(tags)
+        val existingTags = storage.getTags()
+        val tagsToSync = tags.filterNot { existingTags.contains(it) }
+        if (tagsToSync.isNotEmpty()) {
+            val response = engageApi.addTags(tagsToSync)
+            if (response.isSuccess()) {
+                storage.addTags(tagsToSync)
+            }
+            return response
+        }
+        return Response.success(200, null)
     }
 
     internal suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
-        return engageApi.removeTags(tags)
+        val existingTags = storage.getTags()
+        val tagsToRemove = tags.filter { existingTags.contains(it) }
+        if (tagsToRemove.isNotEmpty()) {
+            val response = engageApi.removeTags(tags)
+            if (response.isSuccess()) {
+                storage.removeTags(tags)
+            }
+            return response
+        }
+        return Response.success(200, null)
     }
 
-    internal suspend fun resyncCustomAttributes(){
+    internal suspend fun getTags(): List<String> {
+        return storage.getTags()
+    }
+
+    internal suspend fun resyncCustomAttributes() {
         // get cached attributes
         val cachedAttributes = storage.getCustomAttributesCache().attributes
         val response = engageApi.addCustomAttributes(cachedAttributes)

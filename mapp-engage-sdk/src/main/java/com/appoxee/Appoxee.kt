@@ -190,6 +190,12 @@ interface Appoxee {
     fun removeTags(tags: List<String>): Call<Boolean>
 
     /**
+     * Get list of of tags from a local cache
+     * @return List<String> tags list
+     */
+    fun getTags():Call<List<String>>
+
+    /**
      * Add custom attributes to a device
      * @param attributes map of attributes to add
      * @return [Boolean] status of method execution. True if successful, otherwise false.
