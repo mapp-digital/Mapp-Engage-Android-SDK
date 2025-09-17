@@ -25,10 +25,15 @@ import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.GeoStatus;
+import com.appoxee.shared.MappCallback;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -109,13 +114,29 @@ public class BaseTestFragment extends Fragment {
             Appoxee.instance().removeTags(List.of("female", "makeup", "fashion")).enqueue(result -> Util.showDialog(requireContext(), "Remove Tags", String.valueOf(result.getData())));
         });
 
+        binding.btnGetTags.setOnClickListener(v -> {
+            Appoxee.instance().getTags().enqueue(result -> {
+                if (result.isSuccess()) {
+                    StringBuilder sb = new StringBuilder();
+                    List<String> tags = result.getData() != null ? result.getData() : Collections.emptyList();
+                    for (String tag : tags) {
+                        sb.append(tag);
+                        if (tags.indexOf(tag) < tags.size() - 1) {
+                            sb.append(", ");
+                        }
+                    }
+                    Util.showDialog(requireContext(), "Tags", sb.toString());
+                }
+            });
+        });
+
         binding.btnSetCustomAttributes.setOnClickListener(v -> {
-            Intent intent=new Intent(requireContext(), SetCustomAttributesActivity.class);
+            Intent intent = new Intent(requireContext(), SetCustomAttributesActivity.class);
             startActivity(intent);
         });
 
         binding.btnGetCustomAttributes.setOnClickListener(v -> {
-            Intent intent=new Intent(requireContext(), GetCustomAttributesActivity.class);
+            Intent intent = new Intent(requireContext(), GetCustomAttributesActivity.class);
             startActivity(intent);
         });
 
@@ -174,7 +195,7 @@ public class BaseTestFragment extends Fragment {
         Editable editableAlias = binding.editTextAlias.getText();
         String alias = editableAlias != null ? editableAlias.toString() : "";
         if (alias.isBlank()) {
-            Util.showDialog(requireContext(),"Set Alias Error", "Alias can't be empty. Please enter alias value!");
+            Util.showDialog(requireContext(), "Set Alias Error", "Alias can't be empty. Please enter alias value!");
             return;
         }
         executor.execute(() -> {

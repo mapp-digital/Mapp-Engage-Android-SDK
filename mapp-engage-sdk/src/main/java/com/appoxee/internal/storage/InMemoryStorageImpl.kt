@@ -17,6 +17,8 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
     private var clazz: Class<*>? = null
     private var timestamp: Long = 0
 
+    private val tags = mutableListOf<String>()
+
     private var customAttributes: CustomAttributesCache =
         CustomAttributesCache(attributes = emptyMap())
 
@@ -79,8 +81,20 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
         return timestamp
     }
 
+    override suspend fun addTags(tags: List<String>) {
+        this.tags.addAll(tags)
+    }
+
+    override suspend fun removeTags(tags: List<String>) {
+        this.tags.removeAll(tags)
+    }
+
+    override suspend fun getTags(): List<String> {
+        return tags
+    }
+
     override suspend fun setCustomAttributesCache(attributes: Map<String, Any?>) {
-        this.customAttributes= CustomAttributesCache(attributes = attributes)
+        this.customAttributes = CustomAttributesCache(attributes = attributes)
     }
 
     override suspend fun getCustomAttributesCache(): CustomAttributesCache {
