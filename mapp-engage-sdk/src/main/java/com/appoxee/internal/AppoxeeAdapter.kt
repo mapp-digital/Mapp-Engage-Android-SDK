@@ -117,9 +117,9 @@ internal class AppoxeeAdapter(
         return response.data
     }
 
-    internal suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
+    internal suspend fun addTags(tags: Set<String>): Response<ResponseData<DefaultResponse>> {
         val existingTags = storage.getTags()
-        val tagsToSync = tags.filterNot { existingTags.contains(it) }
+        val tagsToSync = tags.filterNot { existingTags.contains(it) }.toList()
         if (tagsToSync.isNotEmpty()) {
             val response = engageApi.addTags(tagsToSync)
             if (response.isSuccess()) {
@@ -130,13 +130,13 @@ internal class AppoxeeAdapter(
         return Response.success(200, null)
     }
 
-    internal suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
+    internal suspend fun removeTags(tags: Set<String>): Response<ResponseData<DefaultResponse>> {
         val existingTags = storage.getTags()
-        val tagsToRemove = tags.filter { existingTags.contains(it) }
+        val tagsToRemove = tags.filter { existingTags.contains(it) }.toList()
         if (tagsToRemove.isNotEmpty()) {
-            val response = engageApi.removeTags(tags)
+            val response = engageApi.removeTags(tagsToRemove)
             if (response.isSuccess()) {
-                storage.removeTags(tags)
+                storage.removeTags(tagsToRemove)
             }
             return response
         }

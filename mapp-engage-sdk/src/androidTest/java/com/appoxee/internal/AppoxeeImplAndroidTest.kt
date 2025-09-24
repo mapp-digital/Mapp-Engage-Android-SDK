@@ -6,8 +6,6 @@ import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
-import com.appoxee.internal.model.response.inapp.InappResponse
-import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApiImpl
@@ -21,23 +19,18 @@ import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
 import com.google.firebase.messaging.RemoteMessage
-import io.mockk.MockK
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineScheduler
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -203,7 +196,7 @@ class AppoxeeImplAndroidTest {
     @Test
     fun addTags() {
         runBlocking {
-            val tags = listOf<String>("TAG 1", "TAG 2")
+            val tags = setOf("TAG 1", "TAG 2")
             coEvery { engageApiImpl.addTags(any()) } coAnswers {
                 Response.success(
                     200, ResponseData(
@@ -214,7 +207,7 @@ class AppoxeeImplAndroidTest {
             }
 
             val result = appoxee.addTags(tags).asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.addTags(tags) }
+            coVerify(exactly = 1) { engageApiImpl.addTags(tags.toList()) }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()).isTrue()
         }
@@ -223,7 +216,7 @@ class AppoxeeImplAndroidTest {
     @Test
     fun removeTags() {
         runBlocking {
-            val tags = listOf<String>("TAG 1", "TAG 2")
+            val tags = setOf("TAG 1", "TAG 2")
             coEvery { engageApiImpl.removeTags(any()) } coAnswers {
                 Response.success(
                     200, ResponseData(
@@ -234,7 +227,7 @@ class AppoxeeImplAndroidTest {
             }
 
             val result = appoxee.removeTags(tags).asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.removeTags(tags) }
+            coVerify(exactly = 1) { engageApiImpl.removeTags(tags.toList()) }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()).isTrue()
         }
@@ -272,9 +265,9 @@ class AppoxeeImplAndroidTest {
                 )
 
             }
-            val keys = listOf("a", "b")
+            val keys = setOf("a", "b")
             val result = appoxee.getCustomAttributes(keys).asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.getCustomAttributes(keys) }
+            coVerify(exactly = 1) { engageApiImpl.getCustomAttributes(keys.toList()) }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()).isEqualTo(attributes)
         }

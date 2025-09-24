@@ -13,4 +13,5 @@
     <string name="cancel">Cancel</string>
     <string name="get_attributes">Get attributes</string>
     <string name="add_to_the_list_attributes_for_which_you_want_to_read_values">Add to the list attributes for which you want to read values</string>
+    <string name="delete_attributes">Delete Attributes</string>
 </resources>

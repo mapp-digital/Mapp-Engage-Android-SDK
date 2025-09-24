@@ -117,6 +117,25 @@ internal class PrefsStorageImpl(
         }
     }
 
+    override suspend fun removeCustomAttributes(attributes: Set<String>): Boolean {
+        return withContext(dispatchersProvider.defaultDispatcher) {
+            dataStore.edit { prefs ->
+                mutex.withLock {
+                    val customAttrCache = prefs[customAttributesKey]?.let {
+                        CustomAttributesCache.fromJson(
+                            JSONObject(it)
+                        )
+                    } ?: CustomAttributesCache(emptyMap())
+
+                    val data = customAttrCache.attributes.filterKeys { !attributes.contains(it) }
+
+                    prefs[customAttributesKey]= CustomAttributesCache(data).toJson().toString()
+                }
+            }
+            true
+        }
+    }
+
     override suspend fun updateCacheTimestamp() {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {

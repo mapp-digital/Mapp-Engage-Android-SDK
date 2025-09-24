@@ -100,4 +100,10 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
     override suspend fun getCustomAttributesCache(): CustomAttributesCache {
         return customAttributes
     }
+
+    override suspend fun removeCustomAttributes(attributes: Set<String>): Boolean {
+        val data = customAttributes.attributes.filterKeys { attr -> attributes.contains(attr) }
+        customAttributes = CustomAttributesCache(data)
+        return true
+    }
 }

@@ -408,7 +408,7 @@ class AppoxeeAdapterTest {
                     )
                 )
             }
-            val response = appoxeeAdapter.addTags(listOf("tag1", "tag2", "tag3"))
+            val response = appoxeeAdapter.addTags(setOf("tag1", "tag2", "tag3"))
             coVerify { engageApi.addTags(allAny()) }
             Truth.assertThat(response.statusCode).isEqualTo(200)
         }
@@ -420,7 +420,7 @@ class AppoxeeAdapterTest {
             coEvery { engageApi.addTags(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
-            val response = appoxeeAdapter.addTags(listOf("tag1", "tag2", "tag3"))
+            val response = appoxeeAdapter.addTags(setOf("tag1", "tag2", "tag3"))
             coVerify { engageApi.addTags(allAny()) }
             Truth.assertThat(response.error).isInstanceOf(TimeoutException::class.java)
         }
@@ -438,7 +438,7 @@ class AppoxeeAdapterTest {
                     )
                 )
             }
-            val response = appoxeeAdapter.removeTags(listOf("tag1", "tag2", "tag3"))
+            val response = appoxeeAdapter.removeTags(setOf("tag1", "tag2", "tag3"))
             coVerify { engageApi.removeTags(allAny()) }
             Truth.assertThat(response.statusCode).isEqualTo(200)
         }
@@ -450,7 +450,7 @@ class AppoxeeAdapterTest {
             coEvery { engageApi.removeTags(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
-            val response = appoxeeAdapter.removeTags(listOf("tag1", "tag2", "tag3"))
+            val response = appoxeeAdapter.removeTags(setOf("tag1", "tag2", "tag3"))
             coVerify { engageApi.removeTags(allAny()) }
             Truth.assertThat(response.error).isInstanceOf(TimeoutException::class.java)
         }

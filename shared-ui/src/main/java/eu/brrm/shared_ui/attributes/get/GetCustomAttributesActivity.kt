@@ -47,6 +47,13 @@ class GetCustomAttributesActivity : AppCompatActivity() {
                             sb.toString()
                         )
                     }
+                    state.message?.let {
+                        Util.showDialog(this@GetCustomAttributesActivity,"Info", it)
+                    }
+
+                    state.throwable?.let {
+                        Util.showDialog(this@GetCustomAttributesActivity,"Error", it.message)
+                    }
                 }
             }
         }
@@ -56,6 +63,7 @@ class GetCustomAttributesActivity : AppCompatActivity() {
                 viewModel.attributeNamesFlow.collectLatest {
                     adapter.submitList(it.toList())
                     binding.btnGet.isEnabled = it.isNotEmpty()
+                    binding.btnDelete.isEnabled=it.isNotEmpty()
                     binding.tvNoItems.isVisible = it.isEmpty()
                     binding.recycler.isVisible = it.isNotEmpty()
                 }
@@ -73,6 +81,10 @@ class GetCustomAttributesActivity : AppCompatActivity() {
 
         binding.btnGet.setOnClickListener {
             viewModel.getAttributes()
+        }
+
+        binding.btnDelete.setOnClickListener {
+            viewModel.deleteAttributes()
         }
     }
 

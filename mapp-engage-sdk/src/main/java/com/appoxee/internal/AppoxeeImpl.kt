@@ -362,15 +362,15 @@ internal open class AppoxeeImpl(
         storage.getDevicePayload()?.pushToken
     }
 
-    override fun addTags(tags: List<String>): Call<Boolean> = buildHttpCall {
+    override fun addTags(tags: Set<String>): Call<Boolean> = buildHttpCall {
         appoxeeAdapter.addTags(tags).isSuccess()
     }
 
-    override fun removeTags(tags: List<String>): Call<Boolean> = buildHttpCall {
+    override fun removeTags(tags: Set<String>): Call<Boolean> = buildHttpCall {
         appoxeeAdapter.removeTags(tags).isSuccess()
     }
 
-    override fun getTags(): Call<List<String>> = buildHttpCall{
+    override fun getTags(): Call<List<String>> = buildHttpCall {
         appoxeeAdapter.getTags()
     }
 
@@ -391,31 +391,34 @@ internal open class AppoxeeImpl(
                 appoxeeAdapter.getCustomAttributes(attributesWithNoValue.keys.toList())
             if (response.isSuccess()) {
                 response.data?.payload?.forEach { (key, value) ->
-                    result[key] = value
+                    result[key] = if(value?.toString()?.isNotEmpty()==true) value else null
                 }
             }
         }
     }
 
-    override fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>> =
+    override fun getCustomAttributes(attributes: Set<String>): Call<Map<String, Any?>> =
         buildHttpCall {
             val cachedAttributes = storage.getCustomAttributesCache().attributes
-            val result = mutableMapOf<String, Any?>()
-            for (attributeKey in attributes.toSet()) {
-                val attributeValue = cachedAttributes.getOrElse(attributeKey) { null }
-                result.put(attributeKey, attributeValue)
-            }
+            val result= attributes.associateWith { cachedAttributes.getOrElse(it) {null} }.toMutableMap()
 //            TODO uncomment this block if we want to request attribute values from backed
 //             for values which are null in the local cache
             loadCustomAttributesFromBackend(result)
             result
         }
 
-//    override fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>> =
-//        buildHttpCall {
-//            val response = appoxeeAdapter.getCustomAttributes(attributes)
-//            return@buildHttpCall response.data?.payload ?: emptyMap()
-//        }
+    override fun removeCustomAttributes(attributes: Set<String>): Call<Boolean> = buildHttpCall {
+        val cachedAttributes = storage.getCustomAttributesCache().attributes
+        val attributesToUpdate = attributes.filter { cachedAttributes.keys.contains(it) }.toSet()
+        if (attributesToUpdate.isNotEmpty()) {
+            // on backend we can not delete attributes, but we are setting theirs value to empty string
+            val response = appoxeeAdapter.addCustomAttributes(attributesToUpdate.associateWith { "" })
+            if (response.isSuccess()) {
+                storage.removeCustomAttributes(attributesToUpdate)
+            }
+        }
+        true
+    }
 
     override fun getDevice(): Call<DevicePayload?> = buildHttpCall {
         appoxeeAdapter.getDevice()
