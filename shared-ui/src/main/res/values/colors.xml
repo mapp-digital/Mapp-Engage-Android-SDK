@@ -2,4 +2,6 @@
 <resources>
     <color name="green">#018001</color>
     <color name="red">#f00</color>
+    <color name="input_text_color">#F4F4F4</color>
+    <color name="input_text_border_color">#BFBFBF</color>
 </resources>

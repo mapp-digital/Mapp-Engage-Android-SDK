@@ -18,7 +18,7 @@ class GetCustomAttributesViewModel : ViewModel() {
     }
 
     private val _attributeNamesFlow =
-        MutableStateFlow(setOf("num1", "FavouriteNumber"))
+        MutableStateFlow(setOf("num1", "FirstName"))
     val attributeNamesFlow: StateFlow<Set<String>> = _attributeNamesFlow
 
     private val _uiState = MutableStateFlow(UiState())
@@ -35,7 +35,7 @@ class GetCustomAttributesViewModel : ViewModel() {
     fun getAttributes() {
         viewModelScope.launch(coroutineContext) {
             _uiState.emit(UiState(isLoading = true))
-            val attributes = attributeNamesFlow.value.toList()
+            val attributes = attributeNamesFlow.value
             val result = Appoxee.instance().getCustomAttributes(attributes).asSuspend()
             if (result.isSuccess()) {
                 val customAttributes = result.getData()
@@ -54,6 +54,31 @@ class GetCustomAttributesViewModel : ViewModel() {
             val items = _attributeNamesFlow.value.toMutableSet()
             items.remove(name)
             _attributeNamesFlow.emit(items)
+        }
+    }
+
+    fun deleteAttributes() {
+        viewModelScope.launch(coroutineContext) {
+            _uiState.emit(UiState(isLoading = true))
+            val items = _attributeNamesFlow.value
+            val result = Appoxee.instance().removeCustomAttributes(items).asSuspend()
+            if (result.isSuccess()) {
+                _uiState.emit(
+                    UiState(
+                        isLoading = false,
+                        data = emptyList(),
+                        message = "Successfully deleted attributes: ${items.joinToString(", ")}"
+                    )
+                )
+            } else {
+                _uiState.emit(
+                    UiState(
+                        isLoading = false,
+                        data = emptyList(),
+                        throwable = result.getError()
+                    )
+                )
+            }
         }
     }
 }

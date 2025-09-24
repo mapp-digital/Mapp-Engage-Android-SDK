@@ -258,7 +258,7 @@ class BaseTestFragment : Fragment() {
     private fun setTags() {
         lifecycleScope.launch {
             val result =
-                Appoxee.instance().addTags(listOf("female", "makeup", "fashion")).asSuspend()
+                Appoxee.instance().addTags(setOf("female", "makeup", "fashion")).asSuspend()
             if (result.isSuccess()) {
                 Util.showDialog(requireContext(), "Set tags", result.getData().toString())
             } else {
@@ -273,7 +273,7 @@ class BaseTestFragment : Fragment() {
 
     private fun removeTags() {
         lifecycleScope.launch {
-            val result = Appoxee.instance().removeTags(listOf("female", "makeup")).asSuspend()
+            val result = Appoxee.instance().removeTags(setOf("female", "makeup")).asSuspend()
             if (result.isSuccess()) {
                 showDialog(requireContext(), "Remove tags", result.getData().toString())
             } else {

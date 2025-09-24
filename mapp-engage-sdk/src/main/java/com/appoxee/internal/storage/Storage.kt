@@ -51,4 +51,6 @@ internal interface Storage {
      * Get custom attributes local cached value
      */
     suspend fun getCustomAttributesCache(): CustomAttributesCache
+
+    suspend fun removeCustomAttributes(attributes:Set<String>): Boolean
 }

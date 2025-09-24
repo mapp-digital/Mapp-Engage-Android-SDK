@@ -6,7 +6,6 @@ import android.content.Context
 import android.os.Looper
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
@@ -177,17 +176,17 @@ interface Appoxee {
 
     /**
      * Add list of tags to a device
-     * @param tags list of tags to add
+     * @param tags set of tags to add
      * @return [Boolean] status of method execution. True if successful, otherwise false.
      */
-    fun addTags(tags: List<String>): Call<Boolean>
+    fun addTags(tags: Set<String>): Call<Boolean>
 
     /**
      * Remove list of tags from a device
-     * @param tags list of tags to remove
+     * @param tags set of tags to remove
      * @return [Boolean] status of method execution. True if successful, otherwise false.
      */
-    fun removeTags(tags: List<String>): Call<Boolean>
+    fun removeTags(tags: Set<String>): Call<Boolean>
 
     /**
      * Get list of of tags from a local cache
@@ -207,7 +206,16 @@ interface Appoxee {
      * @param attributes map of attributes to search for
      * @return [Map] of existing attributes that are requested
      */
-    fun getCustomAttributes(attributes: List<String>): Call<Map<String, Any?>>
+    fun getCustomAttributes(attributes: Set<String>): Call<Map<String, Any?>>
+
+    /**
+     * Clears previously set custom attributes from local cache and backend.
+     * Attributes keys still exist on the backend side, but will be set as empty string values.
+     *
+     * @param set of attribute's keys to remove
+     * @return result if operation was successful or not
+     */
+    fun removeCustomAttributes(attributes:Set<String>):Call<Boolean>
 
     /**
      * Subscribe an observer to a SDK status updates.

@@ -25,16 +25,13 @@ import com.appoxee.internal.model.response.DevicePayload;
 import com.appoxee.internal.network.Call;
 import com.appoxee.shared.AppoxeeObserver;
 import com.appoxee.shared.GeoStatus;
-import com.appoxee.shared.MappCallback;
 import com.appoxee.shared.MappResult;
 import com.google.android.material.button.MaterialButton;
 import com.mapp.engagesample.inbox.InboxMessagesActivity;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -105,13 +102,13 @@ public class BaseTestFragment extends Fragment {
         });
 
         binding.btnSetTags.setOnClickListener(v -> {
-            Appoxee.instance().addTags(List.of("female", "makeup", "fashion")).enqueue(result -> {
+            Appoxee.instance().addTags(Set.of("female", "makeup", "fashion")).enqueue(result -> {
                 Util.showDialog(requireContext(), "Set Tags", String.valueOf(result.getData()));
             });
         });
 
         binding.btnRemoveTags.setOnClickListener(v -> {
-            Appoxee.instance().removeTags(List.of("female", "makeup", "fashion")).enqueue(result -> Util.showDialog(requireContext(), "Remove Tags", String.valueOf(result.getData())));
+            Appoxee.instance().removeTags(Set.of("female", "makeup", "fashion")).enqueue(result -> Util.showDialog(requireContext(), "Remove Tags", String.valueOf(result.getData())));
         });
 
         binding.btnGetTags.setOnClickListener(v -> {
