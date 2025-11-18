@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -5,12 +7,11 @@ plugins {
 
 android {
     namespace = "eu.brrm.shared_ui"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
-        minSdk = 21
-
+        minSdk = 23
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -24,12 +25,16 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_17
+        }
     }
 
     buildFeatures {

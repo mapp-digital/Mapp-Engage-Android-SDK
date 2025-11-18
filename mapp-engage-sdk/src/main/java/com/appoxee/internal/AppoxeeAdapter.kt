@@ -28,14 +28,7 @@ internal class AppoxeeAdapter(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun refreshDevicePayload(): DevicePayload? {
-        val response = engageApi.getDevice()
-        if (response.isSuccess()) {
-            return response.data?.payload?.let {
-                storage.saveDevicePayload(it)
-                it
-            }
-        }
-        return null
+        return getDevice()
     }
 
     internal suspend fun register(deviceModel: RegisterDevice): RegisterPayload? {
@@ -65,7 +58,7 @@ internal class AppoxeeAdapter(
             if (resendCustomAttributes) {
                 resyncCustomAttributes()
             }
-            val updatedDevice = refreshDevicePayload()
+            val updatedDevice = getDevice()
             return updatedDevice
         } else {
             throw Throwable(response.error?.message)
@@ -73,12 +66,16 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun getAlias(): String {
-        val response = engageApi.getAlias()
-        return response.data?.payload?.alias ?: ""
+        return storage.getDevicePayload()?.alias ?: ""
     }
 
     internal suspend fun getDevice(): DevicePayload? {
         val result = engageApi.getDevice()
+        if (result.isSuccess()) {
+            result.data?.payload?.let { devicePayload ->
+                storage.saveDevicePayload(devicePayload)
+            }
+        }
         return result.data?.payload
     }
 
@@ -88,7 +85,7 @@ internal class AppoxeeAdapter(
             return true
         }
         val response = engageApi.optIn(pushToken = pushToken)
-        refreshDevicePayload()
+        getDevice()
         return response.isSuccess()
     }
 
@@ -98,7 +95,7 @@ internal class AppoxeeAdapter(
             return true
         }
         val response = engageApi.optOut(pushTokenBk = pushToken)
-        refreshDevicePayload()
+        getDevice()
         return if (response.isSuccess()) false else !device?.pushToken.isNullOrEmpty()
     }
 

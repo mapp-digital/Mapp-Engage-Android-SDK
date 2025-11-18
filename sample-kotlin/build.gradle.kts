@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.mapp.engagesample"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
     defaultConfig {
         applicationId = "com.appoxee.example"
-        minSdk = 21
-        targetSdk = 35
+        minSdk = 23
+        targetSdk = 36
         versionCode = 30
         versionName = "2.0.1"
 
@@ -34,9 +36,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_17
+        }
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.3"
     }
@@ -53,7 +59,7 @@ android {
     productFlavors {
         create("prod") {
             dimension = flavorDimensions[0]
-            minSdk = 21
+            minSdk = 23
         }
         create("tst") {
             dimension = flavorDimensions.get(0)

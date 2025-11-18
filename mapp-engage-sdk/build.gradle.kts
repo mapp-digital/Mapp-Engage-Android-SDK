@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -22,20 +24,18 @@ val GIT_CONNECTION = "scm:git:$GIT_URL"
 
 android {
     namespace = "com.appoxee.sdk"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     lint {
-        targetSdk = 35
+        targetSdk = 36
         checkReleaseBuilds = false
     }
 
     defaultConfig {
-        minSdk = 21
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-
+        minSdk = 23
         buildConfigField(type = "String", name = "VERSION_NAME", "\"${VERSION}\"")
     }
 
@@ -48,12 +48,16 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_17
+        }
     }
 
     buildFeatures {
@@ -65,11 +69,9 @@ android {
     productFlavors {
         create("prod"){
             dimension=flavorDimensions[0]
-            minSdk=21
         }
         create("tst") {
             dimension = flavorDimensions[0]
-            minSdk=23
         }
     }
 

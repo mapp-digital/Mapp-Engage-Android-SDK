@@ -1,35 +1,35 @@
 [versions]
-glide = "4.16.0"
-kotlin = "2.1.20"
-core-ktx = "1.16.0"
-appcompat = "1.7.0"
-material = "1.12.0"
-lifecycle-runtime-ktx = "2.8.7"
-coroutines-ktx = "1.8.1"
-activity-ktx = "1.10.1"
-fragment-ktx = "1.8.6"
-lifecycle-viewmodel-ktx = "2.8.7"
-browser = "1.8.0"
+glide = "5.0.5"
+kotlin = "2.2.21"
+core-ktx = "1.17.0"
+appcompat = "1.7.1"
+material = "1.13.0"
+lifecycle-runtime-ktx = "2.9.4"
+coroutines-ktx = "1.10.2"
+activity-ktx = "1.11.0"
+fragment-ktx = "1.8.9"
+lifecycle-viewmodel-ktx = "2.9.4"
+browser = "1.9.0"
 recycler = "1.4.0"
 constraint-layout = "2.2.1"
-firebase-bom = "33.13.0"
-datastore-preferences = "1.1.4"
-coil = "2.5.0"
-media3 = "1.6.1"
-work-manager = "2.10.1"
+firebase-bom = "34.6.0"
+datastore-preferences = "1.1.7"
+coil = "2.7.0"
+media3 = "1.8.0"
+work-manager = "2.11.0"
 play-services-location = "21.3.0"
 junit = "4.13.2"
-junit-jupiter = "5.11.4"
-mockk = "1.13.12"
-truth = "1.4.4"
-json = "20180813"
-mock-webserver = "4.12.0"
-kotlinx-coroutines-test = "1.8.1"
-androidx-test-junit = "1.2.1"
-androidx-test-espresso = "3.6.1"
-androidx-test-core = "1.6.1"
-androidx-test-mockk = "1.13.12"
-lifecycle-process = "2.8.7"
+junit-jupiter = "6.0.1"
+mockk = "1.14.6"
+truth = "1.4.5"
+json = "20250517"
+mock-webserver = "5.3.1"
+kotlinx-coroutines-test = "1.10.2"
+androidx-test-junit = "1.3.0"
+androidx-test-espresso = "3.7.0"
+androidx-test-core = "1.7.0"
+androidx-test-mockk = "1.14.6"
+lifecycle-process = "2.9.4"
 
 [libraries]
 ## BASE
@@ -53,7 +53,7 @@ constraint-layout = { module = "androidx.constraintlayout:constraintlayout", ver
 
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
-firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx" }
+firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging" }
 
 ## Datastore Prefs
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore-preferences" }
