@@ -1,0 +1,39 @@
+name: Publish to Maven Central
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Decode GPG key
+        run: |
+          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > signingkey.asc
+
+      - name: Create local.properties
+        run: |
+          echo "centralUsername=${{ secrets.CENTRAL_USERNAME }}" >> local.properties
+          echo "centralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
+          echo "signing.keyId=${{ secrets.SIGNING_KEY_ID }}" >> local.properties
+          echo "signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> local.properties
+          echo "signing.secretKeyRingFile=signingkey.asc" >> local.properties
+
+      - name: Make gradle executable
+        run: chmod +x gradlew
+
+      - name: Publish to Maven Central
+        run: ./gradlew publishToCentralPortal --no-daemon --stacktrace
