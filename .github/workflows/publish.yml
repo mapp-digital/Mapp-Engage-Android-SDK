@@ -36,4 +36,4 @@ jobs:
         run: chmod +x gradlew
 
       - name: Publish to Maven Central
-        run: ./gradlew publishToCentralPortal --no-daemon --stacktrace
+        run: ./gradlew uploadToCentralPortal --no-daemon --stacktrace
