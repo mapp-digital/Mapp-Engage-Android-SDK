@@ -1,5 +1,6 @@
 package com.appoxee.internal
 
+import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -24,6 +25,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.net.UnknownHostException
+import java.util.Date
 import java.util.concurrent.TimeoutException
 
 class AppoxeeAdapterTest {
@@ -110,6 +112,88 @@ class AppoxeeAdapterTest {
     }
 
     /**
+     * Test case when calling setAlias(string,boolean)
+     * If new alias value was passed and resendCustomAttributes is TRUE, then customAttributes are re-sent to the backend
+     */
+    @Test
+    fun `setAlias with resend custom attributes set to true with new alias value triggers sending custom attributes`(){
+        runTest {
+            val testAlias = "test@alias.com"
+            val devicePayload = DevicePayload(
+                dmcUserId = "1234",
+                udidHashed = "5678",
+                pushTokenBk = "",
+                pushToken = "abc.1234",
+                alias = "user@test.com"
+            )
+
+            val customAttributes = mapOf(
+                "a" to 1,
+                "b" to false,
+                "c" to "lorem ipsum"
+            )
+            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
+            val mockResponseDefault =
+                Response.success(
+                    200,
+                    ResponseData(payload = DefaultResponse("1234", listOf("", "")))
+                )
+            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
+            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+
+            coEvery { storage.getCustomAttributesCache() } coAnswers { CustomAttributesCache(customAttributes) }
+            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
+            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
+
+            val response = appoxeeAdapter.setAlias(testAlias, true)
+            Truth.assertThat(response).isNotNull()
+            coVerify { engageApi.addCustomAttributes(any()) }
+            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
+        }
+    }
+
+    /**
+     * Test case when calling setAlias(string,boolean)
+     * If new alias value was passed and resendCustomAttributes is FALSE, then customAttributes are NOT SENT to the backend
+     */
+    @Test
+    fun `setAlias with resend custom attributes set to false with new alias value doesn't trigger sending custom attributes`(){
+        runTest {
+            val testAlias = "test@alias.com"
+            val devicePayload = DevicePayload(
+                dmcUserId = "1234",
+                udidHashed = "5678",
+                pushTokenBk = "",
+                pushToken = "abc.1234",
+                alias = "user@test.com"
+            )
+
+            val customAttributes = mapOf(
+                "a" to 1,
+                "b" to false,
+                "c" to "lorem ipsum"
+            )
+            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
+            val mockResponseDefault =
+                Response.success(
+                    200,
+                    ResponseData(payload = DefaultResponse("1234", listOf("", "")))
+                )
+            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
+            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+
+            coEvery { storage.getCustomAttributesCache() } coAnswers { CustomAttributesCache(customAttributes) }
+            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
+            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
+
+            val response = appoxeeAdapter.setAlias(testAlias, false)
+            Truth.assertThat(response).isNotNull()
+            coVerify(exactly = 0) { engageApi.addCustomAttributes(any()) }
+            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
+        }
+    }
+
+    /**
      * Test when set alias is called with existing value
      * Network call should not be executed and returned value is from a local database
      */
@@ -191,7 +275,7 @@ class AppoxeeAdapterTest {
                     200,
                     ResponseData(
                         metadata = null, payload =
-                        DevicePayload(dmcUserId = "user12345", alias = "user@mapp.com")
+                            DevicePayload(dmcUserId = "user12345", alias = "user@mapp.com")
                     )
                 )
             }
@@ -225,7 +309,7 @@ class AppoxeeAdapterTest {
                     200,
                     ResponseData(
                         metadata = null, payload =
-                        DefaultResponse(dmcUserId = "user12345", set = emptyList())
+                            DefaultResponse(dmcUserId = "user12345", set = emptyList())
                     )
                 )
             }
@@ -260,7 +344,7 @@ class AppoxeeAdapterTest {
                     200,
                     ResponseData(
                         metadata = null, payload =
-                        DefaultResponse(dmcUserId = "user12345", set = emptyList())
+                            DefaultResponse(dmcUserId = "user12345", set = emptyList())
                     )
                 )
             }
@@ -295,7 +379,7 @@ class AppoxeeAdapterTest {
                     200,
                     ResponseData(
                         metadata = null, payload =
-                        mockk()
+                            mockk()
                     )
                 )
             }
@@ -438,7 +522,10 @@ class AppoxeeAdapterTest {
                     )
                 )
             }
-            val response = appoxeeAdapter.removeTags(setOf("tag1", "tag2", "tag3"))
+            val tags = setOf("tag1", "tag2", "tag3")
+            coEvery { storage.getTags() } coAnswers { tags.toList() }
+
+            val response = appoxeeAdapter.removeTags(tags)
             coVerify { engageApi.removeTags(allAny()) }
             Truth.assertThat(response.statusCode).isEqualTo(200)
         }
@@ -450,14 +537,17 @@ class AppoxeeAdapterTest {
             coEvery { engageApi.removeTags(allAny()) } coAnswers {
                 Response.error(TimeoutException())
             }
-            val response = appoxeeAdapter.removeTags(setOf("tag1", "tag2", "tag3"))
+            val tags = setOf("tag1", "tag2", "tag3")
+            coEvery { storage.getTags() } coAnswers { tags.toList() }
+
+            val response = appoxeeAdapter.removeTags(tags)
             coVerify { engageApi.removeTags(allAny()) }
             Truth.assertThat(response.error).isInstanceOf(TimeoutException::class.java)
         }
     }
 
     @Test
-    fun `addCustomAttributes with successful response`() {
+    fun `add Custom Attributes with successful response`() {
         runTest {
             coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
                 Response.success(
@@ -475,7 +565,80 @@ class AppoxeeAdapterTest {
     }
 
     @Test
-    fun `addCustomAttributes with error response`() {
+    fun `add Custom Attributes with different type and successful response`() {
+        runTest {
+            coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
+                Response.success(
+                    200,
+                    ResponseData(
+                        metadata = null,
+                        payload = DefaultResponse(dmcUserId = "user1234", emptyList())
+                    )
+                )
+            }
+
+            val attributes = mapOf(
+                "a" to 1,
+                "b" to true,
+                "c" to Date(),
+                "d" to "test attribute"
+            )
+
+            coEvery { storage.getCustomAttributesCache() } coAnswers {
+                CustomAttributesCache(
+                    attributes = emptyMap()
+                )
+            }
+
+            val response = appoxeeAdapter.addCustomAttributes(attributes)
+            coVerify { engageApi.addCustomAttributes(attributes) }
+            Truth.assertThat(response.statusCode).isEqualTo(200)
+        }
+    }
+
+    @Test
+    fun `add custom attributes that not exist only with successful response`() {
+        runTest {
+            coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
+                Response.success(
+                    200,
+                    ResponseData(
+                        metadata = null,
+                        payload = DefaultResponse(dmcUserId = "user1234", emptyList())
+                    )
+                )
+            }
+
+            val date = Date()
+            val allAttributes = mapOf(
+                "a" to 124.5,
+                "b" to true,
+                "c" to date,
+                "d" to "test attribute"
+            )
+
+            val cachedAttributes = mapOf(
+                "c" to date,
+                "d" to "test attribute"
+            )
+
+            val diffAttributes =
+                allAttributes.filterNot { cachedAttributes.getOrDefault(it.key) { null } == it.value }
+
+            coEvery { storage.getCustomAttributesCache() } coAnswers {
+                CustomAttributesCache(
+                    attributes = cachedAttributes
+                )
+            }
+
+            val response = appoxeeAdapter.addCustomAttributes(allAttributes)
+            coVerify { engageApi.addCustomAttributes(diffAttributes) }
+            Truth.assertThat(response.statusCode).isEqualTo(200)
+        }
+    }
+
+    @Test
+    fun `add Custom Attributes with error response`() {
         runTest {
             coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
                 Response.error(TimeoutException())

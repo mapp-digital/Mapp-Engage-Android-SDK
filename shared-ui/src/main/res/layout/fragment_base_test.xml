@@ -25,6 +25,18 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogoutAndOptIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Logout (With Opt-In)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogoutAndOptOut"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Logout (With Opt-Out)" />
+
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchPushEnabled"
                 android:layout_width="match_parent"

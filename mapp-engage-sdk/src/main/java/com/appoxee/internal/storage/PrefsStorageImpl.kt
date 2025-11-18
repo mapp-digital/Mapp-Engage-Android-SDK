@@ -175,8 +175,12 @@ internal class PrefsStorageImpl(
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {
                 mutex.withLock {
-                    val json = devicePayload?.toJSON()
-                    it[devicePayloadKey] = json.toString()
+                    if(devicePayload==null){
+                        it.remove(devicePayloadKey)
+                    }else {
+                        val json = devicePayload.toJSON()
+                        it[devicePayloadKey] = json.toString()
+                    }
                 }
             }
         }
@@ -206,8 +210,12 @@ internal class PrefsStorageImpl(
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit {
                 mutex.withLock {
-                    val json = registerDevice?.asJson()?.getJSONObject("register")
-                    it[registerDeviceKey] = json.toString()
+                    if(registerDevice==null){
+                        it.remove(registerDeviceKey)
+                    }else {
+                        val json = registerDevice.asJson().getJSONObject("register")
+                        it[registerDeviceKey] = json.toString()
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.SimpleAdapter
 import android.widget.Toast
 import androidx.annotation.ColorRes
+import androidx.core.content.ContextCompat
 import com.appoxee.internal.model.response.DevicePayload
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.text.SimpleDateFormat
@@ -91,6 +92,11 @@ object Util {
     @ColorRes
     fun Boolean.toColor(): Int {
         return if (this) return R.color.green else R.color.red
+    }
+
+    @JvmStatic
+    fun Context.parseColor(colorCode:Int):Int{
+        return ContextCompat.getColor(this, colorCode)
     }
 
     @JvmStatic

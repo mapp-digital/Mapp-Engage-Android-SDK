@@ -2,6 +2,7 @@ package com.appoxee.internal.model.response
 
 import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
+import com.appoxee.internal.util.toList
 import org.json.JSONObject
 
 internal data class RegisterPayload(
@@ -18,9 +19,11 @@ internal data class RegisterPayload(
 
     companion object {
         fun fromJSON(json: JSONObject): RegisterPayload {
+            val dmcUserId=json.optString("dmcUserId")
+            val register = json.optJSONArray("register")?.toList().orEmpty().filter { dmcUserId!=it }
             return RegisterPayload(
                 dmcUserId = json.getStringOrEmpty("dmcUserId"),
-                alias = json.getNullableString("alias")
+                alias = register.firstOrNull()
             )
         }
     }

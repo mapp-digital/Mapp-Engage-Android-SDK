@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,9 +36,9 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import eu.brrm.shared_ui.Util;
 import eu.brrm.shared_ui.attributes.get.GetCustomAttributesActivity;
 import eu.brrm.shared_ui.attributes.set.SetCustomAttributesActivity;
-import eu.brrm.shared_ui.Util;
 import eu.brrm.shared_ui.databinding.FragmentBaseTestBinding;
 
 public class BaseTestFragment extends Fragment {
@@ -47,6 +48,8 @@ public class BaseTestFragment extends Fragment {
     private final Handler mainExecutor = new Handler(Looper.getMainLooper());
     private FragmentBaseTestBinding binding;
     private ClipboardManager clipboard;
+
+    private final CompoundButton.OnCheckedChangeListener onPushEnabledListener = (materialButton, isChecked) -> pushEnable(isChecked);
 
     private final AppoxeeObserver appoxeeObserver = (status, mappResult) -> {
         Log.d(TAG, "SUCCESS IN BASE TEST FRAGMENT - Is Ready: " + status + "; Payload: " + mappResult.getData() + "; Error: " + mappResult.getError());
@@ -70,6 +73,14 @@ public class BaseTestFragment extends Fragment {
         clipboard = ContextCompat.getSystemService(requireContext(), ClipboardManager.class);
 
         binding.switchReady.setEnabled(false);
+
+        binding.btnLogoutAndOptIn.setOnClickListener(v -> {
+            logout(true);
+        });
+
+        binding.btnLogoutAndOptOut.setOnClickListener(v -> {
+            logout(false);
+        });
 
         binding.btnSetAlias.setOnClickListener(v -> {
             setAliasExecute();
@@ -188,6 +199,24 @@ public class BaseTestFragment extends Fragment {
         }
     }
 
+    private void logout(boolean pushEnabled) {
+        Appoxee.instance().logout(pushEnabled).enqueue(result -> {
+            if (result.isSuccess()) {
+                String message = (pushEnabled) ? "Device successfully logged out with Opt in" : "Device successfully logged out with Opt Out";
+                Util.showDialog(requireContext(), "Logout", message);
+                updatePushEnabledState(pushEnabled);
+            }
+        });
+    }
+
+    private void updatePushEnabledState(boolean pushEnabled){
+        binding.switchPushEnabled.setOnCheckedChangeListener(null);
+        binding.switchPushEnabled.setChecked(pushEnabled);
+        binding.switchPushEnabled.setOnCheckedChangeListener(onPushEnabledListener);
+        binding.switchPushEnabled.setText((pushEnabled) ? "Opted In" : "Opted Out");
+        binding.switchPushEnabled.setTextColor(Util.parseColor(requireContext(), Util.toColor(pushEnabled)));
+    }
+
     private void setAliasExecute() {
         Editable editableAlias = binding.editTextAlias.getText();
         String alias = editableAlias != null ? editableAlias.toString() : "";
@@ -227,8 +256,7 @@ public class BaseTestFragment extends Fragment {
         Call<Boolean> call = Appoxee.instance().enablePush(enabled, null);
         call.enqueue(result -> {
             boolean data = Boolean.TRUE.equals(result.getData());
-            binding.switchPushEnabled.setText((data) ? "Opted In" : "Opted Out");
-            binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(data)));
+            updatePushEnabledState(data);
             Util.showDialog(requireContext(), "Push Status", "ACTION " + (result.isSuccess() ? "SUCCESSFUL" : "UNSUCCESSFUL") + "\nStatus: " + enabled);
         });
     }
@@ -273,9 +301,7 @@ public class BaseTestFragment extends Fragment {
         binding.switchPushEnabled.setChecked(Boolean.TRUE.equals(enabled));
         binding.switchPushEnabled.setText(enabled ? "Opted In" : "Opted Out");
         binding.switchPushEnabled.setTextColor(getResources().getColor(Util.toColor(enabled)));
-        binding.switchPushEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            pushEnable(isChecked);
-        });
+        binding.switchPushEnabled.setOnCheckedChangeListener(onPushEnabledListener);
     }
 
     private void handleLocationPermissionNotGranted() {

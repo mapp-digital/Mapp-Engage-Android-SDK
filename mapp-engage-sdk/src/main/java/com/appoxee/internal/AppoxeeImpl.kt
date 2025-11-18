@@ -337,20 +337,16 @@ internal open class AppoxeeImpl(
     }
 
     override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
+        storage.saveDevicePayload(null)
+        storage.saveRegistrationDevice(null)
         val device = appoxeeContainer.deviceProvider.generateRegistrationDevice()
-        val response = appoxeeAdapter.logout(device)
-        enablePush(pushEnabled)
-        response.isSuccess()
+        appoxeeAdapter.logout(device)
+        updateOptState(pushEnabled, null)
+        true
     }
 
-
     override fun enablePush(enabled: Boolean, token: String?): Call<Boolean> = buildHttpCall {
-        val fbToken = token ?: FirebaseMessaging.getInstance().token.await()
-        if (enabled) {
-            appoxeeAdapter.optIn(fbToken)
-        } else {
-            appoxeeAdapter.optOut(fbToken)
-        }
+        updateOptState(enabled, token)
     }
 
     override fun isPushEnabled(): Call<Boolean> = buildHttpCall {
@@ -384,6 +380,16 @@ internal open class AppoxeeImpl(
         }
     }
 
+
+    private suspend fun updateOptState(enabled: Boolean, token: String?): Boolean {
+        val fbToken = token ?: FirebaseMessaging.getInstance().token.await()
+        return if (enabled) {
+            appoxeeAdapter.optIn(fbToken)
+        } else {
+            appoxeeAdapter.optOut(fbToken)
+        }
+    }
+
     private suspend fun loadCustomAttributesFromBackend(result: MutableMap<String, Any?>) {
         val attributesWithNoValue = result.filter { it.value == null }
         if (attributesWithNoValue.isNotEmpty()) {
@@ -391,7 +397,7 @@ internal open class AppoxeeImpl(
                 appoxeeAdapter.getCustomAttributes(attributesWithNoValue.keys.toList())
             if (response.isSuccess()) {
                 response.data?.payload?.forEach { (key, value) ->
-                    result[key] = if(value?.toString()?.isNotEmpty()==true) value else null
+                    result[key] = if (value?.toString()?.isNotEmpty() == true) value else null
                 }
             }
         }
@@ -400,7 +406,8 @@ internal open class AppoxeeImpl(
     override fun getCustomAttributes(attributes: Set<String>): Call<Map<String, Any?>> =
         buildHttpCall {
             val cachedAttributes = storage.getCustomAttributesCache().attributes
-            val result= attributes.associateWith { cachedAttributes.getOrElse(it) {null} }.toMutableMap()
+            val result =
+                attributes.associateWith { cachedAttributes.getOrElse(it) { null } }.toMutableMap()
 //            TODO uncomment this block if we want to request attribute values from backed
 //             for values which are null in the local cache
             loadCustomAttributesFromBackend(result)
@@ -412,7 +419,8 @@ internal open class AppoxeeImpl(
         val attributesToUpdate = attributes.filter { cachedAttributes.keys.contains(it) }.toSet()
         if (attributesToUpdate.isNotEmpty()) {
             // on backend we can not delete attributes, but we are setting theirs value to empty string
-            val response = appoxeeAdapter.addCustomAttributes(attributesToUpdate.associateWith { "" })
+            val response =
+                appoxeeAdapter.addCustomAttributes(attributesToUpdate.associateWith { "" })
             if (response.isSuccess()) {
                 storage.removeCustomAttributes(attributesToUpdate)
             }
