@@ -33,9 +33,9 @@ jobs:
           # If it's the literal ASCII-armored key (-----BEGIN PGP PRIVATE KEY BLOCK-----...), the second branch will write it directly.
           set -e
           if echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode >/dev/null 2>&1; then
-            echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > mapp-engage-sdk/3F5AB862.asc
+            echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > 3F5AB862.asc
           else
-            printf '%s\n' "${{ secrets.SIGNING_KEY_ASC }}" > mapp-engage-sdk/3F5AB862.asc
+            printf '%s\n' "${{ secrets.SIGNING_KEY_ASC }}" > 3F5AB862.asc
           fi
           chmod 600 mapp-engage-sdk/3F5AB862.asc
 
