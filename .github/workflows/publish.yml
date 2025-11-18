@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup JDK 17
@@ -20,20 +20,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Decode GPG key
+      # Decode the signing key file
+      - name: Write GPG key
         run: |
-          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > signingkey.asc
+          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > 3F5AB862.asc
 
+      # Write local.properties
       - name: Create local.properties
         run: |
-          echo "centralUsername=${{ secrets.CENTRAL_USERNAME }}" >> local.properties
-          echo "centralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
           echo "signing.keyId=${{ secrets.SIGNING_KEY_ID }}" >> local.properties
           echo "signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> local.properties
-          echo "signing.secretKeyRingFile=signingkey.asc" >> local.properties
+          echo "signing.secretKeyRingFile=3F5AB862.asc" >> local.properties
+          echo "mavenCentralUsername=${{ secrets.MAVEN_CENTRAL_USERNAME }}" >> local.properties
+          echo "mavenCentralPassword=${{ secrets.MAVEN_CENTRAL_PASSWORD }}" >> local.properties
 
       - name: Make gradle executable
         run: chmod +x gradlew
 
       - name: Publish to Maven Central
         run: ./gradlew publishToCentralPortal --no-daemon --stacktrace
+
