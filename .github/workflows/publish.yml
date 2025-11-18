@@ -19,10 +19,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Decode GPG key
+      - name: Debug directory
         run: |
-              echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > mapp-engage-sdk/3F5AB862.asc
+          ls -R .
+
+      - name: Write GPG key
+        run: |
+          mkdir -p mapp-engage-sdk
+          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > mapp-engage-sdk/3F5AB862.asc
 
       - name: Create local.properties
         run: |
