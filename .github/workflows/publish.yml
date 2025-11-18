@@ -21,44 +21,25 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Debug directory
         run: |
           ls -R .
 
-      - name: Prepare signing key
+      - name: Write GPG key
         run: |
           mkdir -p mapp-engage-sdk
-          # If your SIGNING_KEY_ASC secret is base64-encoded, the first branch will decode it.
-          # If it's the literal ASCII-armored key (-----BEGIN PGP PRIVATE KEY BLOCK-----...), the second branch will write it directly.
-          set -e
-          if echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode >/dev/null 2>&1; then
-            echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > 3F5AB862.asc
-          else
-            printf '%s\n' "${{ secrets.SIGNING_KEY_ASC }}" > 3F5AB862.asc
-          fi
-          chmod 600 3F5AB862.asc
+          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > mapp-engage-sdk/3F5AB862.asc
 
       - name: Create local.properties
         run: |
-          cat > local.properties <<EOF
-          centralUsername=${{ secrets.CENTRAL_USERNAME }}
-          centralPassword=${{ secrets.CENTRAL_PASSWORD }}
-          signing.keyId=${{ secrets.SIGNING_KEY_ID }}
-          signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}
-          signing.secretKeyRingFile=mapp-engage-sdk/3F5AB862.asc
-          EOF
-          chmod 600 local.properties
+          echo "centralUsername=${{ secrets.CENTRAL_USERNAME }}" >> local.properties
+          echo "centralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
+          echo "signing.keyId=${{ secrets.SIGNING_KEY_ID }}" >> local.properties
+          echo "signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> local.properties
+          echo "signing.secretKeyRingFile=3F5AB862.asc" >> local.properties
 
       - name: Make gradle executable
         run: chmod +x gradlew
 
       - name: Publish to Maven Central
-        run: |
-          ./gradlew uploadToCentralPortal --no-daemon --stacktrace
-          # cleanup key material (try shred, fallback to rm)
-          if command -v shred >/dev/null 2>&1; then
-            shred -u 3F5AB862.asc || true
-          else
-            rm -f 3F5AB862.asc || true
-          fi
+        run: ./gradlew uploadToCentralPortal --no-daemon --stacktrace
