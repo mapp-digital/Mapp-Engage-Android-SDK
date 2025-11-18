@@ -76,5 +76,5 @@ internal interface EngageApi {
         version: Int
     ): Response<ResponseData<DefaultResponse>>
 
-    suspend fun updateDevice(updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>>
+    suspend fun updateDevice(alias: String,updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>>
 }

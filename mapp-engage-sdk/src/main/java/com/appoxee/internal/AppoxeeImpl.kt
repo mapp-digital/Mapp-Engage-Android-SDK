@@ -162,9 +162,10 @@ internal open class AppoxeeImpl(
 
                 println("has registration payload")
                 val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
+                val alias = devicePayload.alias
 
-                if (updatedParams.isNotEmpty()) {
-                    appoxeeAdapter.updateDevice(updatedParams)
+                if (!alias.isNullOrEmpty() && updatedParams.isNotEmpty()) {
+                    appoxeeAdapter.updateDevice(alias = alias, params = updatedParams)
                 }
                 // device already registered and channel is unchanged
                 updateOptStatus(devicePayload, null)

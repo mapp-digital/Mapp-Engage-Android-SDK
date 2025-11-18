@@ -36,9 +36,9 @@ internal class AppoxeeAdapter(
         return if (response.isSuccess()) response.data?.payload else null
     }
 
-    internal suspend fun updateDevice(params: Map<String, String>): Response<ResponseData<DefaultResponse>> {
+    internal suspend fun updateDevice(alias: String, params: Map<String, String>): Response<ResponseData<DefaultResponse>> {
         val deviceToUpdate = UpdateDevice(params)
-        val response = engageApi.updateDevice(deviceToUpdate)
+        val response = engageApi.updateDevice(alias = alias, updateDevice = deviceToUpdate)
         return response
     }
 
