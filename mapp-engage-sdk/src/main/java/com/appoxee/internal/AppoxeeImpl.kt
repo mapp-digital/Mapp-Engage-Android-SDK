@@ -40,6 +40,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("UNCHECKED_CAST")
@@ -60,8 +61,7 @@ internal open class AppoxeeImpl(
     private val mutex = Mutex()
 
     private val mIsReady by lazy { AtomicBoolean(false) }
-
-    private val pushQueue by lazy { mutableSetOf<RemoteMessage>() }
+    private val pushQueue by lazy { ConcurrentLinkedQueue<RemoteMessage>() }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val internalScope =
@@ -434,17 +434,18 @@ internal open class AppoxeeImpl(
     }
 
 
-    override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) =
+    override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
         withContext(dispatcherProvider.mainDispatcher) {
             mIsReady.set(status)
             observersProvider.notify(status, mappResult)
             internalScope.launch {
-                pushQueue.forEach {
-                    pushContainer.pushManager.handlePushMessage(application.applicationContext, it)
+                while (true) {
+                    val msg = pushQueue.poll() ?: break
+                    pushContainer.pushManager.handlePushMessage(application.applicationContext, msg)
                 }
             }
-            Unit
         }
+    }
 
     override fun subscribe(observer: AppoxeeObserver) {
         internalScope.launch {
@@ -473,15 +474,13 @@ internal open class AppoxeeImpl(
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
         internalScope.launch {
-            mutex.withLock {
-                if (mIsReady.get()) {
-                    pushContainer.pushManager.handlePushMessage(
-                        application.applicationContext,
-                        remoteMessage
-                    )
-                } else {
-                    pushQueue.add(remoteMessage)
-                }
+            if (mIsReady.get()) {
+                pushContainer.pushManager.handlePushMessage(
+                    application.applicationContext,
+                    remoteMessage
+                )
+            } else {
+                pushQueue.add(remoteMessage)
             }
         }
     }
@@ -513,12 +512,11 @@ internal open class AppoxeeImpl(
     override fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>) {
         internalScope.launch {
             val requiredClass = LocalPushBroadcast::class.java
-            if (clazz.superclass == requiredClass) {
+            if (requiredClass.isAssignableFrom(clazz)) {
                 appoxeeContainer.localPushBroadcast = clazz
                 withContext(dispatcherProvider.defaultDispatcher) {
                     storage.setBroadcastClass(clazz)
                 }
-
             } else {
                 throw IllegalArgumentException("PushBroadcast must be subtype of LocalPushBroadcast")
             }

@@ -6,6 +6,7 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import org.json.JSONObject
 import java.io.File
+import androidx.core.content.edit
 
 internal class MigrationHelperImpl(context: Context) : MigrationHelper {
 
@@ -76,7 +77,7 @@ internal class MigrationHelperImpl(context: Context) : MigrationHelper {
             File(getFilesDir(), getFileName()).also {
                 if (it.exists()) it.delete()
             }
-            preferences.edit().clear().apply()
+            preferences.edit { clear() }
         } catch (e: Exception) {
             Logger.e(this.javaClass.name, e)
         }

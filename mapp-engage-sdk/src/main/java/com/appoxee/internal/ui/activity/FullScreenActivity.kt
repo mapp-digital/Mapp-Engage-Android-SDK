@@ -13,6 +13,7 @@ import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Logger
+import androidx.core.net.toUri
 
 class FullScreenActivity : AppCompatActivity() {
 
@@ -129,8 +130,10 @@ class FullScreenActivity : AppCompatActivity() {
 
     private inline fun Intent.handleIntentSafe(message: String, action: (Uri) -> Unit) {
         try {
-            val data = this.data ?: this.extras?.getBundle("pushData")?.getString("actionUri")
-                ?.let { Uri.parse(it) }
+            val data = this.data ?: this.extras
+                ?.getBundle("pushData")
+                ?.getString("actionUri")
+                ?.toUri()
             data?.let {
                 action.invoke(it)
             }
