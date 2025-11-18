@@ -6,6 +6,7 @@ import com.appoxee.internal.model.response.Category
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
+import androidx.core.net.toUri
 
 @Parcelize
 internal data class PushData(
@@ -99,7 +100,7 @@ internal data class PushData(
                 alert = map.getData(KEY_ALERT),
                 bigText = map.getData(KEY_BIG_TEXT_BODY),
                 sound = map.getData(KEY_SOUND),
-                actionUri = if (actionUriPath != null) Uri.parse(actionUriPath) else null,
+                actionUri = actionUriPath?.toUri(),
                 internalUriType = uriType,
                 collapseKey = map.getData(KEY_COLLAPSE_KEY),
                 type = map.getData(KEY_MEDIA_TYPE),
@@ -178,7 +179,7 @@ internal data class PushData(
                 }
             }
             key?.let { data.remove(it) }
-            return url ?: ""
+            return url
         }
     }
 }

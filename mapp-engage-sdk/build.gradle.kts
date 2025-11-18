@@ -85,6 +85,10 @@ android {
             pickFirsts += "META-INF/LICENSE-notice.md"
         }
     }
+
+    publishing {
+        singleVariant("prodRelease") {}
+    }
 }
 
 dependencies {

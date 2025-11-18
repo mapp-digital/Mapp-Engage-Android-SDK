@@ -13,6 +13,7 @@ import com.appoxee.internal.ui.push.model.PushUriType
 import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import com.appoxee.internal.util.CompatExt
 import com.appoxee.shared.LocalPushBroadcast
+import androidx.core.net.toUri
 
 internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
     override fun createPendingIntent(
@@ -74,7 +75,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
                 putExtra("notificationId", notificationId)
                 putExtra("eventType", eventType.ordinal)
                 putExtra("clickType", uriType.toPushAction().value)
-                actionData?.let { data = Uri.parse(it) }
+                actionData?.let { data = it.toUri() }
                 pushData?.let { putExtra("pushData", it) }
             }
             return PendingIntent.getActivity(

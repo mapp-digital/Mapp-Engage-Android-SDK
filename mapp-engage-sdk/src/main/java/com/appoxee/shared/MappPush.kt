@@ -5,6 +5,7 @@ import android.os.Parcelable
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import kotlinx.parcelize.Parcelize
+import androidx.core.net.toUri
 
 @ConsistentCopyVisibility
 @Parcelize
@@ -43,7 +44,7 @@ data class MappPush internal constructor(
             buttonList?.fgActions?.forEach {
                 data.add(
                     ActionButton(
-                        uri = Uri.parse(it.getAction()),
+                        uri = it.getAction().toUri(),
                         action = it.getUriType().toPushAction().value
                     )
                 )

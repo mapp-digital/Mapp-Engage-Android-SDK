@@ -4,6 +4,7 @@ import android.net.Uri
 import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappActionType
 import com.appoxee.internal.ui.action.ActionHandler
+import androidx.core.net.toUri
 
 internal class InappActionHandlerImpl(private val actionHandler: ActionHandler) :
     InappActionHandler {
@@ -43,7 +44,7 @@ internal class InappActionHandlerImpl(private val actionHandler: ActionHandler) 
 
                 InappActionType.CUSTOM -> {
                     actionData.link?.let { url ->
-                        actionHandler.customAction(Uri.parse(url))
+                        actionHandler.customAction(url.toUri())
                     }
                 }
             }

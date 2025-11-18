@@ -21,6 +21,9 @@ import com.appoxee.internal.ui.push.model.PushData
 import com.google.common.base.Charsets
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import androidx.core.net.toUri
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
 
 object LibraryExtensions {
     internal fun Context.getAppTheme(): Int {
@@ -51,7 +54,7 @@ object LibraryExtensions {
             intent?.data?.let {
                 val link = it.getQueryParameter("link")
                 if (link?.startsWith("http") == true) {
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                    val browserIntent = Intent(Intent.ACTION_VIEW, link.toUri())
                     if (this.canHandleIntent(browserIntent)) {
                         startActivity(browserIntent)
                         return true
@@ -134,9 +137,7 @@ object LibraryExtensions {
                 drawable.bitmap
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && drawable is AdaptiveIconDrawable) {
                 // Convert AdaptiveIconDrawable to Bitmap
-                val bitmap = Bitmap.createBitmap(
-                    drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888
-                )
+                val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
                 val canvas = Canvas(bitmap)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)
@@ -178,7 +179,7 @@ object LibraryExtensions {
 
         for (x in 0 until width) {
             for (y in 0 until height) {
-                val pixel = this.getPixel(x, y)
+                val pixel = this[x, y]
                 val alpha = Color.alpha(pixel)
                 val red = Color.red(pixel)
                 val green = Color.green(pixel)
