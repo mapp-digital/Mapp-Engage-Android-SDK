@@ -42,7 +42,6 @@ import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.network.response.StatusAdapter
 import com.appoxee.internal.provider.DeviceProvider
 import com.appoxee.internal.storage.Storage
-import com.appoxee.internal.util.toMap
 import java.util.Date
 import java.util.TimeZone
 import java.util.UUID
@@ -93,8 +92,8 @@ internal class EngageApiImpl(
         return response
     }
 
-    override suspend fun updateDevice(updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>> {
-        val updateModel = RequestBody(key = uniqueDeviceId, actions = updateDevice)
+    override suspend fun updateDevice(alias: String, updateDevice: UpdateDevice): Response<ResponseData<DefaultResponse>> {
+        val updateModel = RequestBody(key = uniqueDeviceId, actions = updateDevice, alias = alias)
         val request = Request.Put(path = devicePathV3, requestBody = updateModel)
             .addHeader(getSdkKeyHeader())
 
@@ -106,7 +105,7 @@ internal class EngageApiImpl(
     }
 
     override suspend fun getDevice(): Response<ResponseData<DevicePayload>> {
-        val requestBody = RequestBody(key = uniqueDeviceId, GetDevice())
+        val requestBody = RequestBody(key = uniqueDeviceId, actions = GetDevice())
         val request = Request
             .Put(path = devicePathV3, requestBody = requestBody)
             .addHeader(getSdkKeyHeader())
@@ -297,7 +296,7 @@ internal class EngageApiImpl(
             .Put(path = devicePathV3, requestBody = requestBody)
             .addHeader(getSdkKeyHeader())
 
-        val response = networkClient.execute(request, BaseAdapter{
+        val response = networkClient.execute(request, BaseAdapter {
             CustomAttributesPayload.fromJson(it)
         })
 
