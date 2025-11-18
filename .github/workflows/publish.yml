@@ -22,7 +22,7 @@ jobs:
 
       - name: Decode GPG key
         run: |
-          echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > signingkey.asc
+              echo "${{ secrets.SIGNING_KEY_ASC }}" | base64 --decode > mapp-engage-sdk/3F5AB862.asc
 
       - name: Create local.properties
         run: |
@@ -30,7 +30,7 @@ jobs:
           echo "centralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
           echo "signing.keyId=${{ secrets.SIGNING_KEY_ID }}" >> local.properties
           echo "signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> local.properties
-          echo "signing.secretKeyRingFile=signingkey.asc" >> local.properties
+          echo "signing.secretKeyRingFile=mapp-engage-sdk/3F5AB862.asc" >> local.properties
 
       - name: Make gradle executable
         run: chmod +x gradlew
