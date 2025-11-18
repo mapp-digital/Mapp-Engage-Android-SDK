@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CompoundButton
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
@@ -41,6 +42,10 @@ class BaseTestFragment : Fragment() {
         get() = _binding!!
 
     private var clipboard: ClipboardManager? = null
+
+    private val onPushEnabledListener= CompoundButton.OnCheckedChangeListener { view, isChecked ->
+        pushEnable(isChecked)
+    }
 
     private val appoxeeObserver = object : AppoxeeObserver {
         override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
@@ -75,6 +80,15 @@ class BaseTestFragment : Fragment() {
         clipboard = getSystemService(requireContext(), ClipboardManager::class.java)
 
         binding.switchReady.isEnabled = false
+
+        binding.btnLogoutAndOptIn.setOnClickListener {
+            logout(true)
+        }
+
+        binding.btnLogoutAndOptOut.setOnClickListener {
+            logout(false)
+        }
+
         binding.btnSetAlias.setOnClickListener {
             setAlias()
         }
@@ -143,20 +157,33 @@ class BaseTestFragment : Fragment() {
         }
     }
 
+    private fun updatePushEnabledStatus(pushEnabled: Boolean){
+        binding.switchPushEnabled.setOnCheckedChangeListener(null)
+        binding.switchPushEnabled.isChecked=pushEnabled
+        binding.switchPushEnabled.text = if (pushEnabled) "Opted In" else "Opted Out"
+        binding.switchPushEnabled.setTextColor(ContextCompat.getColor(requireContext(), pushEnabled.toColor()))
+        binding.switchPushEnabled.setOnCheckedChangeListener(onPushEnabledListener)
+    }
+
+
+    private fun logout(pushEnabled: Boolean) {
+        lifecycleScope.launch {
+            val result = Appoxee.instance().logout(pushEnabled).asSuspend()
+            if(result.isSuccess()){
+                val msg=if(pushEnabled) "Opted in" else "Opted out"
+                showDialog(requireContext(),"Logout", "Device successfully logged out and $msg")
+                updatePushEnabledStatus(pushEnabled)
+            }
+        }
+    }
+
     private fun pushEnable(enabled: Boolean) {
         lifecycleScope.launch {
             val call = Appoxee.instance().enablePush(enabled)
             val result = call.asSuspend()
+            updatePushEnabledStatus(enabled)
             val actionStatus = if (result.isSuccess()) "SUCCESSFUL" else "UNSUCCESSFUL"
-            binding.switchPushEnabled.text =
-                if (result.getData() == true) "Opted In" else "Opted Out"
-            binding.switchPushEnabled.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(),
-                    enabled.toColor()
-                )
-            )
-            Util.showDialog(
+            showDialog(
                 requireContext(),
                 "Push status",
                 "Action $actionStatus\nStatus:${enabled}"
@@ -167,13 +194,7 @@ class BaseTestFragment : Fragment() {
     private fun isPushEnabled(devicePayload: DevicePayload?) {
         val enabled = !devicePayload?.pushToken.isNullOrEmpty()
         binding.switchPushEnabled.also {
-            it.setOnCheckedChangeListener(null)
-            it.isChecked = enabled
-            it.text = if (enabled) "Opted In" else "Opted Out"
-            it.setTextColor(ContextCompat.getColor(requireContext(), enabled.toColor()))
-            it.setOnCheckedChangeListener { _, isChecked ->
-                pushEnable(isChecked)
-            }
+            updatePushEnabledStatus(enabled)
         }
     }
 
@@ -192,7 +213,7 @@ class BaseTestFragment : Fragment() {
 
                     Log.d(TAG, "FIREBASE TOKEN: $it")
                     // show dialog with token value
-                    Util.showDialog(requireContext(), "Firebase token", it)
+                    showDialog(requireContext(), "Firebase token", it)
                 }
             }
         }
@@ -227,7 +248,7 @@ class BaseTestFragment : Fragment() {
     private fun getAlias() {
         lifecycleScope.launch {
             val result = Appoxee.instance().getAlias().asSuspend()
-            Util.showDialog(
+            showDialog(
                 requireContext(), "Alias", if (result.isSuccess()) result.getData().toString()
                 else result.getError().toString()
             )
@@ -246,7 +267,7 @@ class BaseTestFragment : Fragment() {
             val result =
                 Appoxee.instance().triggerInApp(requireActivity(), "app_open").asSuspend()
             if (!result.isSuccess()) {
-                Util.showDialog(
+                showDialog(
                     requireContext(),
                     "Error",
                     result.getError()?.message ?: "Unknown error"
@@ -260,9 +281,9 @@ class BaseTestFragment : Fragment() {
             val result =
                 Appoxee.instance().addTags(setOf("female", "makeup", "fashion")).asSuspend()
             if (result.isSuccess()) {
-                Util.showDialog(requireContext(), "Set tags", result.getData().toString())
+                showDialog(requireContext(), "Set tags", result.getData().toString())
             } else {
-                Util.showDialog(
+                showDialog(
                     requireContext(),
                     "Error",
                     result.getError()?.message ?: "Unknown error"
@@ -314,7 +335,7 @@ class BaseTestFragment : Fragment() {
             val result = Appoxee.instance().startGeofencing<GeoStatus>(0).asSuspend()
             result.getData()?.let { geoStatus ->
                 if (geoStatus is GeoStatus.GeoStartedOk) {
-                    Util.showDialog(
+                    showDialog(
                         requireContext(),
                         "Geofencing",
                         "Geofencing started successfully!"
@@ -322,7 +343,7 @@ class BaseTestFragment : Fragment() {
                 } else if (geoStatus is GeoStatus.GeoLocationPermissionsNotGranted) {
                     handleLocationPermissionsNotGranted()
                 } else {
-                    Util.showDialog(requireContext(), "Geofencing Error", geoStatus.status)
+                    showDialog(requireContext(), "Geofencing Error", geoStatus.status)
                 }
             }
         }
@@ -333,13 +354,13 @@ class BaseTestFragment : Fragment() {
             val result = Appoxee.instance().stopGeofencing<GeoStatus>().asSuspend()
             result.getData()?.let { geoStatus ->
                 if (geoStatus is GeoStatus.GeoStoppedOk) {
-                    Util.showDialog(
+                    showDialog(
                         requireContext(),
                         "Geofencing",
                         "Geofencing stopped successfully!"
                     )
                 } else {
-                    Util.showDialog(requireContext(), "Geofencing Error", geoStatus.status)
+                    showDialog(requireContext(), "Geofencing Error", geoStatus.status)
                 }
             }
         }
@@ -351,9 +372,9 @@ class BaseTestFragment : Fragment() {
             if (result.isSuccess()) {
                 val message =
                     if (result.getData() == true) "Geofencing is active" else "Geofencing is inactive"
-                Util.showDialog(requireContext(), "Geofencing status", message)
+                showDialog(requireContext(), "Geofencing status", message)
             } else {
-                Util.showDialog(
+                showDialog(
                     requireContext(),
                     "Geofencing status error",
                     result.getError()?.message

@@ -77,6 +77,7 @@ public class InboxMessagesAdapter extends ListAdapter<InboxMessage, InboxMessage
             binding.tvTitle.setText(message.getSubject());
             binding.tvContent.setText(message.getSummary());
             binding.tvStatus.setText(message.getStatus().getStatus());
+
             Glide.with(binding.ivImage)
                     .load(message.getIconUrl())
                     .fallback(android.R.drawable.ic_menu_report_image)

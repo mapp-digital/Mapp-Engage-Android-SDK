@@ -3,7 +3,7 @@ package eu.brrm.shared_ui.attributes
 import eu.brrm.shared_ui.Util.toUtcString
 import java.util.Date
 
-data class CustomAttribute(
+data class CustomAttribute constructor(
     val name: String,
     val value: Any?,
     val type: AttributeDataType = AttributeDataType.STRING
