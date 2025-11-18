@@ -37,7 +37,7 @@ jobs:
           else
             printf '%s\n' "${{ secrets.SIGNING_KEY_ASC }}" > 3F5AB862.asc
           fi
-          chmod 600 mapp-engage-sdk/3F5AB862.asc
+          chmod 600 3F5AB862.asc
 
       - name: Create local.properties
         run: |
