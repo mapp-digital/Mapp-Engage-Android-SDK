@@ -58,7 +58,7 @@ jobs:
           ./gradlew uploadToCentralPortal --no-daemon --stacktrace
           # cleanup key material (try shred, fallback to rm)
           if command -v shred >/dev/null 2>&1; then
-            shred -u mapp-engage-sdk/3F5AB862.asc || true
+            shred -u 3F5AB862.asc || true
           else
-            rm -f mapp-engage-sdk/3F5AB862.asc || true
+            rm -f 3F5AB862.asc || true
           fi
