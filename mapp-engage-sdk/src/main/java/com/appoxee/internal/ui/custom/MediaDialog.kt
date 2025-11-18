@@ -21,6 +21,7 @@ import com.appoxee.internal.ui.push.model.NotificationType
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.LibraryExtensions.toPx
+import androidx.core.net.toUri
 
 internal class MediaDialog : DialogFragment() {
     companion object {
@@ -86,7 +87,7 @@ internal class MediaDialog : DialogFragment() {
 
     @OptIn(UnstableApi::class)
     private fun addVideoView(container: ViewGroup?, pushData: PushData) {
-        val uri = Uri.parse(pushData.iosApxMedia)
+        val uri = pushData.iosApxMedia?.toUri() ?: return
         val playerView = VideoPlayer(requireContext(), uri)
         container?.addView(playerView)
     }

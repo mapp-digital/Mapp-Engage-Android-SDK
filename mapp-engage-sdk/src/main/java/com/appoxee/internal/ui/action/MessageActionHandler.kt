@@ -15,6 +15,7 @@ import com.appoxee.internal.Actions
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.Logger
+import androidx.core.net.toUri
 
 /**
  * Default implementation of [ActionHandler]
@@ -25,12 +26,12 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
 
     private val appoxeeContainer by lazy { AppoxeeContainer.getInstance(context) }
     override fun openAppStore(url: String) {
-        val applicationId = Uri.parse(url).getQueryParameter("id")
+        val applicationId = url.toUri().getQueryParameter("id")
         val message = "AppStore: $applicationId"
         Logger.d(TAG, message)
-        val playStoreUri = Uri.parse("market://details?id=${applicationId}")
+        val playStoreUri = "market://details?id=${applicationId}".toUri()
         val webUri =
-            Uri.parse("https://play.google.com/store/apps/details?id=${applicationId}")
+            "https://play.google.com/store/apps/details?id=${applicationId}".toUri()
 
         val playStoreIntent = Intent(Intent.ACTION_VIEW, playStoreUri).apply {
             setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
@@ -112,7 +113,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
     override fun openLandingPageExternal(url: String) {
         val message = "Landing Page External: $url"
         Logger.d(TAG, message)
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        val browserIntent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
             setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         }
         context.startActivity(browserIntent)
@@ -122,9 +123,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
         val message = "Landing Page In App: $url"
         Logger.d(TAG, message)
         val toolbarColor = ContextCompat.getColor(context, android.R.color.holo_orange_light)
-        val backIcon =
-//BitmapFactory.decodeResource(context.resources,R.drawable.me_ic_arrow_back)
-            AppCompatResources.getDrawable(context, R.drawable.me_ic_arrow_back)?.toBitmap()
+        val backIcon = AppCompatResources.getDrawable(context, R.drawable.me_ic_arrow_back)?.toBitmap()
         val customTabColorSchemeParams = CustomTabColorSchemeParams.Builder()
             .setToolbarColor(toolbarColor)
             .build()
@@ -143,7 +142,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         }
 
-        customTabsIntent.launchUrl(context, Uri.parse(url))
+        customTabsIntent.launchUrl(context, url.toUri())
     }
 
     override fun openLaunchActivity() {
