@@ -32,8 +32,8 @@ jobs:
 
       - name: Create local.properties
         run: |
-          echo "centralUsername=${{ secrets.CENTRAL_USERNAME }}" >> local.properties
-          echo "centralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
+          echo "mavenCentralUsername=${{ secrets.CENTRAL_USERNAME }}" >> local.properties
+          echo "mavenCentralPassword=${{ secrets.CENTRAL_PASSWORD }}" >> local.properties
           echo "signing.keyId=${{ secrets.SIGNING_KEY_ID }}" >> local.properties
           echo "signing.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> local.properties
           echo "signing.secretKeyRingFile=3F5AB862.asc" >> local.properties
