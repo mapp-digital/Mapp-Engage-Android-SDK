@@ -2,6 +2,7 @@ package com.appoxee.internal
 
 import TestDispatchersProvider
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
@@ -25,7 +26,6 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
-import com.appoxee.shared.MappPush
 import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
 import com.google.firebase.messaging.RemoteMessage
@@ -45,7 +45,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -60,6 +59,7 @@ class AppoxeeImplUnitTest {
 
     private lateinit var sut: AppoxeeImpl
 
+    private lateinit var mockContext: Context
     private lateinit var mockApplication: Application
 
     private lateinit var mockOptions: AppoxeeOptions
@@ -102,7 +102,9 @@ class AppoxeeImplUnitTest {
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
 
-        mockApplication = mockk(relaxed = true)
+        mockContext = mockk<Context>(relaxed = true)
+        mockApplication = mockk<Application>(relaxed = true)
+        every { mockApplication.applicationContext } returns mockContext
         mockNetworkClient = mockk(relaxUnitFun = true, relaxed = true)
         mockOptions = spyk(
             AppoxeeOptions(
@@ -186,6 +188,8 @@ class AppoxeeImplUnitTest {
                 mockAppoxeeContainer
             )
         )
+
+        every { sut.application } returns mockApplication
         every { sut.appoxeeContainer } returns mockAppoxeeContainer
         every { sut.appoxeeAdapter } returns mockAppoxeeAdapter
         every { sut.deviceProvider } returns mockDeviceProvider
@@ -492,52 +496,53 @@ class AppoxeeImplUnitTest {
     @Test
     fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
         runTest {
-            // Mock dependencies
+            // Dependencies
             val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
-
-            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
-                every { get() } returns true
-            }
             val mockPushManager = mockk<PushManager>(relaxed = true)
             val pushContainer = mockk<PushContainer>(relaxed = true)
 
-            every { pushContainer.pushManager } coAnswers { mockPushManager }
+            // Mock context & application
+            val mockContext = mockk<Context>(relaxed = true)
+            val mockApplication = mockk<Application>(relaxed = true)
 
+            every { mockApplication.applicationContext } returns mockContext
+
+            // SUT fields
             every { sut.isReady() } returns true
             every { sut.pushContainer } returns pushContainer
+            every { pushContainer.pushManager } returns mockPushManager
+            every { sut.application } returns mockApplication
             every { sut.internalScope } returns this
 
-            // Call the method
-            sut.handlePushMessage(remoteMessage = mockRemoteMessage)
+            coEvery { mockPushManager.handlePushMessage(any(), any()) } just runs
 
+            // Call
+            sut.handlePushMessage(mockRemoteMessage)
             advanceUntilIdle()
 
-            // Verify observer was added
+            // Verify call
             coVerify(exactly = 1) {
-                mockPushManager.handlePushMessage(any(), remoteMessage = mockRemoteMessage)
+                mockPushManager.handlePushMessage(mockContext, mockRemoteMessage)
             }
         }
+
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =
         runTest {
-            // Mock dependencies
             val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
 
             val mockPushQueue = mockk<ConcurrentLinkedQueue<RemoteMessage>>(relaxed = true)
 
             every { sut.pushQueue } returns mockPushQueue
             every { sut.isReady() } returns false
-
             every { sut.internalScope } returns this
 
-            // Call the method
-             sut.handlePushMessage(remoteMessage = mockRemoteMessage)
-
+            sut.handlePushMessage(mockRemoteMessage)
             advanceUntilIdle()
-            // Verify observer was added
-            coVerify(exactly = 1) {
+
+            verify(exactly = 1) {
                 mockPushQueue.add(mockRemoteMessage)
             }
         }

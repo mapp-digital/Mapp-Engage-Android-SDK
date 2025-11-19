@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Suppress("UNCHECKED_CAST")
 @Keep
 internal open class AppoxeeImpl(
-    private val application: Application,
+    internal val application: Application,
     private val options: AppoxeeOptions?,
     private val dispatcherProvider: DispatchersProvider,
     val observersProvider: ObserversProvider = ObserversProvider(),
