@@ -503,8 +503,7 @@ class AppoxeeImplUnitTest {
 
             every { pushContainer.pushManager } coAnswers { mockPushManager }
 
-            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
-
+            every { sut.isReady() } returns true
             every { sut.pushContainer } returns pushContainer
             every { sut.internalScope } returns this
 
@@ -528,18 +527,13 @@ class AppoxeeImplUnitTest {
 
             val mockPushQueue = mockk<ConcurrentLinkedQueue<RemoteMessage>>(relaxed = true)
 
-            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
-                every { get() } returns false
-            }
-
-            coEvery { sut.getProperty("pushQueue") } returns mockPushQueue
-            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+            every { sut.pushQueue } returns mockPushQueue
+            every { sut.isReady() } returns false
 
             every { sut.internalScope } returns this
 
             // Call the method
-            val result = kotlin.runCatching { sut.handlePushMessage(remoteMessage = mockRemoteMessage) }
-                    .exceptionOrNull()
+             sut.handlePushMessage(remoteMessage = mockRemoteMessage)
 
             advanceUntilIdle()
             // Verify observer was added
@@ -670,7 +664,9 @@ class AppoxeeImplUnitTest {
         every { sut.internalScope } returns this
         val result = kotlin.runCatching { sut.setPushBroadcast(ValidPushBroadcast::class.java) }
             .exceptionOrNull()
+
         advanceUntilIdle()
+
         Truth.assertThat(result).isNotInstanceOf(Exception::class.java)
         //coVerify { mockStorage.setBroadcastClass(any()) }
     }
