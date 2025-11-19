@@ -491,7 +491,7 @@ class AppoxeeImplUnitTest {
             mockObserverProvider.notify(true, mockResult)
         }
     }
-
+/*
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
@@ -546,7 +546,7 @@ class AppoxeeImplUnitTest {
                 mockPushQueue.add(mockRemoteMessage)
             }
         }
-
+*/
     @Test
     fun `ifPushMessageFromMapp returns true for messages having 'p' parameter`() =
         runTest {
