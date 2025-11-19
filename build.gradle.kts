@@ -17,6 +17,9 @@ plugins {
     id("com.google.gms.google-services") version "4.4.4" apply false
 }
 
+tasks.withType<Test>().configureEach {
+    maxParallelForks=1
+}
 //gradle.projectsEvaluated {
 //    tasks.withType<JavaCompile>().configureEach {
 //        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
