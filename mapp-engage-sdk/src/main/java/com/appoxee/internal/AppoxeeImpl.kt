@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Suppress("UNCHECKED_CAST")
 @Keep
 internal open class AppoxeeImpl(
-    private val application: Application,
+    internal val application: Application,
     private val options: AppoxeeOptions?,
     private val dispatcherProvider: DispatchersProvider,
     val observersProvider: ObserversProvider = ObserversProvider(),
@@ -60,8 +60,10 @@ internal open class AppoxeeImpl(
 
     private val mutex = Mutex()
 
-    private val mIsReady by lazy { AtomicBoolean(false) }
-    private val pushQueue by lazy { ConcurrentLinkedQueue<RemoteMessage>() }
+    internal val mIsReady by lazy { AtomicBoolean(false) }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val pushQueue by lazy { ConcurrentLinkedQueue<RemoteMessage>() }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val internalScope =
@@ -474,7 +476,7 @@ internal open class AppoxeeImpl(
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
         internalScope.launch {
-            if (mIsReady.get()) {
+            if (isReady()) {
                 pushContainer.pushManager.handlePushMessage(
                     application.applicationContext,
                     remoteMessage
