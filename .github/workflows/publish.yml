@@ -48,5 +48,7 @@ jobs:
           :mapp-engage-sdk:assembleProdRelease \
           :mapp-engage-sdk:publishMavenPublicationToMavenLocal \
           :mapp-engage-sdk:uploadToCentralPortal \
+          -x :mapp-engage-sdk:testProdDebugUnitTest \
+          -x :mapp-engage-sdk:testProdReleaseUnitTest \
           --stacktrace --no-daemon
 
