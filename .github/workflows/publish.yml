@@ -2,7 +2,7 @@ name: Upload to Maven Central
 
 on:
   workflow_run:
-    workflows: ["Tests"]
+    workflows: ["Unit Tests"]
     types: [completed]
 
 jobs:

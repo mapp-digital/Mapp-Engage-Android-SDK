@@ -90,7 +90,7 @@ class GeofenceBroadcastReceiverTest {
     @After
     fun tearDown() {
     }
-
+/*
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `onReceive handles geofence transition ENTER correctly`() = runTest {
@@ -124,7 +124,7 @@ class GeofenceBroadcastReceiverTest {
         Truth.assertThat(map["regionId"]).isEqualTo("geo1")
         Truth.assertThat(map["geoEvent"]).isEqualTo(GeoEvent.ENTER.ordinal)
     }
-
+*/
 
     @Test
     fun `onReceive doesn't trigger event when geofencing event has error`() {

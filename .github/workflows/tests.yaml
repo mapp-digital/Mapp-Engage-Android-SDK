@@ -1,4 +1,5 @@
-name: Run Unit Tests and then Upload to Maven Central
+name: Unit Tests
+description: Run Unit Tests and then Upload to Maven Central
 
 on:
   pull_request:
