@@ -89,14 +89,12 @@ class AppoxeeImplUnitTest {
     private lateinit var testDispatcher: TestDispatcher
 
     private lateinit var testDispatchersProvider: TestDispatchersProvider
-    private lateinit var testScope: TestScope
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
         testDispatcher = StandardTestDispatcher()
         testDispatchersProvider = TestDispatchersProvider(testDispatcher)
-        testScope = TestScope(testDispatcher)
         Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
         mockkStatic(Log::class)
         mockkStatic(Logger::class)
@@ -192,7 +190,6 @@ class AppoxeeImplUnitTest {
         every { sut.appoxeeAdapter } returns mockAppoxeeAdapter
         every { sut.deviceProvider } returns mockDeviceProvider
         every { sut.migrationHelper } returns mockMigrationHelper
-        every { sut.internalScope } returns testScope
         every { sut.observersProvider } returns observersProvider
     }
 
@@ -449,7 +446,7 @@ class AppoxeeImplUnitTest {
         // Mock dependencies
         val observer = mockk<AppoxeeObserver>(relaxed = true)
 
-        every { sut.internalScope } answers { testScope }
+        every { sut.internalScope } returns this
         every { sut.isReady() } answers { true }
         every { observersProvider.addObserver(any()) } just runs
         // Call the method
@@ -509,12 +506,12 @@ class AppoxeeImplUnitTest {
             coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
 
             every { sut.pushContainer } returns pushContainer
-            every { sut.internalScope } returns testScope
+            every { sut.internalScope } returns this
 
             // Call the method
             sut.handlePushMessage(remoteMessage = mockRemoteMessage)
 
-            testScope.advanceUntilIdle()
+            advanceUntilIdle()
 
             // Verify observer was added
             coVerify(exactly = 1) {
@@ -522,32 +519,34 @@ class AppoxeeImplUnitTest {
             }
         }
 
-//    @OptIn(ExperimentalCoroutinesApi::class)
-//    @Test
-//    fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =
-//        runTest {
-//            // Mock dependencies
-//            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
-//
-//            val mockPushQueue = mockk<ConcurrentLinkedQueue<RemoteMessage>>(relaxed = true)
-//
-//            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
-//                every { get() } returns false
-//            }
-//
-//            coEvery { sut.getProperty("pushQueue") } returns mockPushQueue
-//            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
-//
-//            // Call the method
-//            val result = kotlin.runCatching { sut.handlePushMessage(remoteMessage = mockRemoteMessage) }
-//                    .exceptionOrNull()
-//
-//            testScope.advanceUntilIdle()
-//            // Verify observer was added
-//            coVerify(exactly = 1) {
-//                mockPushQueue.add(mockRemoteMessage)
-//            }
-//        }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =
+        runTest {
+            // Mock dependencies
+            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
+
+            val mockPushQueue = mockk<ConcurrentLinkedQueue<RemoteMessage>>(relaxed = true)
+
+            val mockIsPushReady = mockk<AtomicBoolean>(relaxed = true) {
+                every { get() } returns false
+            }
+
+            coEvery { sut.getProperty("pushQueue") } returns mockPushQueue
+            coEvery { sut.getProperty("mIsReady") } returns mockIsPushReady
+
+            every { sut.internalScope } returns this
+
+            // Call the method
+            val result = kotlin.runCatching { sut.handlePushMessage(remoteMessage = mockRemoteMessage) }
+                    .exceptionOrNull()
+
+            advanceUntilIdle()
+            // Verify observer was added
+            coVerify(exactly = 1) {
+                mockPushQueue.add(mockRemoteMessage)
+            }
+        }
 
     @Test
     fun `ifPushMessageFromMapp returns true for messages having 'p' parameter`() =
@@ -668,9 +667,10 @@ class AppoxeeImplUnitTest {
     @Test
     fun `setPushBroadcast class which is subtype of LocalPushBroadcast is successful`() = runTest {
         coEvery { mockStorage.setBroadcastClass(any()) } just runs
+        every { sut.internalScope } returns this
         val result = kotlin.runCatching { sut.setPushBroadcast(ValidPushBroadcast::class.java) }
             .exceptionOrNull()
-        testScope.advanceUntilIdle()
+        advanceUntilIdle()
         Truth.assertThat(result).isNotInstanceOf(Exception::class.java)
         //coVerify { mockStorage.setBroadcastClass(any()) }
     }

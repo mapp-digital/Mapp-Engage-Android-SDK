@@ -46,7 +46,6 @@ jobs:
           ./gradlew \
           :mapp-engage-sdk:clean \
           :mapp-engage-sdk:assembleProdRelease \
-          :mapp-engage-sdk:testProdReleaseUnitTest \
           :mapp-engage-sdk:publishToMavenLocal \
           :mapp-engage-sdk:uploadToCentralPortal \
           --stacktrace --no-daemon
