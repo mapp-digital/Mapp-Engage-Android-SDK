@@ -5,27 +5,30 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.VectorDrawable
-import android.net.Uri
 import android.os.Build
 import android.util.DisplayMetrics
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
 import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.ui.push.model.PushData
 import com.google.common.base.Charsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import androidx.core.net.toUri
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.get
 
 object LibraryExtensions {
+    private val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+
     internal fun Context.getAppTheme(): Int {
         val appInfo = this.packageManager.getApplicationInfo(
             this.packageName,
@@ -194,4 +197,13 @@ object LibraryExtensions {
         return true
     }
 
+    @JvmStatic
+    fun Date?.toUtcString(): String? {
+        if (this == null) return null
+        return try {
+            sdf.format(this)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
