@@ -14,6 +14,7 @@ import com.appoxee.internal.network.exceptions.ClientException
 import com.appoxee.internal.network.exceptions.ServerException
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.util.LibraryExtensions.toUtcString
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -563,8 +564,9 @@ class AppoxeeAdapterTest {
                 )
             }
 
+            val currentDate=Date()
             val attributes = mapOf(
-                "a" to 1, "b" to true, "c" to Date(), "d" to "test attribute"
+                "a" to 1, "b" to true, "c" to currentDate, "d" to "test attribute"
             )
 
             coEvery { storage.getCustomAttributesCache() } coAnswers {
@@ -574,7 +576,39 @@ class AppoxeeAdapterTest {
             }
 
             val response = appoxeeAdapter.addCustomAttributes(attributes)
-            coVerify { engageApi.addCustomAttributes(attributes) }
+            coVerify { engageApi.addCustomAttributes(mapOf(
+                "a" to 1, "b" to true, "c" to currentDate.toUtcString(), "d" to "test attribute"
+            )) }
+            Truth.assertThat(response.statusCode).isEqualTo(200)
+        }
+    }
+
+    @Test
+    fun `add Custom Attributes with date type and successful response`() {
+        runTest {
+            coEvery { engageApi.addCustomAttributes(allAny()) } coAnswers {
+                Response.success(
+                    200, ResponseData(
+                        metadata = null,
+                        payload = DefaultResponse(dmcUserId = "user1234", emptyList())
+                    )
+                )
+            }
+
+            val currentDate=Date()
+            val attributes = mapOf(
+                "date" to currentDate
+            )
+
+            coEvery { storage.getCustomAttributesCache() } coAnswers {
+                CustomAttributesCache(
+                    attributes = emptyMap()
+                )
+            }
+
+            val response = appoxeeAdapter.addCustomAttributes(attributes)
+            // verify that date is converted to UTC String before sending
+            coVerify { engageApi.addCustomAttributes(mapOf("date" to currentDate.toUtcString())) }
             Truth.assertThat(response.statusCode).isEqualTo(200)
         }
     }
@@ -597,11 +631,14 @@ class AppoxeeAdapterTest {
             )
 
             val cachedAttributes = mapOf(
-                "c" to date, "d" to "test attribute"
+                "c" to date.toUtcString(), "d" to "test attribute"
             )
 
             val diffAttributes =
-                allAttributes.filterNot { cachedAttributes.getOrDefault(it.key) { null } == it.value }
+                allAttributes.filterNot {
+                    val item= (it.value as? Date)?.toUtcString() ?: it.value
+                    cachedAttributes.getOrDefault(it.key) { null } == item
+                }
 
             coEvery { storage.getCustomAttributesCache() } coAnswers {
                 CustomAttributesCache(
