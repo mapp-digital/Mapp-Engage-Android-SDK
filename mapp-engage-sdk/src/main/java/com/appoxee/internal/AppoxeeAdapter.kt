@@ -16,6 +16,8 @@ import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
+import com.appoxee.internal.util.LibraryExtensions.toUtcString
+import java.util.Date
 import java.util.Objects
 
 @SuppressLint("HardwareIds")
@@ -36,7 +38,10 @@ internal class AppoxeeAdapter(
         return if (response.isSuccess()) response.data?.payload else null
     }
 
-    internal suspend fun updateDevice(alias: String, params: Map<String, String>): Response<ResponseData<DefaultResponse>> {
+    internal suspend fun updateDevice(
+        alias: String,
+        params: Map<String, String>
+    ): Response<ResponseData<DefaultResponse>> {
         val deviceToUpdate = UpdateDevice(params)
         val response = engageApi.updateDevice(alias = alias, updateDevice = deviceToUpdate)
         return response
@@ -167,8 +172,15 @@ internal class AppoxeeAdapter(
         // take only non-existing or changed value to update to a backend
         attributes.forEach { (key, value) ->
             val cachedValue = cachedAttributes.attributes.getOrElse(key) { null }
-            if (!cacheIsValid || cachedValue != value) {
-                attributesToUpdate.put(key, value)
+
+            val valueToUpdate = if (value is Date) {
+                value.toUtcString()
+            } else {
+                value
+            }
+
+            if (!cacheIsValid || cachedValue != valueToUpdate) {
+                attributesToUpdate[key] = valueToUpdate
             }
         }
 

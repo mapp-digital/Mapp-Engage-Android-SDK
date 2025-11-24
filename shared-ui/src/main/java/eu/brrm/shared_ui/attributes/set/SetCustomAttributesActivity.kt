@@ -49,6 +49,7 @@ class SetCustomAttributesActivity : AppCompatActivity() {
                     binding.tvNoItems.isVisible = data.isEmpty()
                     binding.recycler.isActivated = data.isNotEmpty()
 
+                    binding.btnUpdateAttributes.isEnabled=!data.isEmpty()
                     adapter.submitList(data)
 
                     state.message?.let {
