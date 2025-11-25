@@ -36,6 +36,7 @@ import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkClass
 import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
@@ -45,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -86,6 +88,7 @@ class AppoxeeImplUnitTest {
 
     private lateinit var observersProvider: ObserversProvider
 
+    private lateinit var testScope: TestScope
     private lateinit var testDispatcher: TestDispatcher
 
     private lateinit var testDispatchersProvider: TestDispatchersProvider
@@ -94,6 +97,7 @@ class AppoxeeImplUnitTest {
     @Before
     fun setUp() {
         testDispatcher = StandardTestDispatcher()
+        testScope=TestScope(testDispatcher)
         testDispatchersProvider = TestDispatchersProvider(testDispatcher)
         Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
         mockkStatic(Log::class)
@@ -186,9 +190,11 @@ class AppoxeeImplUnitTest {
                 testDispatchersProvider,
                 observersProvider,
                 mockAppoxeeContainer
-            )
+            ),
+            recordPrivateCalls = true
         )
 
+        every { sut.internalScope } returns testScope
         every { sut.application } returns mockApplication
         every { sut.appoxeeContainer } returns mockAppoxeeContainer
         every { sut.appoxeeAdapter } returns mockAppoxeeAdapter
@@ -230,7 +236,7 @@ class AppoxeeImplUnitTest {
     }
 
     @Test
-    fun `migrate from v6 to v7 with the same channel`() = runTest {
+    fun `migrate from v6 to v7 with the same channel`() = testScope.runTest {
         coEvery { mockStorage.getDevicePayload() } coAnswers { null }
         coEvery { mockStorage.getRegistrationDevice() } coAnswers { null }
         coEvery { mockMigrationHelper.getRegistrationOptions() } coAnswers { mockOptions }
@@ -258,7 +264,7 @@ class AppoxeeImplUnitTest {
     }
 
     @Test
-    fun `migrate from v6 to v7 with the changed channel`() = runTest {
+    fun `migrate from v6 to v7 with the changed channel`() = testScope.runTest {
         val oldOptions = spyk(
             AppoxeeOptions(
                 server = AppoxeeOptions.Server.TEST_55,
@@ -491,62 +497,69 @@ class AppoxeeImplUnitTest {
             mockObserverProvider.notify(true, mockResult)
         }
     }
-/*
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `handlePushMessage should call pushManager handlePushMessage when sdk is ready`() =
-        runTest {
-            // Dependencies
-            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
-            val mockPushManager = mockk<PushManager>(relaxed = true)
-            val pushContainer = mockk<PushContainer>(relaxed = true)
-
-            // Mock context & application
-            val mockContext = mockk<Context>(relaxed = true)
-            val mockApplication = mockk<Application>(relaxed = true)
-
-            every { mockApplication.applicationContext } returns mockContext
-
-            // SUT fields
-            every { sut.isReady() } returns true
-            every { sut.pushContainer } returns pushContainer
-            every { pushContainer.pushManager } returns mockPushManager
-            every { sut.application } returns mockApplication
-            every { sut.internalScope } returns this
-
-            coEvery { mockPushManager.handlePushMessage(any(), any()) } just runs
-
-            // Call
-            sut.handlePushMessage(mockRemoteMessage)
-            advanceUntilIdle()
-
-            // Verify call
-            coVerify(exactly = 1) {
-                mockPushManager.handlePushMessage(mockContext, mockRemoteMessage)
-            }
-        }
-
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `handlePushMessage should add pushMessage to the queue when SDK is not ready`() =
-        runTest {
-            val mockRemoteMessage = mockk<RemoteMessage>(relaxed = true)
-
-            val mockPushQueue = mockk<ConcurrentLinkedQueue<RemoteMessage>>(relaxed = true)
-
-            every { sut.pushQueue } returns mockPushQueue
-            every { sut.isReady() } returns false
-            every { sut.internalScope } returns this
-
-            sut.handlePushMessage(mockRemoteMessage)
-            advanceUntilIdle()
-
-            verify(exactly = 1) {
-                mockPushQueue.add(mockRemoteMessage)
-            }
+    fun `when isReady is true it delegates to pushManager`() = testScope.runTest {
+        // arrange
+        val application = mockk<Application>(relaxed = true)
+        val pushManager = mockk<PushManager>(relaxed = true)
+        val pushContainer = mockk<PushContainer> {
+            every { this@mockk.pushManager } returns pushManager
         }
-*/
+
+        every { sut.pushContainer } returns pushContainer
+        every { sut.application } returns application
+        every { sut.isReady() } returns true
+
+        val remoteMessage = mockkClass(RemoteMessage::class, relaxed = true, relaxUnitFun = true)
+
+        // act
+        sut.handlePushMessage(remoteMessage)
+        advanceUntilIdle() // let launched coroutine finish
+
+        // assert – pushManager called once with context + message
+        coVerify(exactly = 1) {
+            pushManager.handlePushMessage(
+                application.applicationContext,
+                remoteMessage
+            )
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `when isReady is false it adds message to queue and does not call pushManager`() = runTest {
+        // arrange
+        val application = mockk<Application>(relaxed = true)
+        val pushManager = mockk<PushManager>(relaxed = true)
+        val pushContainer = mockk<PushContainer> {
+            every { this@mockk.pushManager } returns pushManager
+        }
+
+        val mockkQueue = spyk<ConcurrentLinkedQueue<RemoteMessage>>(recordPrivateCalls = true)
+        every { sut.pushQueue } returns mockkQueue
+        every { sut.pushContainer } returns pushContainer
+        every { sut.application } returns application
+        every { sut.isReady() } returns false
+        every { mockkQueue.add(any()) } answers { true }
+
+        val remoteMessage = mockkClass(RemoteMessage::class, relaxed = true, relaxUnitFun = true)
+
+        // act
+        sut.handlePushMessage(remoteMessage)
+        advanceUntilIdle()
+
+        // assert – pushManager must NOT be called
+        coVerify(exactly = 0) {
+            pushManager.handlePushMessage(any(), any())
+        }
+
+        verify {
+            mockkQueue.add(any())
+        }
+    }
+
     @Test
     fun `ifPushMessageFromMapp returns true for messages having 'p' parameter`() =
         runTest {
