@@ -67,8 +67,8 @@ android {
     }
 
     productFlavors {
-        create("prod"){
-            dimension=flavorDimensions[0]
+        create("prod") {
+            dimension = flavorDimensions[0]
         }
         create("tst") {
             dimension = flavorDimensions[0]
@@ -89,6 +89,10 @@ android {
     publishing {
         singleVariant("prodRelease") {}
     }
+}
+
+tasks.withType<Test>().configureEach {
+    maxParallelForks = Runtime.getRuntime().availableProcessors()
 }
 
 dependencies {
@@ -114,7 +118,7 @@ centralPortalPublisher {
     groupId = PUBLISHED_GROUP_ID
     artifactId = ARTIFACT
     version = VERSION
-    flavorName="prod"
+    flavorName = "prod"
 }
 
 //tasks.configureEach {

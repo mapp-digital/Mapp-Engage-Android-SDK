@@ -1,7 +1,9 @@
 name: Upload to Maven Central
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Unit Tests"]
+    types: [completed]
 
 jobs:
   publish:
@@ -37,8 +39,11 @@ jobs:
         run: |
           ./gradlew \
           :mapp-engage-sdk:clean \
+          :mapp-engage-sdk:testProdReleaseUnitTest \
           :mapp-engage-sdk:assembleProdRelease \
           :mapp-engage-sdk:publishMavenPublicationToMavenLocal \
           :mapp-engage-sdk:uploadToCentralPortal \
+          -x test \
+          -x check \
           --stacktrace --no-daemon
 

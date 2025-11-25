@@ -487,6 +487,11 @@ internal open class AppoxeeImpl(
         }
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun addToQueue(remoteMessage: RemoteMessage){
+        pushQueue.add(remoteMessage)
+    }
+
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
     }
