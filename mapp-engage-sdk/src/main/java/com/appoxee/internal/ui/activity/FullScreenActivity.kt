@@ -102,7 +102,9 @@ class FullScreenActivity : AppCompatActivity() {
 
             ClickType.OPEN_STORE -> {
                 intent.handleIntentSafe("Error creating Open PlayStore Intent") {
-                    actionContainer.actionHandler.openAppStore(it.toString())
+                    it.toString().toUri().getQueryParameter("id")?.let { applicationId->
+                        actionContainer.actionHandler.openAppStore(applicationId)
+                    }
                     finish()
                 }
             }
