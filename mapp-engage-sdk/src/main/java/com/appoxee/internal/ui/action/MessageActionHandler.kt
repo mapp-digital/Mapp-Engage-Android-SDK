@@ -26,10 +26,10 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
 
     private val appoxeeContainer by lazy { AppoxeeContainer.getInstance(context) }
     override fun openAppStore(url: String) {
-        val applicationId = url.toUri().getQueryParameter("id")
+        val applicationId = url
         val message = "AppStore: $applicationId"
         Logger.d(TAG, message)
-        val playStoreUri = "market://details?id=${applicationId}".toUri()
+        val playStoreUri = "https://play.google.com/store/apps/details?id=${applicationId}".toUri()
         val webUri =
             "https://play.google.com/store/apps/details?id=${applicationId}".toUri()
 
