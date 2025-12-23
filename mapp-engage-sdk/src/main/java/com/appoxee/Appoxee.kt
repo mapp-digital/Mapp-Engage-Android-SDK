@@ -175,14 +175,14 @@ interface Appoxee {
     fun logout(pushEnabled: Boolean): Call<Boolean>
 
     /**
-     * Add list of tags to a device
+     * Add set of tags to a device
      * @param tags set of tags to add
      * @return [Boolean] status of method execution. True if successful, otherwise false.
      */
     fun addTags(tags: Set<String>): Call<Boolean>
 
     /**
-     * Remove list of tags from a device
+     * Remove set of tags from a device
      * @param tags set of tags to remove
      * @return [Boolean] status of method execution. True if successful, otherwise false.
      */
@@ -203,7 +203,7 @@ interface Appoxee {
 
     /**
      * Checks if custom attributes are added and exists on a device
-     * @param attributes map of attributes to search for
+     * @param attributes set of attribute's keys to search for
      * @return [Map] of existing attributes that are requested
      */
     fun getCustomAttributes(attributes: Set<String>): Call<Map<String, Any?>>
