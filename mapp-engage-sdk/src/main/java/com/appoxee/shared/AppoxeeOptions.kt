@@ -79,10 +79,6 @@ class AppoxeeOptions(
      * [NotificationMode.BACKGROUND_ONLY] or [NotificationMode.SILENT_ONLY] and [NotificationMode.BACKGROUND_AND_FOREGROUND]
      */
     var notificationMode: NotificationMode = NotificationMode.BACKGROUND_ONLY
-    /*val plugins:List<Class<? extends AppoxeePlugin>>,
-    * val customNotificationCreator:NotificationCreator,
-    * */
-
 
     /**
      * Supported servers for Mapp Engage
