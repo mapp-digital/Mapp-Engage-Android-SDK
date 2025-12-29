@@ -45,7 +45,9 @@ internal class HttpCall<T>(
     override fun enqueue(callback: MappCallback<T>?) {
         if (isExecuted()) throw CallConsumedException()
         scope.launch {
-            val result = executeWithErrorHandling()
+            val result = withContext(dispatchersProvider.defaultDispatcher) {
+                executeWithErrorHandling()
+            }
             withContext(dispatchersProvider.mainDispatcher) {
                 callback?.onResult(result)
             }

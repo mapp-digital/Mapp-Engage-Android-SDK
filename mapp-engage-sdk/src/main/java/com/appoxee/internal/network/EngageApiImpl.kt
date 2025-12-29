@@ -80,7 +80,7 @@ internal class EngageApiImpl(
         return storage.getDevicePayload() ?: throw DeviceNotRegisteredException()
     }
 
-    private suspend fun createMessageBody(
+    private fun createMessageBody(
         eventName: String,
         device: DevicePayload
     ): MessageBody {
