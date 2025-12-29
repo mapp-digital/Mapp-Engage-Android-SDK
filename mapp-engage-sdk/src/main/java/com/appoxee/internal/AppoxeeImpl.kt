@@ -67,7 +67,7 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val internalScope =
-        CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { coroutineContext, throwable ->
+        CoroutineScope(SupervisorJob() + dispatcherProvider.mainDispatcher + CoroutineExceptionHandler { coroutineContext, throwable ->
             Logger.e(this.javaClass.name, "exception in sdk init: $throwable")
             observersProvider.notify(isReady(), MappResult.Error(throwable))
         })
@@ -100,27 +100,22 @@ internal open class AppoxeeImpl(
 
 
     init {
-        internalScope.launch(dispatcherProvider.defaultDispatcher) {
-            // initialize logger
-            Logger.init(application)
+        // initialize logger
+        Logger.init(application)
 
-            // attach activity lifecycle listener
-            application.registerActivityLifecycleCallbacks(
-                appoxeeContainer.activityLifecycleHandler
-            )
+        // attach activity lifecycle listener
+        application.registerActivityLifecycleCallbacks(
+            appoxeeContainer.activityLifecycleHandler
+        )
 
+        internalScope.launch {
             // initialize sdk
             initializeSdk()
-
-            //init webview
-//            withContext(dispatchersProvider.mainDispatcher) {
-//                MappWebView.getInstance(application)
-//            }
         }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal suspend fun initializeSdk() {
+    internal suspend fun initializeSdk() = withContext(dispatcherProvider.defaultDispatcher) {
         Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
@@ -161,7 +156,6 @@ internal open class AppoxeeImpl(
             Logger.d(TAG, "has device payload")
             // check if saved registration data and currently calculated registration data differs
             if (savedRegisterPayload != null) {
-
                 Logger.d(TAG, "has registration payload")
                 val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
                 val alias = devicePayload.alias
@@ -242,7 +236,7 @@ internal open class AppoxeeImpl(
             Logger.e(TAG, "updateOptStatus() - failed to fetch push token: $e")
             return
         }
-        Logger.d(TAG, "PUSH TOKEN: ${pushToken}")
+        Logger.d(TAG, "PUSH TOKEN: $pushToken")
 
         try {
             // if device opted In and optIn token is expired, update optIn token
@@ -422,7 +416,8 @@ internal open class AppoxeeImpl(
                 if (!payload.isNullOrEmpty()) {
                     val updatedCache = storage.getCustomAttributesCache().attributes.toMutableMap()
                     payload.forEach { (key, value) ->
-                        val normalized = if (value?.toString()?.isNotEmpty() == true) value else null
+                        val normalized =
+                            if (value?.toString()?.isNotEmpty() == true) value else null
                         result[key] = normalized
                         if (normalized == null) {
                             updatedCache.remove(key)
@@ -441,8 +436,6 @@ internal open class AppoxeeImpl(
             val cachedAttributes = storage.getCustomAttributesCache().attributes
             val result =
                 attributes.associateWith { cachedAttributes.getOrElse(it) { null } }.toMutableMap()
-//            TODO uncomment this block if we want to request attribute values from backed
-//             for values which are null in the local cache
             loadCustomAttributesFromBackend(result)
             result
         }
@@ -467,20 +460,18 @@ internal open class AppoxeeImpl(
 
 
     override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        withContext(dispatcherProvider.mainDispatcher) {
-            mIsReady.set(status)
-            observersProvider.notify(status, mappResult)
-            internalScope.launch {
-                while (true) {
-                    val msg = pushQueue.poll() ?: break
-                    pushContainer.pushManager.handlePushMessage(application.applicationContext, msg)
-                }
+        mIsReady.set(status)
+        observersProvider.notify(status, mappResult)
+        internalScope.launch(dispatcherProvider.defaultDispatcher) {
+            while (true) {
+                val msg = pushQueue.poll() ?: break
+                pushContainer.pushManager.handlePushMessage(application.applicationContext, msg)
             }
         }
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
-        internalScope.launch {
+        internalScope.launch(dispatcherProvider.defaultDispatcher) {
             mutex.withLock {
                 val payload = storage.getDevicePayload()
                 observersProvider.addObserver(observer)
@@ -518,7 +509,7 @@ internal open class AppoxeeImpl(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun addToQueue(remoteMessage: RemoteMessage){
+    internal fun addToQueue(remoteMessage: RemoteMessage) {
         pushQueue.add(remoteMessage)
     }
 
