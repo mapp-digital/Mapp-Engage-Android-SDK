@@ -121,7 +121,7 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun initializeSdk() {
-        println("OPTIONS: $options")
+        Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
             // save only if current options are changed compared to the saved one
@@ -158,11 +158,11 @@ internal open class AppoxeeImpl(
 
         // if local device payload exist and data are not expired
         if (devicePayload?.udidHashed != null /* && not expired */) {
-            println("has device payload")
+            Logger.d(TAG, "has device payload")
             // check if saved registration data and currently calculated registration data differs
             if (savedRegisterPayload != null) {
 
-                println("has registration payload")
+                Logger.d(TAG, "has registration payload")
                 val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
                 val alias = devicePayload.alias
 
@@ -236,19 +236,28 @@ internal open class AppoxeeImpl(
         oldRegistration: OldRegistration?
     ) {
         Logger.d(TAG, "updateOptStatus()")
-        val pushToken = FirebaseMessaging.getInstance().token.await()
-        Logger.d(TAG, "PUSH TOKEN: $pushToken")
+        val pushToken = try {
+            FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Logger.e(TAG, "updateOptStatus() - failed to fetch push token: $e")
+            return
+        }
+        Logger.d(TAG, "PUSH TOKEN: ${pushToken}")
 
-        // if device opted In and optIn token is expired, update optIn token
-        if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
-            if (pushToken != devicePayload?.pushToken) {
-                appoxeeAdapter.optIn(pushToken)
+        try {
+            // if device opted In and optIn token is expired, update optIn token
+            if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
+                if (pushToken != devicePayload?.pushToken) {
+                    appoxeeAdapter.optIn(pushToken)
+                }
+            } else {
+                // if device opted Out and optOut token is expired, update optOut token
+                if (pushToken != devicePayload?.pushTokenBk) {
+                    appoxeeAdapter.optOut(pushToken)
+                }
             }
-        } else {
-            // if device opted Out and optOut token is expired, update optOut token
-            if (pushToken != devicePayload?.pushTokenBk) {
-                appoxeeAdapter.optOut(pushToken)
-            }
+        } catch (e: Exception) {
+            Logger.e(TAG, "updateOptStatus() - failed to update opt status: $e")
         }
 
         Logger.d(TAG, "updateOptStatus() - Finished")
@@ -385,11 +394,21 @@ internal open class AppoxeeImpl(
 
 
     private suspend fun updateOptState(enabled: Boolean, token: String?): Boolean {
-        val fbToken = token ?: FirebaseMessaging.getInstance().token.await()
-        return if (enabled) {
-            appoxeeAdapter.optIn(fbToken)
-        } else {
-            appoxeeAdapter.optOut(fbToken)
+        val fbToken = try {
+            token ?: FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Logger.e(TAG, "updateOptState() - failed to fetch push token: $e")
+            return false
+        }
+        return try {
+            if (enabled) {
+                appoxeeAdapter.optIn(fbToken)
+            } else {
+                appoxeeAdapter.optOut(fbToken)
+            }
+        } catch (e: Exception) {
+            Logger.e(TAG, "updateOptState() - failed to update opt state: $e")
+            false
         }
     }
 
@@ -399,8 +418,19 @@ internal open class AppoxeeImpl(
             val response =
                 appoxeeAdapter.getCustomAttributes(attributesWithNoValue.keys.toList())
             if (response.isSuccess()) {
-                response.data?.payload?.forEach { (key, value) ->
-                    result[key] = if (value?.toString()?.isNotEmpty() == true) value else null
+                val payload = response.data?.payload
+                if (!payload.isNullOrEmpty()) {
+                    val updatedCache = storage.getCustomAttributesCache().attributes.toMutableMap()
+                    payload.forEach { (key, value) ->
+                        val normalized = if (value?.toString()?.isNotEmpty() == true) value else null
+                        result[key] = normalized
+                        if (normalized == null) {
+                            updatedCache.remove(key)
+                        } else {
+                            updatedCache[key] = normalized
+                        }
+                    }
+                    storage.setCustomAttributesCache(updatedCache)
                 }
             }
         }
@@ -531,8 +561,8 @@ internal open class AppoxeeImpl(
     }
 
     override fun updateFirebaseToken(token: String): Call<Boolean> = buildHttpCall {
-        val device = appoxeeAdapter.getDevice() ?: return@buildHttpCall false
-        if (device.pushToken?.isNotEmpty() == true && token.equals(device.pushToken, false)) {
+        val device = storage.getDevicePayload() ?: appoxeeAdapter.getDevice() ?: return@buildHttpCall false
+        if (device.pushToken?.isNotEmpty() == true) {
             appoxeeAdapter.optIn(token)
         } else {
             appoxeeAdapter.optOut(token)
