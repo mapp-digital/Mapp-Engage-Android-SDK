@@ -459,11 +459,15 @@ class AppoxeeImplUnitTest {
         every { sut.internalScope } returns this
         every { sut.isReady() } answers { true }
         every { observersProvider.addObserver(any()) } just runs
+        coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
         // Call the method
         sut.subscribe(observer)
+        advanceUntilIdle() // wait for coroutine to complete
         // Verify observer was added
         verify {
             observersProvider.addObserver(observer)
+        }
+        coVerify {
             observersProvider.notify(any(), any())
         }
     }
@@ -484,18 +488,19 @@ class AppoxeeImplUnitTest {
     @Test
     fun `update ready status successfully and notify observers`() = runTest {
         val mockResult = MappResult.Success(data = mockDevicePayload)
-        val mockIsReady = mockk<AtomicBoolean>(relaxed = true)
-        val mockObserverProvider = mockk<ObserversProvider>(relaxed = true)
+        val mockPushContainer = mockk<PushContainer>(relaxed = true)
 
-        every { sut.getProperty("mIsReady") } returns mockIsReady
-        every { sut.observersProvider } returns mockObserverProvider
+        every { observersProvider.notify(any(), any()) } just runs
+        every { sut.pushContainer } returns mockPushContainer
+        every { sut.application } returns mockApplication
 
         sut.updateReadyStatus(true, mockResult)
+        advanceUntilIdle() // wait for any coroutines to complete
 
-        coVerifyOrder {
-            mockIsReady.set(true)
-            mockObserverProvider.notify(true, mockResult)
+        verify(exactly = 1) {
+            observersProvider.notify(true, mockResult)
         }
+        Truth.assertThat(sut.isReady()).isTrue()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

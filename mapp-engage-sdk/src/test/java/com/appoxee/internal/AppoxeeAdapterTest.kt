@@ -142,6 +142,9 @@ class AppoxeeAdapterTest {
             }
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
             coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
+            coEvery { engageApi.addCustomAttributes(any()) } coAnswers {
+                Response.success(200, ResponseData(payload = DefaultResponse("1234", listOf("", ""))))
+            }
 
             val response = appoxeeAdapter.setAlias(testAlias, true)
             Truth.assertThat(response).isNotNull()
