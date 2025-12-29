@@ -17,6 +17,7 @@ import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.LibraryExtensions.toUtcString
+import com.appoxee.internal.util.Logger
 import java.util.Date
 import java.util.Objects
 
@@ -66,7 +67,7 @@ internal class AppoxeeAdapter(
             val updatedDevice = getDevice()
             return updatedDevice
         } else {
-            throw Throwable(response.error?.message)
+            throw Throwable(response.error?.message ?: "Failed to set alias")
         }
     }
 
@@ -155,6 +156,8 @@ internal class AppoxeeAdapter(
         val response = engageApi.addCustomAttributes(cachedAttributes)
         if (response.isSuccess()) {
             storage.setCustomAttributesCache(cachedAttributes)
+        } else {
+            Logger.e("AppoxeeAdapter", "resyncCustomAttributes() failed: ${response.error?.message}")
         }
     }
 
@@ -188,7 +191,9 @@ internal class AppoxeeAdapter(
         if (attributesToUpdate.isNotEmpty()) {
             val response = engageApi.addCustomAttributes(attributesToUpdate)
             if (response.isSuccess()) {
-                storage.setCustomAttributesCache(attributesToUpdate)
+                val mergedAttributes =
+                    cachedAttributes.attributes.toMutableMap().apply { putAll(attributesToUpdate) }
+                storage.setCustomAttributesCache(mergedAttributes)
             }
             return response
         } else {
