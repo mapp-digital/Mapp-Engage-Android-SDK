@@ -23,6 +23,7 @@ data class MappPush internal constructor(
     val silentType: String? = null,
     val silentData: String? = null,
     val contentAvailable: Boolean = false,
+    val extraFields:Map<String, String> = emptyMap(),
 ) : Parcelable {
     internal constructor(
         pushData: PushData,
@@ -50,6 +51,7 @@ data class MappPush internal constructor(
                 )
             }
             data
-        }.flatten()
+        }.flatten(),
+        extraFields = pushData.extraFields,
     )
 }
