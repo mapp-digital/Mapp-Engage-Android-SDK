@@ -188,11 +188,21 @@ public class MyApplication extends Application {
 val appoxee = Appoxee.instance()
 ```
 
-### Async API Results
+### Async API Results – `Call<T>`
 
-Methods such as `getDevice()`, `setAlias()`, `enablePush()`, etc. return `Call<T>`. Use one of:
+Most SDK methods (`getDevice()`, `setAlias()`, `enablePush()`, `addTags()`, etc.) return a `Call<T>` rather than the result directly. `Call<T>` is a deferred, single-use handle: it represents a network or background operation that has not yet run. You must invoke one of its methods to obtain the `MappResult<T>`.
 
-**Kotlin (Coroutines):**
+**Important:**
+- Each `Call` instance may be consumed **only once**. Calling more than one consumer method (e.g. both `asSuspend()` and `enqueue()` on the same `Call`) will throw `CallConsumedException`.
+- Results are delivered as `MappResult<T>`, which can be either `MappResult.Success(data)` or `MappResult.Error(throwable)`. Use `isSuccess()`, `getData()`, and `getError()` to inspect the outcome.
+
+| Method | Thread | Use case |
+|--------|--------|----------|
+| `asSuspend()` | Coroutine / suspend function | Kotlin coroutines; non-blocking, preferred in Kotlin |
+| `enqueue(callback)` | Main thread to invoke | Callback-based; result delivered on main thread |
+| `execute()` | Background thread (`@WorkerThread`) | Blocking; suitable for Java or synchronous code |
+
+**Kotlin (Coroutines) – `asSuspend()`:**
 ```kotlin
 lifecycleScope.launch {
     val result = Appoxee.instance().getDevice().asSuspend()
@@ -204,19 +214,22 @@ lifecycleScope.launch {
 }
 ```
 
-**Callback (Main thread):**
+**Callback – `enqueue()` (invoke from main thread):**
 ```kotlin
 Appoxee.instance().getDevice().enqueue(object : MappCallback<DevicePayload?> {
     override fun onResult(result: MappResult<DevicePayload?>) {
         if (result.isSuccess()) {
             val device = result.getData()
+        } else {
+            result.getError()?.let { /* handle error */ }
         }
     }
 })
 ```
 
-**Blocking (Background thread only):**
+**Blocking – `execute()` (only from a background thread):**
 ```kotlin
+// From a background thread or Executor
 val result = Appoxee.instance().getDevice().execute()
 ```
 
