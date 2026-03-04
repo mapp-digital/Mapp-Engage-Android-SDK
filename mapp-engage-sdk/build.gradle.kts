@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
     id("maven-publish")
-    id("central.portal.publisher")
+    id("io.github.tafilovic.central-portal-publisher")
 }
 
 val VERSION = project.findProperty("VERSION_NAME") as String
