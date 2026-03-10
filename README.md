@@ -86,7 +86,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging-ktx'
 }
 ```
-Latest version: <img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/com.mapp.sdk/engage-android?label=mapp-engage-android">
+Latest version: <img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/com.mapp.sdk/engage-android?label=mapp-engage-android&link=https%3A%2F%2Fcentral.sonatype.com%2Fartifact%2Fcom.mapp.sdk%2Fengage-android">
+
 
 ---
 
