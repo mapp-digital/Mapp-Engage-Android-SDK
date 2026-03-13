@@ -76,8 +76,9 @@ android {
 }
 
 dependencies {
-    implementation(project(mapOf("path" to ":mapp-engage-sdk")))
     implementation(project(mapOf("path" to ":shared-ui")))
+    //implementation(project(mapOf("path" to ":mapp-engage-sdk")))
+    implementation(libs.engage.android)
 
     implementation(libs.kotlin)
     implementation(libs.bundles.base)

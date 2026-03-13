@@ -60,9 +60,6 @@ internal class HttpCall<T>(
         } catch (e: Throwable) {
             Logger.e("HttpCall", e.message ?: "Unknown message")
             MappResult.Error(e)
-        } catch (e: Exception) {
-            Logger.e("HttpCall", e.message ?: "Unknown message")
-            MappResult.Error(e)
         }
     }
 }

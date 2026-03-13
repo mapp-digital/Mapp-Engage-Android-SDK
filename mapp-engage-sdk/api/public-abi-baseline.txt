@@ -1,0 +1,201 @@
+### com.appoxee.Appoxee
+public interface com.appoxee.Appoxee {
+  public static final com.appoxee.Appoxee$Companion Companion;
+  public static com.appoxee.internal.network.Call setAlias$default(com.appoxee.Appoxee, java.lang.String, boolean, int, java.lang.Object);
+  public static com.appoxee.internal.network.Call enablePush$default(com.appoxee.Appoxee, boolean, java.lang.String, int, java.lang.Object);
+  public static com.appoxee.internal.network.Call startGeofencing$default(com.appoxee.Appoxee, int, int, java.lang.Object);
+  public static void engage(android.content.Context, com.appoxee.shared.AppoxeeOptions);
+  public static com.appoxee.Appoxee instance();
+  public abstract boolean isReady();
+  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.DevicePayload> getDevice();
+  public abstract com.appoxee.internal.network.Call<java.lang.String> setAlias(java.lang.String, boolean);
+  public abstract com.appoxee.internal.network.Call<java.lang.String> getAlias();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> enablePush(boolean, java.lang.String);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> isPushEnabled();
+  public abstract com.appoxee.internal.network.Call<java.lang.String> getFirebaseToken();
+  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessagesResponse> fetchInboxMessages();
+  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessage> fetchInboxMessage(long);
+  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessage> fetchLatestInboxMessage();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> updateInboxMessageStatus(com.appoxee.internal.model.response.inbox.InboxMessage, com.appoxee.internal.model.response.inbox.MessageStatus);
+  public abstract void showInboxMessage(android.app.Activity, com.appoxee.internal.model.response.inbox.InboxMessage);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> triggerInApp(android.app.Activity, java.lang.String);
+  public abstract <T extends com.appoxee.shared.GeoStatus> com.appoxee.internal.network.Call<T> startGeofencing(int);
+  public abstract <T extends com.appoxee.shared.GeoStatus> com.appoxee.internal.network.Call<T> stopGeofencing();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> isGeofencingActive();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> logout(boolean);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> addTags(java.util.Set<java.lang.String>);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> removeTags(java.util.Set<java.lang.String>);
+  public abstract com.appoxee.internal.network.Call<java.util.List<java.lang.String>> getTags();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> addCustomAttributes(java.util.Map<java.lang.String, ? extends java.lang.Object>);
+  public abstract com.appoxee.internal.network.Call<java.util.Map<java.lang.String, java.lang.Object>> getCustomAttributes(java.util.Set<java.lang.String>);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> removeCustomAttributes(java.util.Set<java.lang.String>);
+  public abstract void subscribe(com.appoxee.shared.AppoxeeObserver);
+  public abstract void unsubscribe(com.appoxee.shared.AppoxeeObserver);
+  public abstract void handlePushMessage(com.google.firebase.messaging.RemoteMessage);
+  public abstract boolean isPushMessageFromMapp(com.google.firebase.messaging.RemoteMessage);
+  public abstract void closeNotification(int);
+  public abstract <T extends com.appoxee.shared.LocalPushBroadcast> void setPushBroadcast(java.lang.Class<T>);
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> updateFirebaseToken(java.lang.String);
+}
+
+### com.appoxee.shared.ActionButton
+public final class com.appoxee.shared.ActionButton implements android.os.Parcelable {
+  public static final android.os.Parcelable$Creator<com.appoxee.shared.ActionButton> CREATOR;
+  public com.appoxee.shared.ActionButton(android.net.Uri, java.lang.String);
+  public static com.appoxee.shared.ActionButton copy$default(com.appoxee.shared.ActionButton, android.net.Uri, java.lang.String, int, java.lang.Object);
+  public final android.net.Uri getUri();
+  public final java.lang.String getAction();
+  public final int describeContents();
+  public final void writeToParcel(android.os.Parcel, int);
+  public final android.net.Uri component1();
+  public final java.lang.String component2();
+  public final com.appoxee.shared.ActionButton copy(android.net.Uri, java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+
+### com.appoxee.shared.AppoxeeObserver
+public interface com.appoxee.shared.AppoxeeObserver {
+  public abstract void onReadyStatusChanged(boolean, com.appoxee.shared.MappResult<com.appoxee.internal.model.response.DevicePayload>);
+}
+
+### com.appoxee.shared.AppoxeeOptions
+public final class com.appoxee.shared.AppoxeeOptions {
+  public static final com.appoxee.shared.AppoxeeOptions$Companion Companion;
+  public com.appoxee.shared.AppoxeeOptions(com.appoxee.shared.AppoxeeOptions$Server, java.lang.String, java.lang.String, java.lang.String);
+  public static final void access$setForceResend$p(com.appoxee.shared.AppoxeeOptions, boolean);
+  public static final void access$setCepUrl$p(com.appoxee.shared.AppoxeeOptions, java.lang.String);
+  public final com.appoxee.shared.AppoxeeOptions$Server getServer();
+  public final java.lang.String getSdkKey();
+  public final java.lang.String getAppId();
+  public final java.lang.String getTenantId();
+  public final int getConnectionTimeout$mapp_engage_sdk_prodRelease();
+  public final void setConnectionTimeout$mapp_engage_sdk_prodRelease(int);
+  public final int getReadTimeout$mapp_engage_sdk_prodRelease();
+  public final void setReadTimeout$mapp_engage_sdk_prodRelease(int);
+  public final com.appoxee.shared.AppoxeeOptions$LogLevel getLogType$mapp_engage_sdk_prodRelease();
+  public final void setLogType$mapp_engage_sdk_prodRelease(com.appoxee.shared.AppoxeeOptions$LogLevel);
+  public final com.appoxee.shared.NotificationMode getNotificationMode();
+  public final void setNotificationMode(com.appoxee.shared.NotificationMode);
+  public java.lang.String toString();
+  public final org.json.JSONObject toJSON$mapp_engage_sdk_prodRelease();
+  public final boolean areEquals(com.appoxee.shared.AppoxeeOptions);
+  public boolean equals(java.lang.Object);
+  public int hashCode();
+}
+
+### com.appoxee.shared.AppoxeeOptionsKt
+public final class com.appoxee.shared.AppoxeeOptionsKt {
+}
+
+### com.appoxee.shared.GeoStatus
+public class com.appoxee.shared.GeoStatus {
+  public com.appoxee.shared.GeoStatus(java.lang.String);
+  public final java.lang.String getStatus();
+}
+
+### com.appoxee.shared.GeofenceException
+public final class com.appoxee.shared.GeofenceException extends java.lang.Exception {
+  public com.appoxee.shared.GeofenceException(com.appoxee.shared.GeoStatus);
+  public final com.appoxee.shared.GeoStatus getGeoStatus();
+}
+
+### com.appoxee.shared.LocalPushBroadcast
+public abstract class com.appoxee.shared.LocalPushBroadcast extends android.content.BroadcastReceiver {
+  public static final com.appoxee.shared.LocalPushBroadcast$Action Action;
+  public static final java.lang.String PUSH_RECEIVED;
+  public static final java.lang.String PUSH_OPENED;
+  public static final java.lang.String PUSH_SILENT;
+  public static final java.lang.String PUSH_DISMISSED;
+  public static final java.lang.String PUSH_BUTTON_CLICKED;
+  public static final java.lang.String PUSH_RICH;
+  public com.appoxee.shared.LocalPushBroadcast();
+  public static final java.util.List access$getActionsForReporting$cp();
+  public static final boolean access$getAllActions$cp();
+  public abstract void onReceived(com.appoxee.shared.MappPush);
+  public abstract void onOpened(com.appoxee.shared.MappPush);
+  public abstract void onSilent(com.appoxee.shared.MappPush);
+  public abstract void onDismissed(com.appoxee.shared.MappPush);
+  public abstract void onButtonClick(com.appoxee.shared.MappPush);
+  public abstract void onRichPush(com.appoxee.shared.MappPush);
+  public void onReceive(android.content.Context, android.content.Intent);
+}
+
+### com.appoxee.shared.MappCallback
+public interface com.appoxee.shared.MappCallback<T> {
+  public abstract void onResult(com.appoxee.shared.MappResult<T>);
+}
+
+### com.appoxee.shared.MappMessagingService
+public class com.appoxee.shared.MappMessagingService extends com.google.firebase.messaging.FirebaseMessagingService {
+  public static final com.appoxee.shared.MappMessagingService$Companion Companion;
+  public com.appoxee.shared.MappMessagingService();
+  public static final com.appoxee.shared.MappMessagingService getInstance();
+  public static final com.appoxee.internal.container.PushContainer access$getPushContainer$p(com.appoxee.shared.MappMessagingService);
+  public static final com.appoxee.shared.MappMessagingService access$getInstance$cp();
+  public void onCreate();
+  public void onMessageReceived(com.google.firebase.messaging.RemoteMessage);
+  public void onDestroy();
+}
+
+### com.appoxee.shared.MappPush
+public final class com.appoxee.shared.MappPush implements android.os.Parcelable {
+  public static final android.os.Parcelable$Creator<com.appoxee.shared.MappPush> CREATOR;
+  public com.appoxee.shared.MappPush(java.lang.String, java.lang.String, java.lang.String, android.net.Uri, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.List<com.appoxee.shared.ActionButton>, java.lang.String, java.lang.String, boolean, java.util.Map<java.lang.String, java.lang.String>);
+  public com.appoxee.shared.MappPush(java.lang.String, java.lang.String, java.lang.String, android.net.Uri, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.List, java.lang.String, java.lang.String, boolean, java.util.Map, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.appoxee.shared.MappPush(com.appoxee.internal.ui.push.model.PushData);
+  public static com.appoxee.shared.MappPush copy$mapp_engage_sdk_prodRelease$default(com.appoxee.shared.MappPush, java.lang.String, java.lang.String, java.lang.String, android.net.Uri, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.List, java.lang.String, java.lang.String, boolean, java.util.Map, int, java.lang.Object);
+  public final java.lang.String getId();
+  public final java.lang.String getTitle();
+  public final java.lang.String getContent();
+  public final android.net.Uri getActionUri();
+  public final java.lang.String getType();
+  public final java.lang.String getUserId();
+  public final java.lang.String getCustomerId();
+  public final java.lang.String getCategory();
+  public final java.lang.String getLanguage();
+  public final java.util.List<com.appoxee.shared.ActionButton> getActionButtons();
+  public final java.lang.String getSilentType();
+  public final java.lang.String getSilentData();
+  public final boolean getContentAvailable();
+  public final java.util.Map<java.lang.String, java.lang.String> getExtraFields();
+  public final int describeContents();
+  public final void writeToParcel(android.os.Parcel, int);
+  public final java.lang.String component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final android.net.Uri component4();
+  public final java.lang.String component5();
+  public final java.lang.String component6();
+  public final java.lang.String component7();
+  public final java.lang.String component8();
+  public final java.lang.String component9();
+  public final java.util.List<com.appoxee.shared.ActionButton> component10();
+  public final java.lang.String component11();
+  public final java.lang.String component12();
+  public final boolean component13();
+  public final java.util.Map<java.lang.String, java.lang.String> component14();
+  public final com.appoxee.shared.MappPush copy$mapp_engage_sdk_prodRelease(java.lang.String, java.lang.String, java.lang.String, android.net.Uri, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.List<com.appoxee.shared.ActionButton>, java.lang.String, java.lang.String, boolean, java.util.Map<java.lang.String, java.lang.String>);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+
+### com.appoxee.shared.MappResult
+public abstract class com.appoxee.shared.MappResult<T> {
+  public com.appoxee.shared.MappResult(T, com.appoxee.shared.MappResult$Status, java.lang.Throwable);
+  public com.appoxee.shared.MappResult(java.lang.Object, com.appoxee.shared.MappResult$Status, java.lang.Throwable, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final boolean isSuccess();
+  public final T getData();
+  public final java.lang.Throwable getError();
+}
+
+### com.appoxee.shared.NotificationMode
+public final class com.appoxee.shared.NotificationMode extends java.lang.Enum<com.appoxee.shared.NotificationMode> {
+  public static final com.appoxee.shared.NotificationMode BACKGROUND_ONLY;
+  public static final com.appoxee.shared.NotificationMode BACKGROUND_AND_FOREGROUND;
+  public static com.appoxee.shared.NotificationMode[] values();
+  public static com.appoxee.shared.NotificationMode valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.appoxee.shared.NotificationMode> getEntries();
+}

@@ -185,8 +185,6 @@ class AppoxeeOptions(
         result = 31 * result + sdkKey.hashCode()
         result = 31 * result + appId.hashCode()
         result = 31 * result + tenantId.hashCode()
-        result = 31 * result + logType.hashCode()
-        result = 31 * result + notificationMode.hashCode()
         return result
     }
 

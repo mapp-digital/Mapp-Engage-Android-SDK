@@ -37,6 +37,7 @@ jobs:
         run: |
           ./gradlew \
           :mapp-engage-sdk:clean \
+          :mapp-engage-sdk:checkApiCompatibility \
           :mapp-engage-sdk:testProdReleaseUnitTest \
           :mapp-engage-sdk:assembleProdRelease \
           :mapp-engage-sdk:publishMavenPublicationToMavenLocal \
@@ -44,4 +45,3 @@ jobs:
           -x test \
           -x check \
           --stacktrace --no-daemon
-
