@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Looper
+import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inbox.InboxMessage
@@ -26,7 +27,20 @@ import com.google.firebase.messaging.RemoteMessage
 interface Appoxee {
     companion object {
         private val TAG = Appoxee::class.java.name
-        private lateinit var mInstance: Appoxee
+        @Volatile
+        private var mInstance: Appoxee? = null
+        private val instanceLock = Any()
+        private val defaultInstanceFactory: (Application, AppoxeeOptions?, DispatchersProvider) -> Appoxee =
+            { application, options, dispatcherProvider ->
+                AppoxeeImpl(
+                    application = application,
+                    options = options,
+                    dispatcherProvider = dispatcherProvider
+                )
+            }
+        @VisibleForTesting
+        internal var instanceFactory: (Application, AppoxeeOptions?, DispatchersProvider) -> Appoxee =
+            defaultInstanceFactory
         private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
 
         /**
@@ -42,12 +56,12 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            mInstance = AppoxeeImpl(
-                application =  context.applicationContext as Application,
-                options =  options,
-                dispatcherProvider = dispatchersProvider
-            )
-            Logger.d(TAG, "engage($context, $options)")
+            val instance =
+                instanceFactory(context.applicationContext as Application, options, dispatchersProvider)
+            synchronized(instanceLock) {
+                mInstance = instance
+            }
+            Logger.d(TAG, "engage(context=${context::class.java.name}, optionsProvided=${options != null})")
         }
 
         /**
@@ -57,10 +71,17 @@ interface Appoxee {
         @Throws(NullPointerException::class)
         @JvmStatic
         fun instance(): Appoxee {
-            if (!::mInstance.isInitialized) {
-                throw NullPointerException("Must call engage() first!!!")
+            return mInstance ?: synchronized(instanceLock) {
+                mInstance ?: throw NullPointerException("Must call engage() first!!!")
             }
-            return mInstance
+        }
+
+        @VisibleForTesting
+        internal fun resetForTests() {
+            synchronized(instanceLock) {
+                mInstance = null
+                instanceFactory = defaultInstanceFactory
+            }
         }
     }
 

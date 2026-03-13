@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipFile
 
 plugins {
     id("com.android.library")
@@ -21,6 +23,45 @@ val LICENSE_URL = project.findProperty("POM_LICENSE_URL") as String?
 val GIT_URL = project.findProperty("POM_URL") as String?
 val GIT_DEVELOPER_CONNECTION = project.findProperty("POM_SCM_DEV_CONNECTION") as String?
 val GIT_CONNECTION = "scm:git:$GIT_URL"
+val apiDir = layout.projectDirectory.dir("api")
+val generatedApiDir = layout.buildDirectory.dir("generated/api")
+val publicAbiBaselineFile = apiDir.file("public-abi-baseline.txt").asFile
+val internalPublicSymbolsBaselineFile = apiDir.file("internal-public-symbols-baseline.txt").asFile
+
+fun collectInternalPublicSymbols(): List<String> {
+    val declarationRegex = Regex(
+        "^(?:public\\s+)?(?:data\\s+class|sealed\\s+class|enum\\s+class|annotation\\s+class|class|interface|object)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b"
+    )
+    val packageRegex = Regex("^package\\s+([a-zA-Z0-9_.]+)")
+    val symbols = mutableListOf<String>()
+
+    fileTree("src/main/java/com/appoxee/internal").matching {
+        include("**/*.kt")
+    }.files.sortedBy { it.path }.forEach fileLoop@{ file ->
+        val lines = file.readLines()
+        val pkg = lines.firstNotNullOfOrNull { line ->
+            packageRegex.find(line.trim())?.groupValues?.get(1)
+        } ?: return@fileLoop
+
+        lines.forEach lineLoop@{ line ->
+            if (line.isBlank() || line.first().isWhitespace()) return@lineLoop
+            if (line.startsWith("internal ") || line.startsWith("private ")) return@lineLoop
+            declarationRegex.find(line)?.groupValues?.get(1)?.let { symbol ->
+                symbols += "$pkg.$symbol"
+            }
+        }
+    }
+
+    return symbols.sorted()
+}
+
+fun normalizeAbiDump(value: String): String {
+    return value.lineSequence()
+        .filterNot { it.trimStart().startsWith("Compiled from ") }
+        .joinToString("\n")
+        .trim()
+        .plus("\n")
+}
 
 android {
     namespace = "com.appoxee.sdk"
@@ -93,6 +134,153 @@ android {
 
 tasks.withType<Test>().configureEach {
     maxParallelForks = Runtime.getRuntime().availableProcessors()
+}
+
+val generatePublicAbiSnapshot by tasks.registering {
+    group = "verification"
+    description = "Generate current ABI dump for supported public API packages."
+    dependsOn("assembleProdRelease")
+
+    doLast {
+        val outputDir = generatedApiDir.get().asFile.apply { mkdirs() }
+        val aarFile = fileTree("${layout.buildDirectory.get().asFile}/outputs/aar").matching {
+            include("*prod-release.aar")
+        }.files.singleOrNull()
+            ?: throw GradleException("Unable to locate prod release AAR in ${layout.buildDirectory.get().asFile}/outputs/aar")
+
+        val classesJar = outputDir.resolve("classes.jar")
+        ZipFile(aarFile).use { zip ->
+            val entry = zip.getEntry("classes.jar")
+                ?: throw GradleException("AAR does not contain classes.jar: ${aarFile.name}")
+            zip.getInputStream(entry).use { input ->
+                classesJar.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+
+        val classNames = ZipFile(classesJar).use { zip ->
+            zip.entries().asSequence()
+                .map { it.name }
+                .filter { it.endsWith(".class") }
+                .filter {
+                    it == "com/appoxee/Appoxee.class" ||
+                        (it.startsWith("com/appoxee/shared/") && it.count { char -> char == '/' } == 3)
+                }
+                .filterNot { it.contains("$") }
+                .filterNot { it.endsWith("/BuildConfig.class") || it.endsWith("/R.class") }
+                .map { it.removeSuffix(".class").replace('/', '.') }
+                .sorted()
+                .toList()
+        }
+
+        if (classNames.isEmpty()) {
+            throw GradleException("No public API classes found under com.appoxee/com.appoxee.shared in classes.jar")
+        }
+
+        val javapPath = file("${System.getProperty("java.home")}/bin/javap")
+        if (!javapPath.exists()) {
+            throw GradleException("javap not found at ${javapPath.absolutePath}")
+        }
+
+        val dump = buildString {
+            classNames.forEach { className ->
+                appendLine("### $className")
+                val stdout = ByteArrayOutputStream()
+                val stderr = ByteArrayOutputStream()
+                project.exec {
+                    commandLine(
+                        javapPath.absolutePath,
+                        "-classpath",
+                        classesJar.absolutePath,
+                        "-public",
+                        className
+                    )
+                    standardOutput = stdout
+                    errorOutput = stderr
+                    isIgnoreExitValue = false
+                }
+                appendLine(stdout.toString(Charsets.UTF_8))
+            }
+        }
+
+        outputDir.resolve("public-abi-current.txt").writeText(normalizeAbiDump(dump))
+    }
+}
+
+val checkPublicAbi by tasks.registering {
+    group = "verification"
+    description = "Fail build when current supported public ABI differs from committed baseline."
+    dependsOn(generatePublicAbiSnapshot)
+
+    doLast {
+        val currentFile = generatedApiDir.get().asFile.resolve("public-abi-current.txt")
+        if (!publicAbiBaselineFile.exists()) {
+            throw GradleException("Missing ABI baseline file: ${publicAbiBaselineFile.path}. Run :mapp-engage-sdk:updatePublicAbiBaseline")
+        }
+        val current = currentFile.readText()
+        val baseline = publicAbiBaselineFile.readText()
+        if (current != baseline) {
+            throw GradleException(
+                "Public ABI has changed. If intentional, run :mapp-engage-sdk:updatePublicAbiBaseline and commit ${publicAbiBaselineFile.path}"
+            )
+        }
+    }
+}
+
+val updatePublicAbiBaseline by tasks.registering {
+    group = "verification"
+    description = "Update committed baseline for supported public ABI dump."
+    dependsOn(generatePublicAbiSnapshot)
+
+    doLast {
+        val currentFile = generatedApiDir.get().asFile.resolve("public-abi-current.txt")
+        publicAbiBaselineFile.parentFile.mkdirs()
+        currentFile.copyTo(publicAbiBaselineFile, overwrite = true)
+    }
+}
+
+val checkInternalPublicSymbols by tasks.registering {
+    group = "verification"
+    description = "Fail build when new public top-level symbols appear under com.appoxee.internal."
+
+    doLast {
+        val outputDir = generatedApiDir.get().asFile.apply { mkdirs() }
+        val currentSymbols = collectInternalPublicSymbols()
+        val currentFile = outputDir.resolve("internal-public-symbols-current.txt")
+        currentFile.writeText(currentSymbols.joinToString(separator = "\n", postfix = "\n"))
+
+        if (!internalPublicSymbolsBaselineFile.exists()) {
+            throw GradleException("Missing symbols baseline file: ${internalPublicSymbolsBaselineFile.path}. Run :mapp-engage-sdk:updateInternalPublicSymbolsBaseline")
+        }
+
+        val baseline = internalPublicSymbolsBaselineFile.readText()
+        val current = currentFile.readText()
+        if (baseline != current) {
+            throw GradleException(
+                "Public symbols under com.appoxee.internal have changed. If intentional, run :mapp-engage-sdk:updateInternalPublicSymbolsBaseline and commit ${internalPublicSymbolsBaselineFile.path}"
+            )
+        }
+    }
+}
+
+val updateInternalPublicSymbolsBaseline by tasks.registering {
+    group = "verification"
+    description = "Update committed baseline for public top-level symbols under com.appoxee.internal."
+
+    doLast {
+        internalPublicSymbolsBaselineFile.parentFile.mkdirs()
+        val symbols = collectInternalPublicSymbols()
+        internalPublicSymbolsBaselineFile.writeText(symbols.joinToString(separator = "\n", postfix = "\n"))
+    }
+}
+
+tasks.register("checkApiCompatibility") {
+    group = "verification"
+    description = "Run API compatibility and accidental API growth checks."
+    dependsOn(checkPublicAbi, checkInternalPublicSymbols)
+}
+
+tasks.named("check").configure {
+    dependsOn("checkApiCompatibility")
 }
 
 dependencies {

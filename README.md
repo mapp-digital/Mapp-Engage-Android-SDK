@@ -371,6 +371,21 @@ FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
 
 ---
 
+## API Compatibility Checks
+
+The SDK includes automated API compatibility checks:
+
+- `:mapp-engage-sdk:checkPublicAbi` compares current compiled ABI of `com.appoxee.*` + `com.appoxee.shared.*` against a committed baseline.
+- `:mapp-engage-sdk:checkInternalPublicSymbols` fails if new top-level public symbols appear under `com.appoxee.internal.*`.
+- `:mapp-engage-sdk:checkApiCompatibility` runs both checks (used in CI).
+
+To intentionally update baselines:
+
+- `:mapp-engage-sdk:updatePublicAbiBaseline`
+- `:mapp-engage-sdk:updateInternalPublicSymbolsBaseline`
+
+---
+
 ## Sample Apps
 
 - **sample-kotlin** – Kotlin example with Compose

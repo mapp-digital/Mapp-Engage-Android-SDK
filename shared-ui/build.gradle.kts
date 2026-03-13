@@ -44,7 +44,7 @@ android {
     productFlavors {
         create("prod") {
             dimension = flavorDimensions[0]
-            minSdk = 21
+            minSdk = 23
         }
         create("tst") {
             dimension = flavorDimensions.get(0)

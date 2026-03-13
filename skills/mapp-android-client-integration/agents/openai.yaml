@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mapp Android Client Integration"
+  short_description: "Kotlin/Java SDK integration playbook"
+  default_prompt: "Use $mapp-android-client-integration to integrate this SDK into an Android app with Kotlin-first guidance and Java legacy steps when needed."

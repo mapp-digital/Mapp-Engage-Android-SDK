@@ -30,6 +30,7 @@ androidx-test-espresso = "3.7.0"
 androidx-test-core = "1.7.0"
 androidx-test-mockk = "1.14.6"
 lifecycle-process = "2.9.4"
+mapp-engage="7.0.0"
 
 [libraries]
 ## BASE
@@ -43,6 +44,8 @@ material = { module = "com.google.android.material:material", version.ref = "mat
 lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
 coroutines-ktx = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines-ktx" }
 viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle-viewmodel-ktx" }
+engage-android = {group="com.mapp.sdk", name="engage-android", version.ref="mapp-engage"}
+
 
 ## Chrome Tabs - browser
 browser = { module = "androidx.browser:browser", version.ref = "browser" }

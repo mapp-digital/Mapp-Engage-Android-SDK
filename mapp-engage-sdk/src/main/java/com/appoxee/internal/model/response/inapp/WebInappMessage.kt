@@ -23,8 +23,8 @@ data class WebInappMessage(
                 templateId = json.getLongOrDefault("template_id"),
                 content = json.getStringOrEmpty("content").decode(),
                 type = InappType.from(json.getLongOrDefault("type", 0).toInt()),
-                behaviour = json.getJSONObject("behaviour")?.let { Behaviour.fromJSON(it) },
-                location = json.getJSONObject("location")?.let { Location.fromJSON(it) },
+                behaviour = json.optJSONObject("behaviour")?.let { Behaviour.fromJSON(it) },
+                location = json.optJSONObject("location")?.let { Location.fromJSON(it) },
             )
         }
     }

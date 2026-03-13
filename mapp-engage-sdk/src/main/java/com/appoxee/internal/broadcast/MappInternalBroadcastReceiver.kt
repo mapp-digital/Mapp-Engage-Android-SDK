@@ -45,7 +45,8 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
                     val eventType = bundle.getInt("eventType").let { EventType.entries[it] }
 
                     scope.launch {
-                        // event for push received is not sent to a backend; all others are sent
+                        // event for push received is not sent to a backend; all others are sent.
+                        // Intentionally use actionsForReporting instead of LocalPushBroadcast.allActions.
                         if (LocalPushBroadcast.actionsForReporting.contains(action)) {
                             sendReportEvent(pushData, clickType, eventType)
                         }

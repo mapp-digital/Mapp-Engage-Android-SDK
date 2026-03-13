@@ -59,7 +59,9 @@ class MappWebView private constructor(
 
     private val webView: WebView
 
-    private lateinit var progressBar: ProgressBar
+    private var progressBar: ProgressBar = ProgressBar(context.applicationContext).apply {
+        isIndeterminate = true
+    }
 
     private val mappChromeClient = object : WebChromeClient() {
         private val TAG = MappWebView::class.java.name
@@ -107,9 +109,6 @@ class MappWebView private constructor(
     }
 
     init {
-        progressBar = ProgressBar(context.applicationContext).apply {
-            isIndeterminate = true
-        }
 
         webView = WebView(context.applicationContext).apply {
             settings.apply {

@@ -82,7 +82,7 @@ internal class StandardWebTemplate<T : Message>(
                 onDismiss()
             }
             webView.setBackgroundColor(Color.LTGRAY)
-            (message as? WebInappMessage)?.content?.let { html ->
+            message.content.let { html ->
                 Logger.d(TAG, "HTML: $html")
                 webView.loadData(html)
             }

@@ -18,6 +18,9 @@ abstract class LocalPushBroadcast : BroadcastReceiver() {
         val actionsForReporting =
             listOf(PUSH_OPENED, PUSH_SILENT, PUSH_DISMISSED, PUSH_BUTTON_CLICKED)
 
+        // NOTE: Kept for binary/source compatibility. Historically this resolves to Boolean because
+        // MutableCollection.addAll returns Boolean. Do not use it for behavior-critical logic.
+        @Deprecated("Use actionsForReporting and explicit actions instead.")
         val allActions = actionsForReporting
             .toMutableList()
             .addAll(listOf(PUSH_RECEIVED, PUSH_RICH))
