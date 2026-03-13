@@ -7,6 +7,9 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.10.0"
+}
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
@@ -16,7 +19,11 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Mapp-Engage-v7"
+
+if (providers.gradleProperty("useLocalEngage").orNull == "true") {
+    include(":mapp-engage-sdk")
+}
+
 include(":sample-kotlin")
-include(":mapp-engage-sdk")
 include(":sample-java")
 include(":shared-ui")

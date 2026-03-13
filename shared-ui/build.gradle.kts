@@ -61,8 +61,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":mapp-engage-sdk"))
-
     implementation(libs.kotlin)
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
@@ -72,3 +70,5 @@ dependencies {
     testImplementation(libs.bundles.test)
     androidTestImplementation(libs.bundles.android.test)
 }
+
+apply(from = "$rootDir/engage-dependency.gradle")

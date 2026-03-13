@@ -55,9 +55,6 @@ android {
 
 dependencies {
     implementation project(path: ':shared-ui')
-    //implementation project(path: ':mapp-engage-sdk')
-    implementation(libs.engage.android)
-
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(platform(libs.firebase.bom))
@@ -68,3 +65,5 @@ dependencies {
     androidTestImplementation libs.androidx.test.junit
     androidTestImplementation libs.androidx.test.espresso
 }
+
+apply from: "$rootDir/engage-dependency.gradle"
