@@ -71,7 +71,7 @@ android {
 }
 
 dependencies {
-    implementation("com.mapp.sdk:engage-android:7.0.0-beta04")
+    implementation("com.mapp.sdk:engage-android:X.X.X")
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 }
@@ -81,11 +81,13 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.mapp.sdk:engage-android:7.0.0-beta04'
+    implementation 'com.mapp.sdk:engage-android:X.X.X'
     implementation platform('com.google.firebase:firebase-bom:34.6.0')
     implementation 'com.google.firebase:firebase-messaging-ktx'
 }
 ```
+Latest version: <img alt="Maven Central Version" src="https://img.shields.io/maven-central/v/com.mapp.sdk/engage-android?label=mapp-engage-android&link=https%3A%2F%2Fcentral.sonatype.com%2Fartifact%2Fcom.mapp.sdk%2Fengage-android">
+
 
 ---
 
