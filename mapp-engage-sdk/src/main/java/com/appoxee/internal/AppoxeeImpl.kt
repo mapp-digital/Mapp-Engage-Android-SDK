@@ -72,11 +72,9 @@ internal open class AppoxeeImpl(
             observersProvider.notify(isReady(), MappResult.Error(throwable))
         })
 
-    private val actionContainer: ActionContainer
-        get() = ActionContainer(application)
+    private val actionContainer: ActionContainer by lazy { ActionContainer(application) }
 
-    private val inappContainer: InAppContainer
-        get() = InAppContainer(appoxeeContainer.statsClient, actionContainer)
+    private val inappContainer: InAppContainer by lazy { InAppContainer(appoxeeContainer.statsClient, actionContainer) }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer by lazy {

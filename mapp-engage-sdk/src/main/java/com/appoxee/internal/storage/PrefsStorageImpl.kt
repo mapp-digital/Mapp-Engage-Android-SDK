@@ -18,8 +18,6 @@ import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -43,9 +41,10 @@ internal class PrefsStorageImpl(
 
     private val customAttributesKey = stringPreferencesKey("customAttributes")
 
+    // DataStore is thread-safe and serialises writes internally via its own mutex;
+    // adding a coroutine Mutex on top (especially inside edit{}) would create nested
+    // lock acquisition and potential deadlocks. No extra locking is needed here.
     private val dataStore: DataStore<Preferences> by lazy { (context.applicationContext as Application).dataStore }
-
-    private val mutex = Mutex()
 
     override suspend fun getTimestamp(): Long {
         return withContext(dispatchersProvider.defaultDispatcher) {
@@ -56,11 +55,9 @@ internal class PrefsStorageImpl(
     override suspend fun addTags(tags: List<String>) {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                mutex.withLock {
-                    val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
-                    existingTags.addAll(tags)
-                    prefs[tagsKey] = existingTags
-                }
+                val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
+                existingTags.addAll(tags)
+                prefs[tagsKey] = existingTags
             }
         }
     }
@@ -68,11 +65,9 @@ internal class PrefsStorageImpl(
     override suspend fun removeTags(tags: List<String>) {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                mutex.withLock {
-                    val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
-                    existingTags.removeAll(tags)
-                    prefs[tagsKey] = existingTags
-                }
+                val existingTags = prefs[tagsKey].orEmpty().toMutableSet()
+                existingTags.removeAll(tags)
+                prefs[tagsKey] = existingTags
             }
         }
     }
@@ -86,25 +81,23 @@ internal class PrefsStorageImpl(
     override suspend fun setCustomAttributesCache(attributes: Map<String, Any?>) {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                mutex.withLock {
-                    val customAttrCache = prefs[customAttributesKey]?.let {
-                        CustomAttributesCache.fromJson(
-                            JSONObject(it)
-                        )
-                    } ?: CustomAttributesCache(attributes = emptyMap())
+                val customAttrCache = prefs[customAttributesKey]?.let {
+                    CustomAttributesCache.fromJson(
+                        JSONObject(it)
+                    )
+                } ?: CustomAttributesCache(attributes = emptyMap())
 
-                    val map = mutableMapOf<String, Any?>()
+                val map = mutableMapOf<String, Any?>()
 
-                    if (customAttrCache.attributes.isNotEmpty()) {
-                        map.putAll(customAttrCache.attributes)
-                    }
-                    if (attributes.isNotEmpty()) {
-                        map.putAll(attributes)
-                    }
-
-                    val customAttributesCache = CustomAttributesCache(map)
-                    prefs[customAttributesKey] = customAttributesCache.toJson().toString()
+                if (customAttrCache.attributes.isNotEmpty()) {
+                    map.putAll(customAttrCache.attributes)
                 }
+                if (attributes.isNotEmpty()) {
+                    map.putAll(attributes)
+                }
+
+                val customAttributesCache = CustomAttributesCache(map)
+                prefs[customAttributesKey] = customAttributesCache.toJson().toString()
             }
         }
     }
@@ -120,17 +113,15 @@ internal class PrefsStorageImpl(
     override suspend fun removeCustomAttributes(attributes: Set<String>): Boolean {
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                mutex.withLock {
-                    val customAttrCache = prefs[customAttributesKey]?.let {
-                        CustomAttributesCache.fromJson(
-                            JSONObject(it)
-                        )
-                    } ?: CustomAttributesCache(emptyMap())
+                val customAttrCache = prefs[customAttributesKey]?.let {
+                    CustomAttributesCache.fromJson(
+                        JSONObject(it)
+                    )
+                } ?: CustomAttributesCache(emptyMap())
 
-                    val data = customAttrCache.attributes.filterKeys { !attributes.contains(it) }
+                val data = customAttrCache.attributes.filterKeys { !attributes.contains(it) }
 
-                    prefs[customAttributesKey]= CustomAttributesCache(data).toJson().toString()
-                }
+                prefs[customAttributesKey] = CustomAttributesCache(data).toJson().toString()
             }
             true
         }
@@ -138,10 +129,8 @@ internal class PrefsStorageImpl(
 
     override suspend fun updateCacheTimestamp() {
         withContext(dispatchersProvider.defaultDispatcher) {
-            dataStore.edit {
-                mutex.withLock {
-                    it[timestampKey] = System.currentTimeMillis()
-                }
+            dataStore.edit { prefs ->
+                prefs[timestampKey] = System.currentTimeMillis()
             }
         }
     }
@@ -158,29 +147,25 @@ internal class PrefsStorageImpl(
 
     override suspend fun clearRegistration() {
         withContext(dispatchersProvider.defaultDispatcher) {
-            dataStore.edit {
-                mutex.withLock {
-                    it.remove(registerDeviceKey)
-                    it.remove(devicePayloadKey)
-                    it.remove(timestampKey)
-                    it.remove(appConfigKey)
-                    it.remove(appoxeeOptionsKey)
-                    it.remove(broadcastKey)
-                }
+            dataStore.edit { prefs ->
+                prefs.remove(registerDeviceKey)
+                prefs.remove(devicePayloadKey)
+                prefs.remove(timestampKey)
+                prefs.remove(appConfigKey)
+                prefs.remove(appoxeeOptionsKey)
+                prefs.remove(broadcastKey)
             }
         }
     }
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {
         withContext(dispatchersProvider.defaultDispatcher) {
-            dataStore.edit {
-                mutex.withLock {
-                    if(devicePayload==null){
-                        it.remove(devicePayloadKey)
-                    }else {
-                        val json = devicePayload.toJSON()
-                        it[devicePayloadKey] = json.toString()
-                    }
+            dataStore.edit { prefs ->
+                if (devicePayload == null) {
+                    prefs.remove(devicePayloadKey)
+                } else {
+                    val json = devicePayload.toJSON()
+                    prefs[devicePayloadKey] = json.toString()
                 }
             }
         }
@@ -188,18 +173,15 @@ internal class PrefsStorageImpl(
 
     override suspend fun getDevicePayload(): DevicePayload? {
         return withContext(dispatchersProvider.defaultDispatcher) {
-            val json = mutex.withLock {
-                dataStore.data.first()[devicePayloadKey]
-            }
+            val json = dataStore.data.first()[devicePayloadKey]
             try {
                 json?.let {
                     DevicePayload.fromJSON(JSONObject(it))
                 }
             } catch (e: Exception) {
-                dataStore.edit {
-                    mutex.withLock {
-                        it.remove(devicePayloadKey)
-                    }
+                Logger.e(PrefsStorageImpl::class.java.name, "Failed to deserialize DevicePayload, clearing: ${e.message}", e)
+                dataStore.edit { prefs ->
+                    prefs.remove(devicePayloadKey)
                 }
                 null
             }
@@ -208,14 +190,12 @@ internal class PrefsStorageImpl(
 
     override suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?) {
         withContext(dispatchersProvider.defaultDispatcher) {
-            dataStore.edit {
-                mutex.withLock {
-                    if(registerDevice==null){
-                        it.remove(registerDeviceKey)
-                    }else {
-                        val json = registerDevice.asJson().getJSONObject("register")
-                        it[registerDeviceKey] = json.toString()
-                    }
+            dataStore.edit { prefs ->
+                if (registerDevice == null) {
+                    prefs.remove(registerDeviceKey)
+                } else {
+                    val json = registerDevice.asJson().getJSONObject("register")
+                    prefs[registerDeviceKey] = json.toString()
                 }
             }
         }
@@ -224,15 +204,12 @@ internal class PrefsStorageImpl(
     override suspend fun getRegistrationDevice(): RegisterDevice? {
         return withContext(dispatchersProvider.defaultDispatcher) {
             try {
-                mutex.withLock {
-                    val json = dataStore.data.first()[registerDeviceKey]
-                    json?.let { RegisterDevice.fromJSON(JSONObject(it)) }
-                }
+                val json = dataStore.data.first()[registerDeviceKey]
+                json?.let { RegisterDevice.fromJSON(JSONObject(it)) }
             } catch (e: Exception) {
-                dataStore.edit {
-                    mutex.withLock {
-                        it.remove(registerDeviceKey)
-                    }
+                Logger.e(PrefsStorageImpl::class.java.name, "Failed to deserialize RegisterDevice, clearing: ${e.message}", e)
+                dataStore.edit { prefs ->
+                    prefs.remove(registerDeviceKey)
                 }
                 null
             }
@@ -241,11 +218,9 @@ internal class PrefsStorageImpl(
 
     override suspend fun saveInitOptions(options: AppoxeeOptions?) {
         withContext(dispatchersProvider.defaultDispatcher) {
-            options?.toJSON().let {
+            options?.toJSON().let { json ->
                 dataStore.edit { prefs ->
-                    mutex.withLock {
-                        prefs[appoxeeOptionsKey] = it.toString()
-                    }
+                    prefs[appoxeeOptionsKey] = json.toString()
                 }
             }
         }
@@ -254,15 +229,12 @@ internal class PrefsStorageImpl(
     override suspend fun getInitOptions(): AppoxeeOptions? {
         return withContext(dispatchersProvider.defaultDispatcher) {
             try {
-                mutex.withLock {
-                    val json = dataStore.data.first()[appoxeeOptionsKey]
-                    json?.let { AppoxeeOptions.fromJSON(JSONObject(it)) }
-                }
+                val json = dataStore.data.first()[appoxeeOptionsKey]
+                json?.let { AppoxeeOptions.fromJSON(JSONObject(it)) }
             } catch (e: Exception) {
-                dataStore.edit {
-                    mutex.withLock {
-                        it.remove(appoxeeOptionsKey)
-                    }
+                Logger.e(PrefsStorageImpl::class.java.name, "Failed to deserialize AppoxeeOptions, clearing: ${e.message}", e)
+                dataStore.edit { prefs ->
+                    prefs.remove(appoxeeOptionsKey)
                 }
                 null
             }
@@ -273,9 +245,7 @@ internal class PrefsStorageImpl(
         withContext(dispatchersProvider.defaultDispatcher) {
             appConfigPayload?.toJSON()?.let { appConfig ->
                 dataStore.edit { prefs ->
-                    mutex.withLock {
-                        prefs[appConfigKey] = appConfig.toString()
-                    }
+                    prefs[appConfigKey] = appConfig.toString()
                 }
             }
         }
@@ -284,16 +254,12 @@ internal class PrefsStorageImpl(
     override suspend fun getAppConfig(): AppConfigPayload? {
         return withContext(dispatchersProvider.defaultDispatcher) {
             try {
-                mutex.withLock {
-                    val json = dataStore.data.first()[appConfigKey]
-                    json?.let { AppConfigPayload.fromJson(JSONObject(it)) }
-                }
+                val json = dataStore.data.first()[appConfigKey]
+                json?.let { AppConfigPayload.fromJson(JSONObject(it)) }
             } catch (e: Exception) {
                 Logger.e(PrefsStorageImpl::class.java.name, e.message ?: "", e)
-                dataStore.edit {
-                    mutex.withLock {
-                        it.remove(appConfigKey)
-                    }
+                dataStore.edit { prefs ->
+                    prefs.remove(appConfigKey)
                 }
                 null
             }
@@ -303,9 +269,7 @@ internal class PrefsStorageImpl(
     override suspend fun setBroadcastClass(clazz: Class<*>) {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                mutex.withLock {
-                    prefs[broadcastKey] = clazz.name
-                }
+                prefs[broadcastKey] = clazz.name
             }
         }
     }
@@ -313,9 +277,14 @@ internal class PrefsStorageImpl(
     override suspend fun getBroadcastClass(): Class<*>? {
         return withContext(dispatchersProvider.defaultDispatcher) {
             try {
-                mutex.withLock {
-                    dataStore.data.first()[broadcastKey]?.let {
-                        Class.forName(it)
+                dataStore.data.first()[broadcastKey]?.let { className ->
+                    val clazz = Class.forName(className)
+                    // Validate the stored class is still a valid LocalPushBroadcast subtype
+                    if (com.appoxee.shared.LocalPushBroadcast::class.java.isAssignableFrom(clazz)) {
+                        clazz
+                    } else {
+                        Logger.e(PrefsStorageImpl::class.java.name, "Stored broadcast class $className is not a LocalPushBroadcast subtype")
+                        null
                     }
                 }
             } catch (e: Exception) {
