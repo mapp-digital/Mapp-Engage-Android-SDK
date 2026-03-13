@@ -102,7 +102,7 @@ internal class AppoxeeAdapter(
         }
         val response = engageApi.optOut(pushTokenBk = pushToken)
         getDevice()
-        return if (response.isSuccess()) false else !device?.pushToken.isNullOrEmpty()
+        return response.isSuccess()
     }
 
     internal suspend fun getAppConfig(): Response<ResponseData<AppConfigPayload>> {

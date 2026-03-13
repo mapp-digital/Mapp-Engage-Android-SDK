@@ -24,8 +24,10 @@
 # General ProGuard rules for Android libraries
 ###############################################
 
-# Keep all public classes, their public methods and fields — this helps preserve API surface
--keep public class * {
+# Keep all public/protected members in the SDK's own packages only.
+# Using "public class *" is too broad — it would prevent obfuscation of every
+# transitive dependency. Narrowing to com.appoxee.** is sufficient.
+-keep class com.appoxee.** {
     public protected *;
 }
 
@@ -75,7 +77,5 @@
 -keep class com.appoxee.shared.** { *; }
 
 -keep class com.appoxee.Appoxee {*;}
-
--keep class java.lang.** { *; }
 
 -dontwarn java.lang.invoke.StringConcatFactory

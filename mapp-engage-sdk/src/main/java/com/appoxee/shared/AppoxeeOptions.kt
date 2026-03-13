@@ -192,7 +192,7 @@ class AppoxeeOptions(
     companion object {
         internal fun fromJSON(json: JSONObject): AppoxeeOptions {
             return AppoxeeOptions(
-                server = Server.values()[json.getIntOrDefault("server")],
+                server = Server.entries[json.getIntOrDefault("server")],
                 sdkKey = json.getStringOrEmpty("sdkKey"),
                 appId = json.getStringOrEmpty("appId"),
                 tenantId = json.getStringOrEmpty("tenantId"),
@@ -200,9 +200,8 @@ class AppoxeeOptions(
                 connectionTimeout = json.getIntOrDefault("connectionTimeout", DEFAULT_TIMEOUT)
                 readTimeout = json.getIntOrDefault("readTimeout", DEFAULT_TIMEOUT)
                 forceResend = json.getBoolean("forceResend")
-                logType =
-                    LogLevel.values()[json.getIntOrDefault("logLevel", LogLevel.DEBUG.ordinal)]
-                notificationMode = NotificationMode.values()[json.getIntOrDefault(
+                logType = LogLevel.entries[json.getIntOrDefault("logLevel", LogLevel.DEBUG.ordinal)]
+                notificationMode = NotificationMode.entries[json.getIntOrDefault(
                     "notificationType",
                     NotificationMode.BACKGROUND_AND_FOREGROUND.ordinal
                 )]

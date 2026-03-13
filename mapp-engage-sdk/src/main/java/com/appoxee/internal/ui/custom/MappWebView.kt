@@ -124,6 +124,7 @@ class MappWebView private constructor(
                 textZoom = 100
                 domStorageEnabled = false
                 cacheMode = LOAD_NO_CACHE
+                mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             }
         }
     }

@@ -25,7 +25,6 @@ import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.sync.Mutex
 
 internal class AppoxeeContainer private constructor(
     context: Context,
@@ -33,13 +32,15 @@ internal class AppoxeeContainer private constructor(
 ) {
     companion object {
         private lateinit var instance: AppoxeeContainer
-        private val mutex = Mutex()
+        // Plain object lock — Kotlin's Mutex is coroutine-aware and must not be used with
+        // synchronized(), which expects a Java monitor (Any).
+        private val lock = Any()
         fun getInstance(
             context: Context,
             dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
         ): AppoxeeContainer {
             if (!::instance.isInitialized) {
-                synchronized(mutex) {
+                synchronized(lock) {
                     if (!::instance.isInitialized) {
                         instance = AppoxeeContainer(context, dispatchersProvider)
                     }

@@ -17,6 +17,7 @@ import com.appoxee.shared.AppoxeeOptions
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 internal class NetworkClientImpl(
     private val storage: Storage
@@ -69,10 +70,7 @@ internal class NetworkClientImpl(
 
                 Logger.w(
                     TAG,
-                    "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data \nHeaders: ${
-                        request.headers.map { "\"${it.key}\":\"${it.value}\"" }
-                            .joinToString(separator = "\n")
-                    }"
+                    "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data"
                 )
                 // retrieve request result
                 val statusCode = responseCode
@@ -191,7 +189,7 @@ internal class NetworkClientImpl(
             if (index == 0) {
                 queryPath.append("?")
             }
-            queryPath.append("${entry.key}=${entry.value}")
+            queryPath.append("${URLEncoder.encode(entry.key, "UTF-8")}=${URLEncoder.encode(entry.value.toString(), "UTF-8")}")
             if (index < request.queryParams.entries.size - 1) {
                 queryPath.append("&")
             }

@@ -42,21 +42,29 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
                     val clickType = i.getStringExtra("clickType")?.let { ClickType.fromString(it) }
                         ?: ClickType.LAUNCH_APP
                     val notificationId = bundle.getInt("notificationId")
-                    val eventType = bundle.getInt("eventType").let { EventType.entries[it] }
+                    val eventType = bundle.getInt("eventType").let { EventType.entries.getOrNull(it) ?: EventType.CLICK }
 
+                    // goAsync() extends the BroadcastReceiver's lifecycle beyond onReceive() so that
+                    // the coroutine can complete before the system reclaims the receiver.
+                    // The try/catch handles the Android stub RuntimeException in JVM unit test environments.
+                    val pendingResult = try { goAsync() } catch (e: RuntimeException) { null }
                     scope.launch {
-                        // event for push received is not sent to a backend; all others are sent.
-                        // Intentionally use actionsForReporting instead of LocalPushBroadcast.allActions.
-                        if (LocalPushBroadcast.actionsForReporting.contains(action)) {
-                            sendReportEvent(pushData, clickType, eventType)
-                        }
+                        try {
+                            // event for push received is not sent to a backend; all others are sent.
+                            // Intentionally use actionsForReporting instead of LocalPushBroadcast.allActions.
+                            if (LocalPushBroadcast.actionsForReporting.contains(action)) {
+                                sendReportEvent(pushData, clickType, eventType)
+                            }
 
-                        // notify client app about push event
-                        notifyClientApp(ctx, pushData, action)
+                            // notify client app about push event
+                            notifyClientApp(ctx, pushData, action)
 
-                        // if event is dismiss, then try to clear notification from system status bar
-                        if (Objects.equals(eventType, EventType.DISMISS)) {
-                            dismissNotification(context, notificationId)
+                            // if event is dismiss, then try to clear notification from system status bar
+                            if (Objects.equals(eventType, EventType.DISMISS)) {
+                                dismissNotification(context, notificationId)
+                            }
+                        } finally {
+                            pendingResult?.finish()
                         }
                     }
                 }
