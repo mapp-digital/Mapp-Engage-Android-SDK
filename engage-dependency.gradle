@@ -1,0 +1,9 @@
+def useLocalEngage = project.findProperty("useLocalEngage") == "true"
+
+dependencies {
+    if (useLocalEngage) {
+        implementation project(":mapp-engage-sdk")
+    } else {
+        implementation libs.engage.android
+    }
+}
