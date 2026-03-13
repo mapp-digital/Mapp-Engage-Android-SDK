@@ -45,3 +45,25 @@ jobs:
           -x test \
           -x check \
           --stacktrace --no-daemon
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION=$(grep "^VERSION_NAME=" mapp-engage-sdk/gradle.properties | cut -d'=' -f2)
+          echo "name=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Delete existing tag and release if present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.name }}"
+          if gh release view "$TAG" &>/dev/null; then
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.name }}
+          name: Mapp Engage ${{ steps.version.outputs.name }}
+          generate_release_notes: true
