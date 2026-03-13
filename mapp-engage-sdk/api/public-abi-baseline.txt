@@ -112,7 +112,7 @@ public abstract class com.appoxee.shared.LocalPushBroadcast extends android.cont
   public static final java.lang.String PUSH_RICH;
   public com.appoxee.shared.LocalPushBroadcast();
   public static final java.util.List access$getActionsForReporting$cp();
-  public static final boolean access$getAllActions$cp();
+  public static final java.util.List access$getAllActions$cp();
   public abstract void onReceived(com.appoxee.shared.MappPush);
   public abstract void onOpened(com.appoxee.shared.MappPush);
   public abstract void onSilent(com.appoxee.shared.MappPush);
