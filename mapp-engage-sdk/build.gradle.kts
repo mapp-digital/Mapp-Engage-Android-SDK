@@ -1,9 +1,5 @@
 import com.android.build.api.dsl.LibraryExtension
-import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.ByteArrayOutputStream
-import java.util.zip.ZipFile
-import javax.inject.Inject
 
 plugins {
     id("com.android.library")
@@ -58,13 +54,6 @@ fun collectInternalPublicSymbols(): List<String> {
     return symbols.sorted()
 }
 
-fun normalizeAbiDump(value: String): String {
-    return value.lineSequence()
-        .filterNot { it.trimStart().startsWith("Compiled from ") }
-        .joinToString("\n")
-        .trim()
-        .plus("\n")
-}
 
 extensions.configure<LibraryExtension> {
     namespace = "com.appoxee.sdk"
@@ -139,85 +128,16 @@ tasks.withType<Test>().configureEach {
     maxParallelForks = Runtime.getRuntime().availableProcessors()
 }
 
-abstract class GeneratePublicAbiSnapshotTask @Inject constructor(
-    private val execOperations: ExecOperations
-) : DefaultTask() {
-    @get:InputDirectory val buildDir = project.layout.buildDirectory
-    @get:OutputDirectory val outputDir = project.layout.buildDirectory.dir("generated/api")
-
-    @TaskAction
-    fun run() {
-        val outDir = outputDir.get().asFile.apply { mkdirs() }
-        val aarFile = project.fileTree("${buildDir.get().asFile}/outputs/aar").matching {
-            include("*prod-release.aar")
-        }.files.singleOrNull()
-            ?: throw GradleException("Unable to locate prod release AAR in ${buildDir.get().asFile}/outputs/aar")
-
-        val classesJar = outDir.resolve("classes.jar")
-        ZipFile(aarFile).use { zip ->
-            val entry = zip.getEntry("classes.jar")
-                ?: throw GradleException("AAR does not contain classes.jar: ${aarFile.name}")
-            zip.getInputStream(entry).use { input ->
-                classesJar.outputStream().use { output -> input.copyTo(output) }
-            }
-        }
-
-        val classNames = ZipFile(classesJar).use { zip ->
-            zip.entries().asSequence()
-                .map { it.name }
-                .filter { it.endsWith(".class") }
-                .filter {
-                    it == "com/appoxee/Appoxee.class" ||
-                        (it.startsWith("com/appoxee/shared/") && it.count { char -> char == '/' } == 3)
-                }
-                .filterNot { it.contains("$") }
-                .filterNot { it.endsWith("/BuildConfig.class") || it.endsWith("/R.class") }
-                .map { it.removeSuffix(".class").replace('/', '.') }
-                .sorted()
-                .toList()
-        }
-
-        if (classNames.isEmpty()) {
-            throw GradleException("No public API classes found under com.appoxee/com.appoxee.shared in classes.jar")
-        }
-
-        val javapPath = project.file("${System.getProperty("java.home")}/bin/javap")
-        if (!javapPath.exists()) {
-            throw GradleException("javap not found at ${javapPath.absolutePath}")
-        }
-
-        val dump = buildString {
-            classNames.forEach { className ->
-                appendLine("### $className")
-                val stdout = ByteArrayOutputStream()
-                val stderr = ByteArrayOutputStream()
-                val result = execOperations.exec {
-                    commandLine(
-                        javapPath.absolutePath,
-                        "-classpath",
-                        classesJar.absolutePath,
-                        "-public",
-                        className
-                    )
-                    standardOutput = stdout
-                    errorOutput = stderr
-                    isIgnoreExitValue = true
-                }
-                if (result.exitValue != 0) {
-                    throw GradleException("javap failed for $className: ${stderr.toString(Charsets.UTF_8)}")
-                }
-                appendLine(stdout.toString(Charsets.UTF_8))
-            }
-        }
-
-        outDir.resolve("public-abi-current.txt").writeText(normalizeAbiDump(dump))
-    }
-}
-
 val generatePublicAbiSnapshot by tasks.registering(GeneratePublicAbiSnapshotTask::class) {
     group = "verification"
     description = "Generate current ABI dump for supported public API packages."
-    dependsOn("assembleProdRelease")
+    aarFile.set(tasks.named("assembleProdRelease").map {
+        val aarDir = layout.buildDirectory.dir("outputs/aar").get().asFile
+        val file = aarDir.listFiles()?.firstOrNull { it.name.endsWith("prod-release.aar") }
+            ?: throw GradleException("Unable to locate prod release AAR in $aarDir")
+        layout.projectDirectory.file(file.absolutePath)
+    })
+    outputDir.set(layout.buildDirectory.dir("generated/api"))
 }
 
 val checkPublicAbi by tasks.registering {
