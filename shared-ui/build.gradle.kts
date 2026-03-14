@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LibraryExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -5,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "eu.brrm.shared_ui"
     compileSdk = 36
     buildToolsVersion = "36.0.0"
