@@ -38,7 +38,7 @@ jobs:
           ./gradlew \
           :mapp-engage-sdk:clean \
           :mapp-engage-sdk:checkApiCompatibility \
-          :mapp-engage-sdk:testProdReleaseUnitTest \
+          :mapp-engage-sdk:testProdDebugUnitTest \
           :mapp-engage-sdk:assembleProdRelease \
           :mapp-engage-sdk:publishMavenPublicationToMavenLocal \
           :mapp-engage-sdk:uploadToCentralPortal \
