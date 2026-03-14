@@ -1,5 +1,4 @@
 name: Unit Tests
-description: Run Unit Tests and then Upload to Maven Central
 
 on:
   push:
@@ -21,4 +20,4 @@ jobs:
           java-version: 17
 
       - name: Run unit tests
-        run: ./gradlew :mapp-engage-sdk:clean :mapp-engage-sdk:checkApiCompatibility :mapp-engage-sdk:testProdReleaseUnitTest --no-daemon --stacktrace
+        run: ./gradlew :mapp-engage-sdk:clean :mapp-engage-sdk:checkApiCompatibility :mapp-engage-sdk:testProdDebugUnitTest --no-daemon --stacktrace
