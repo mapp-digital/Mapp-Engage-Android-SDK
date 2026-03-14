@@ -1,6 +1,9 @@
+import com.android.build.api.dsl.LibraryExtension
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipFile
+import javax.inject.Inject
 
 plugins {
     id("com.android.library")
@@ -63,7 +66,7 @@ fun normalizeAbiDump(value: String): String {
         .plus("\n")
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.appoxee.sdk"
     compileSdk = 36
     buildToolsVersion = "36.0.0"
@@ -136,19 +139,21 @@ tasks.withType<Test>().configureEach {
     maxParallelForks = Runtime.getRuntime().availableProcessors()
 }
 
-val generatePublicAbiSnapshot by tasks.registering {
-    group = "verification"
-    description = "Generate current ABI dump for supported public API packages."
-    dependsOn("assembleProdRelease")
+abstract class GeneratePublicAbiSnapshotTask @Inject constructor(
+    private val execOperations: ExecOperations
+) : DefaultTask() {
+    @get:InputDirectory val buildDir = project.layout.buildDirectory
+    @get:OutputDirectory val outputDir = project.layout.buildDirectory.dir("generated/api")
 
-    doLast {
-        val outputDir = generatedApiDir.get().asFile.apply { mkdirs() }
-        val aarFile = fileTree("${layout.buildDirectory.get().asFile}/outputs/aar").matching {
+    @TaskAction
+    fun run() {
+        val outDir = outputDir.get().asFile.apply { mkdirs() }
+        val aarFile = project.fileTree("${buildDir.get().asFile}/outputs/aar").matching {
             include("*prod-release.aar")
         }.files.singleOrNull()
-            ?: throw GradleException("Unable to locate prod release AAR in ${layout.buildDirectory.get().asFile}/outputs/aar")
+            ?: throw GradleException("Unable to locate prod release AAR in ${buildDir.get().asFile}/outputs/aar")
 
-        val classesJar = outputDir.resolve("classes.jar")
+        val classesJar = outDir.resolve("classes.jar")
         ZipFile(aarFile).use { zip ->
             val entry = zip.getEntry("classes.jar")
                 ?: throw GradleException("AAR does not contain classes.jar: ${aarFile.name}")
@@ -176,7 +181,7 @@ val generatePublicAbiSnapshot by tasks.registering {
             throw GradleException("No public API classes found under com.appoxee/com.appoxee.shared in classes.jar")
         }
 
-        val javapPath = file("${System.getProperty("java.home")}/bin/javap")
+        val javapPath = project.file("${System.getProperty("java.home")}/bin/javap")
         if (!javapPath.exists()) {
             throw GradleException("javap not found at ${javapPath.absolutePath}")
         }
@@ -186,7 +191,7 @@ val generatePublicAbiSnapshot by tasks.registering {
                 appendLine("### $className")
                 val stdout = ByteArrayOutputStream()
                 val stderr = ByteArrayOutputStream()
-                project.exec {
+                val result = execOperations.exec {
                     commandLine(
                         javapPath.absolutePath,
                         "-classpath",
@@ -196,14 +201,23 @@ val generatePublicAbiSnapshot by tasks.registering {
                     )
                     standardOutput = stdout
                     errorOutput = stderr
-                    isIgnoreExitValue = false
+                    isIgnoreExitValue = true
+                }
+                if (result.exitValue != 0) {
+                    throw GradleException("javap failed for $className: ${stderr.toString(Charsets.UTF_8)}")
                 }
                 appendLine(stdout.toString(Charsets.UTF_8))
             }
         }
 
-        outputDir.resolve("public-abi-current.txt").writeText(normalizeAbiDump(dump))
+        outDir.resolve("public-abi-current.txt").writeText(normalizeAbiDump(dump))
     }
+}
+
+val generatePublicAbiSnapshot by tasks.registering(GeneratePublicAbiSnapshotTask::class) {
+    group = "verification"
+    description = "Generate current ABI dump for supported public API packages."
+    dependsOn("assembleProdRelease")
 }
 
 val checkPublicAbi by tasks.registering {
@@ -307,6 +321,7 @@ centralPortalPublisher {
     artifactId = ARTIFACT
     version = VERSION
     flavorName = "prod"
+    uploadTimeoutMinutes = 15
 }
 
 //tasks.configureEach {

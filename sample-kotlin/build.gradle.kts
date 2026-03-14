@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.ApplicationExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,7 +7,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-android {
+extensions.configure<ApplicationExtension> {
     namespace = "com.mapp.engagesample"
     compileSdk = 36
     buildToolsVersion = "36.0.0"
