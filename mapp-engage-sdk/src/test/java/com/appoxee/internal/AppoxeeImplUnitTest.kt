@@ -254,6 +254,8 @@ class AppoxeeImplUnitTest {
             mockMigrationHelper.fetchRegistrationData()
             mockAppoxeeAdapter.getDevice()
             sut.updateOptStatus(mockDevicePayload, mockOldRegistration)
+            // deleteOldRegistration must be called only after a successful getDevice()
+            // (i.e. udidHashed is not null) — verifying the fix is exercised on the happy path
             mockMigrationHelper.deleteOldRegistration()
         }
 
@@ -261,7 +263,35 @@ class AppoxeeImplUnitTest {
         coVerify(exactly = 0) {
             mockAppoxeeAdapter.register(any())
         }
+
+        // verify deleteOldRegistration is called exactly once (from migration guard, not fallback)
+        coVerify(exactly = 1) {
+            mockMigrationHelper.deleteOldRegistration()
+        }
     }
+
+    @Test
+    fun `migrate from v6 to v7 - getDevice returns no valid payload - v6 data preserved until fallback registration`() =
+        testScope.runTest {
+            coEvery { mockStorage.getDevicePayload() } coAnswers { null }
+            coEvery { mockStorage.getRegistrationDevice() } coAnswers { null }
+            coEvery { mockMigrationHelper.getRegistrationOptions() } coAnswers { mockOptions }
+            coEvery { mockMigrationHelper.fetchRegistrationData() } coAnswers { mockOldRegistration }
+            // getDevice() returns a payload with null udidHashed (simulates network/server failure)
+            coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { DevicePayload(udidHashed = null) }
+            coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
+            coEvery { sut.updateOptStatus(any(), any()) } just runs
+
+            sut.validateRegistration()
+
+            // register() must be called because getDevice() did not return a valid device
+            coVerify(exactly = 1) { mockAppoxeeAdapter.register(mockRegisterDevice) }
+
+            // deleteOldRegistration must be called exactly once — only from the fallback
+            // re-registration path, NOT from the migration guard (which is the fix).
+            // Without the fix this would be called twice.
+            coVerify(exactly = 1) { mockMigrationHelper.deleteOldRegistration() }
+        }
 
     @Test
     fun `migrate from v6 to v7 with the changed channel`() = testScope.runTest {
