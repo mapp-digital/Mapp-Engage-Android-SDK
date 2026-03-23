@@ -41,13 +41,24 @@ internal class MigrationHelperImpl(context: Context) : MigrationHelper {
     override suspend fun fetchRegistrationData(): OldRegistration? {
         return try {
             readTextFromFile()?.removePrefix("com.appoxee.internal.model.Device")?.let { rawData ->
-                val json = if (rawData.isEmpty()) null else JSONObject(rawData)
+                if (rawData.isBlank()) return@let null
+                val json = JSONObject(rawData)
                 OldRegistration(
-                    alias = json?.optString("alias"),
-                    isRegistered = json?.optBoolean("isRegistered") ?: false,
-                    pushEnabled = json?.optBoolean("pushEnabled") ?: false,
-                    timestamp = json?.optLong("timestamp") ?: 0L,
-                    pushToken = json?.optString("pushToken")
+                    alias = json.optString("alias"),
+                    isRegistered = json.optBoolean("isRegistered"),
+                    pushEnabled = json.optBoolean("pushEnabled"),
+                    timestamp = json.optLong("timestamp"),
+                    pushToken = json.optString("pushToken"),
+                    tags = json.optJSONArray("tags")?.let { arr ->
+                        (0 until arr.length())
+                            .mapNotNull { arr.optString(it).takeIf { s -> s.isNotEmpty() } }
+                            .toSet()
+                    } ?: emptySet(),
+                    customAttributes = json.optJSONObject("customAttributes")?.let { attrsObj ->
+                        attrsObj.keys().asSequence().associateWith { key ->
+                            attrsObj.optJSONObject(key)?.opt("value")
+                        }
+                    } ?: emptyMap(),
                 )
             }
         } catch (e: Exception) {

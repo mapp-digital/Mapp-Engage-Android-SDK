@@ -194,6 +194,12 @@ internal open class AppoxeeImpl(
                 // if getDevice() failed (e.g. network error), keep v6 data so the
                 // migration can be retried on the next launch instead of re-registering.
                 if (devicePayload?.udidHashed != null) {
+                    // seed v7 local cache with tags and custom attributes from v6
+                    // so they are available without requiring a full re-sync from the server
+                    oldRegistration?.let { reg ->
+                        if (reg.tags.isNotEmpty()) storage.addTags(reg.tags.toList())
+                        if (reg.customAttributes.isNotEmpty()) storage.setCustomAttributesCache(reg.customAttributes)
+                    }
                     migrationHelper.deleteOldRegistration()
                 }
             }

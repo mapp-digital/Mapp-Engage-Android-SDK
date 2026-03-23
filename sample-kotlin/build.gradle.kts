@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
 }
 
@@ -38,12 +37,6 @@ extensions.configure<ApplicationExtension> {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
-    }
-
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.3"
     }
@@ -70,9 +63,15 @@ extensions.configure<ApplicationExtension> {
 
     packaging {
         resources {
-            pickFirsts += "META-INF/LICENSE.md"
-            pickFirsts += "META-INF/LICENSE-notice.md"
+            merges += "META-INF/LICENSE.md"
+            merges += "META-INF/LICENSE-notice.md"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 

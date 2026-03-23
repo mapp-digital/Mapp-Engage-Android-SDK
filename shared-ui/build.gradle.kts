@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
 extensions.configure<LibraryExtension> {
@@ -32,12 +31,6 @@ extensions.configure<LibraryExtension> {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
-    }
-
     buildFeatures {
         viewBinding = true
         flavorDimensions += listOf("main")
@@ -55,9 +48,15 @@ extensions.configure<LibraryExtension> {
 
     packaging {
         resources {
-            pickFirsts += "META-INF/LICENSE.md"
-            pickFirsts += "META-INF/LICENSE-notice.md"
+            merges += "META-INF/LICENSE.md"
+            merges += "META-INF/LICENSE-notice.md"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 

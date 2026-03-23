@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
     id("maven-publish")
     id("io.github.tafilovic.central-portal-publisher")
@@ -87,12 +86,6 @@ extensions.configure<LibraryExtension> {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
-    }
-
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -114,13 +107,19 @@ extensions.configure<LibraryExtension> {
 
     packaging {
         resources {
-            pickFirsts += "META-INF/LICENSE.md"
-            pickFirsts += "META-INF/LICENSE-notice.md"
+            merges += "META-INF/LICENSE.md"
+            merges += "META-INF/LICENSE-notice.md"
         }
     }
 
     publishing {
         singleVariant("prodRelease") {}
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 
@@ -243,15 +242,3 @@ centralPortalPublisher {
     flavorName = "prod"
     uploadTimeoutMinutes = 15
 }
-
-//tasks.configureEach {
-//    if (name.contains("debug", ignoreCase = true)) {
-//        enabled = false
-//    }
-//}
-
-//tasks.configureEach {
-//    if (name.contains("test", ignoreCase = true)) {
-//        enabled = false
-//    }
-//}

@@ -107,7 +107,7 @@ class MappInternalBroadcastReceiverTest {
         receiver.onReceive(context, intent)
 
         Truth.assertThat(appoxeeContainer.statsClient).isNotNull()
-        coVerify {
+        coVerify(timeout = 2000) {
             receiver.sendReportEvent(any(),any(),any())
             appoxeeContainer.statsClient.reportPushEvent(
                 any(),

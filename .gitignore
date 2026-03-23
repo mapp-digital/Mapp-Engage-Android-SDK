@@ -18,7 +18,7 @@ local.properties
 .idea/
 *.log
 /mapp-engage-sdk/3F5AB862.asc
-/.kotlin/sessions/kotlin-compiler-8468995045331428606.salive
+/.kotlin/
 /buildSrc/build
 /buildSrc/.gradle
 /buildSrc/.kotlin

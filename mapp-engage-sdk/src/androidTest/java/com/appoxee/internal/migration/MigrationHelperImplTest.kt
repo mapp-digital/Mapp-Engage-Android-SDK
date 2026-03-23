@@ -91,6 +91,41 @@ class MigrationHelperImplTest {
         assertThat(result).isNull()
     }
 
+    @Test
+    fun fetchRegistrationData_parsesTagsArray() = runBlocking<Unit> {
+        val json = """{"alias":"user@test.com","pushEnabled":true,"pushToken":"fcm-token","timestamp":1700000000,"tags":["sports","news","tech"]}"""
+        migrationFile.writeText("com.appoxee.internal.model.Device\n$json", Charsets.UTF_8)
+
+        val result = sut.fetchRegistrationData()
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.tags).containsExactly("sports", "news", "tech")
+    }
+
+    @Test
+    fun fetchRegistrationData_parsesCustomAttributesNestedObjects() = runBlocking {
+        val json = """{"alias":"user@test.com","pushEnabled":true,"pushToken":"token","timestamp":1700000000,"customAttributes":{"color":{"key":"color","value":"blue"},"score":{"key":"score","value":42}}}"""
+        migrationFile.writeText("com.appoxee.internal.model.Device\n$json", Charsets.UTF_8)
+
+        val result = sut.fetchRegistrationData()
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.customAttributes).containsEntry("color", "blue")
+        assertThat(result.customAttributes).containsEntry("score", 42)
+    }
+
+    @Test
+    fun fetchRegistrationData_returnsEmptySetsWhenTagsAndAttributesAbsent() = runBlocking {
+        val json = """{"alias":"user@test.com","pushEnabled":true,"pushToken":"token","timestamp":1700000000}"""
+        migrationFile.writeText("com.appoxee.internal.model.Device\n$json", Charsets.UTF_8)
+
+        val result = sut.fetchRegistrationData()
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.tags).isEmpty()
+        assertThat(result.customAttributes).isEmpty()
+    }
+
     // endregion
 
     // region getRegistrationOptions
