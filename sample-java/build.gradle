@@ -35,11 +35,11 @@ android {
     }
 
     productFlavors {
-        create("prod") {
+        register("prod") {
             dimension = flavorDimensions[0]
             minSdk = 23
         }
-        create("tst") {
+        register("tst") {
             dimension = flavorDimensions.get(0)
             minSdk = 23
         }

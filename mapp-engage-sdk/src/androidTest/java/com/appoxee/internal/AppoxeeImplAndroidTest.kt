@@ -110,16 +110,9 @@ class AppoxeeImplAndroidTest {
     @Test
     fun getAlias() {
         runBlocking {
-            //coEvery { storage.getDevicePayload() } coAnswers { DevicePayload(alias = "test@mapp.com") }
-            coEvery { engageApiImpl.getAlias() } coAnswers {
-                Response.success(
-                    200,
-                    ResponseData(metadata = null, payload = DevicePayload(alias = "test@mapp.com"))
-                )
-            }
+            coEvery { storage.getDevicePayload() } coAnswers { DevicePayload(alias = "test@mapp.com") }
             val result = appoxee.getAlias().execute()
-            //coVerify(exactly = 1) { storage.getDevicePayload() }
-            coVerify(exactly = 1) { engageApiImpl.getAlias() }
+            coVerify(exactly = 1) { storage.getDevicePayload() }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()).isEqualTo("test@mapp.com")
         }
@@ -146,18 +139,10 @@ class AppoxeeImplAndroidTest {
     fun enablePush() {
         runBlocking {
             val token = UUID.randomUUID().toString()
-            val dmcUserId = UUID.randomUUID().toString()
-            coEvery { engageApiImpl.optIn(pushToken = token) } coAnswers {
-                Response.success(
-                    200, ResponseData(
-                        payload = DefaultResponse(
-                            dmcUserId = dmcUserId, set = emptyList()
-                        )
-                    )
-                )
-            }
+            val appoxeeAdapter = appoxee.appoxeeAdapter
+            coEvery { appoxeeAdapter.optIn(token) } returns true
             val result = appoxee.enablePush(true, token).asSuspend()
-            coVerify(exactly = 1) { engageApiImpl.optIn(pushToken = token) }
+            coVerify(exactly = 1) { appoxeeAdapter.optIn(token) }
             Truth.assertThat(result.isSuccess()).isTrue()
             Truth.assertThat(result.getData()).isTrue()
         }
@@ -217,6 +202,7 @@ class AppoxeeImplAndroidTest {
     fun removeTags() {
         runBlocking {
             val tags = setOf("TAG 1", "TAG 2")
+            coEvery { storage.getTags() } returns tags.toList()
             coEvery { engageApiImpl.removeTags(any()) } coAnswers {
                 Response.success(
                     200, ResponseData(
@@ -300,9 +286,6 @@ class AppoxeeImplAndroidTest {
             val status = true
             val devicePayload = mockk<DevicePayload>(relaxed = true, relaxUnitFun = true)
             val result = MappResult.Success(devicePayload)
-
-            val observersProvider = mockk<ObserversProvider>(relaxed = true)
-            every { appoxee.observersProvider } returns observersProvider
 
             coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
             appoxee.updateReadyStatus(status, result)

@@ -132,7 +132,9 @@ class AppoxeeImplUnitTest {
             isRegistered = true,
             pushEnabled = true,
             pushToken = "token.1234",
-            timestamp = 1
+            timestamp = 1,
+            tags = setOf("tag1", "tag2"),
+            customAttributes = mapOf("color" to "blue", "age" to 30)
         )
 
         mockRegisterDevice = RegisterDevice(
@@ -268,6 +270,14 @@ class AppoxeeImplUnitTest {
         coVerify(exactly = 1) {
             mockMigrationHelper.deleteOldRegistration()
         }
+
+        // verify tags and custom attributes are seeded into v7 storage before v6 data is deleted
+        coVerify(exactly = 1) {
+            mockStorage.addTags(listOf("tag1", "tag2"))
+        }
+        coVerify(exactly = 1) {
+            mockStorage.setCustomAttributesCache(mapOf("color" to "blue", "age" to 30))
+        }
     }
 
     @Test
@@ -291,6 +301,38 @@ class AppoxeeImplUnitTest {
             // re-registration path, NOT from the migration guard (which is the fix).
             // Without the fix this would be called twice.
             coVerify(exactly = 1) { mockMigrationHelper.deleteOldRegistration() }
+
+            // tags and attributes must NOT be written when device confirmation failed
+            coVerify(exactly = 0) { mockStorage.addTags(any()) }
+            coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
+        }
+
+    @Test
+    fun `migrate from v6 to v7 - empty tags and attributes - storage not written`() =
+        testScope.runTest {
+            val emptyOldRegistration = OldRegistration(
+                alias = "user@mapp.com",
+                isRegistered = true,
+                pushEnabled = true,
+                pushToken = "token.1234",
+                timestamp = 1,
+                tags = emptySet(),
+                customAttributes = emptyMap()
+            )
+            coEvery { mockStorage.getDevicePayload() } coAnswers { null }
+            coEvery { mockStorage.getRegistrationDevice() } coAnswers { null }
+            coEvery { mockMigrationHelper.getRegistrationOptions() } coAnswers { mockOptions }
+            coEvery { mockMigrationHelper.fetchRegistrationData() } coAnswers { emptyOldRegistration }
+            coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { mockDevicePayload }
+            coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
+            coEvery { sut.updateOptStatus(any(), any()) } just runs
+
+            sut.validateRegistration()
+
+            // migration guard ran (device confirmed) but no redundant writes
+            coVerify(exactly = 1) { mockMigrationHelper.deleteOldRegistration() }
+            coVerify(exactly = 0) { mockStorage.addTags(any()) }
+            coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
         }
 
     @Test
