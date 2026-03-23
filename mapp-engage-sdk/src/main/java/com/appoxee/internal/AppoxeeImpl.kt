@@ -190,8 +190,12 @@ internal open class AppoxeeImpl(
                 // update only optOut state to refresh firebase token if it is changed
                 updateOptStatus(devicePayload, oldRegistration)
 
-                // delete old registration data
-                migrationHelper.deleteOldRegistration()
+                // delete old registration data only if migration succeeded;
+                // if getDevice() failed (e.g. network error), keep v6 data so the
+                // migration can be retried on the next launch instead of re-registering.
+                if (devicePayload?.udidHashed != null) {
+                    migrationHelper.deleteOldRegistration()
+                }
             }
 
             // Device payload is null if device was not previously registered or if channel data were changed.
