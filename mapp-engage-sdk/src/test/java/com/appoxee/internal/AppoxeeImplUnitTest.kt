@@ -523,6 +523,7 @@ class AppoxeeImplUnitTest {
         Truth.assertThat(result?.getError()).isNotNull()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `subscribe should add observer to the list`() = runTest {
         // Mock dependencies
@@ -557,6 +558,7 @@ class AppoxeeImplUnitTest {
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `update ready status successfully and notify observers`() = runTest {
         val mockResult = MappResult.Success(data = mockDevicePayload)
