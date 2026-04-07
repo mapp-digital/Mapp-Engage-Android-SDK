@@ -8,13 +8,18 @@ The Mapp Engage Android SDK enables push notifications, in-app messaging, geofen
 
 ## Requirements
 
-| Requirement | Version |
-|-------------|---------|
-| **minSdk** | 23 |
-| **compileSdk** | 36 |
-| **targetSdk** | 36 |
-| **Java** | 17 |
-| **Kotlin** | 2.2.21+ |
+| Requirement     | Version |
+|-----------------|---------|
+| **minSdk**      | 23      |
+| **compileSdk**  | 36      |
+| **targetSdk**   | 36      |
+| **Java**        | 17      |
+| **Kotlin**      | 2.3.20  |
+| **Gradle**      | 9.3.0   |
+| **AGP**         | 9.1.0   |
+| **Firbase bom** | 34.11.0 |
+
+    Note: Always use the latest available stable versions of each dependency.
 
 ### Dependencies
 
@@ -23,7 +28,7 @@ The SDK requires:
 - **Firebase Cloud Messaging** – for push notifications
 - **Google Play Services Location** – for geofencing
 - **AndroidX** – AppCompat, Lifecycle, Coroutines
-- **Firebase BOM** – 34.6.0 (or compatible)
+- **Firebase BOM** – 34.11.0 (or compatible)
 
 ---
 
@@ -43,8 +48,8 @@ buildscript {
 }
 
 plugins {
-    id("com.android.application") version "8.13.2" apply false
-    id("org.jetbrains.kotlin.android") version "2.2.21" apply false
+    id("com.android.application") version "GRADLE_VERSION" apply false
+    id("org.jetbrains.kotlin.android") version "KOTLIN_VERSION" apply false
     id("com.google.gms.google-services") version "4.4.4" apply false
 }
 ```
@@ -72,7 +77,7 @@ android {
 
 dependencies {
     implementation("com.mapp.sdk:engage-android:X.X.X")
-    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+    implementation(platform("com.google.firebase:firebase-bom:FIREBASE_BOM_VERSION"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 }
 ```
@@ -82,7 +87,7 @@ dependencies {
 ```groovy
 dependencies {
     implementation 'com.mapp.sdk:engage-android:X.X.X'
-    implementation platform('com.google.firebase:firebase-bom:34.6.0')
+    implementation platform('com.google.firebase:firebase-bom:FIREBASE_BOM_VERSION')
     implementation 'com.google.firebase:firebase-messaging-ktx'
 }
 ```

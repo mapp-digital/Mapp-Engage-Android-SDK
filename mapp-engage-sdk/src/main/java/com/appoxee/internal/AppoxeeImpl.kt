@@ -74,7 +74,12 @@ internal open class AppoxeeImpl(
 
     private val actionContainer: ActionContainer by lazy { ActionContainer(application) }
 
-    private val inappContainer: InAppContainer by lazy { InAppContainer(appoxeeContainer.statsClient, actionContainer) }
+    private val inappContainer: InAppContainer by lazy {
+        InAppContainer(
+            appoxeeContainer.statsClient,
+            actionContainer
+        )
+    }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushContainer: PushContainer by lazy {
@@ -397,7 +402,9 @@ internal open class AppoxeeImpl(
 
     private suspend fun updateOptState(enabled: Boolean, token: String?): Boolean {
         val fbToken = try {
-            token ?: FirebaseMessaging.getInstance().token.await()
+            token?.trim()
+                .orEmpty()
+                .ifEmpty { FirebaseMessaging.getInstance().token.await() }
         } catch (e: Exception) {
             Logger.e(TAG, "updateOptState() - failed to fetch push token: $e")
             return false
@@ -560,7 +567,8 @@ internal open class AppoxeeImpl(
     }
 
     override fun updateFirebaseToken(token: String): Call<Boolean> = buildHttpCall {
-        val device = storage.getDevicePayload() ?: appoxeeAdapter.getDevice() ?: return@buildHttpCall false
+        val device =
+            storage.getDevicePayload() ?: appoxeeAdapter.getDevice() ?: return@buildHttpCall false
         if (device.pushToken?.isNotEmpty() == true) {
             appoxeeAdapter.optIn(token)
         } else {
