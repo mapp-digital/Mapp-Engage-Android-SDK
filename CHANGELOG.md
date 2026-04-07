@@ -2,7 +2,7 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
-## [7.0.2] - 2026-04-07
+## [7.0.2] - UNRELEASED
 
 ### Bug Fixes
 
