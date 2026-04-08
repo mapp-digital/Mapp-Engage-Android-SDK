@@ -28,6 +28,8 @@ import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import io.mockk.Ordering
 import io.mockk.coEvery
@@ -449,6 +451,49 @@ class AppoxeeImplUnitTest {
                 )
             }
         }
+
+    @Test
+    fun `enable push uses provided non-empty client firebase token`() = runTest {
+        coEvery { mockAppoxeeAdapter.optIn(any()) } returns true
+
+        val result = sut.enablePush(true, "client-firebase-token").asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        coVerify(exactly = 1) { mockAppoxeeAdapter.optIn("client-firebase-token") }
+    }
+
+    @Test
+    fun `enable push fetches firebase token when client firebase token is null`() = runTest {
+        val firebaseMessaging = mockk<FirebaseMessaging>()
+        mockkStatic(FirebaseMessaging::class)
+        every { FirebaseMessaging.getInstance() } returns firebaseMessaging
+        every { firebaseMessaging.token } returns Tasks.forResult("firebase-fallback-token")
+        coEvery { mockAppoxeeAdapter.optIn(any()) } returns true
+
+        val result = sut.enablePush(true, null).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        verify(exactly = 1) { FirebaseMessaging.getInstance() }
+        coVerify(exactly = 1) { mockAppoxeeAdapter.optIn("firebase-fallback-token") }
+    }
+
+    @Test
+    fun `enable push fetches firebase token when client firebase token is empty`() = runTest {
+        val firebaseMessaging = mockk<FirebaseMessaging>()
+        mockkStatic(FirebaseMessaging::class)
+        every { FirebaseMessaging.getInstance() } returns firebaseMessaging
+        every { firebaseMessaging.token } returns Tasks.forResult("firebase-fallback-token")
+        coEvery { mockAppoxeeAdapter.optIn(any()) } returns true
+
+        val result = sut.enablePush(true, "").asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        verify(exactly = 1) { FirebaseMessaging.getInstance() }
+        coVerify(exactly = 1) { mockAppoxeeAdapter.optIn("firebase-fallback-token") }
+    }
 
     @Test
     fun `set alias with empty string throws exception`() = runTest {
