@@ -15,7 +15,7 @@ class SampleApplication : Application() {
             tenantId = "5963",
             appId = "206974",
         ).also {
-            it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
+            it.notificationMode = NotificationMode.SILENT_ONLY
         }
 
 

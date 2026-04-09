@@ -77,6 +77,7 @@ class AppoxeeOptions(
     /**
      * Defines notification mode; It can be one of the following values:
      * [NotificationMode.BACKGROUND_ONLY] or [NotificationMode.SILENT_ONLY] and [NotificationMode.BACKGROUND_AND_FOREGROUND]
+     * Default mode, if not set is [NotificationMode.BACKGROUND_ONLY]
      */
     var notificationMode: NotificationMode = NotificationMode.BACKGROUND_ONLY
 

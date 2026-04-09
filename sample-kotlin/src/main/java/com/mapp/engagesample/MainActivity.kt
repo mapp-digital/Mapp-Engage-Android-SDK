@@ -39,17 +39,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private val onBackStackChangedListener = FragmentManager.OnBackStackChangedListener {
-        supportFragmentManager.backStackEntryCount.let {
-            val title = supportFragmentManager.getBackStackEntryAt(it - 1).name
-            supportActionBar?.let { actionBar ->
-                actionBar.title = title.camelCaseToWords()
-                actionBar.setDisplayHomeAsUpEnabled(it > 1)
-            }
-            onBackPressedCallback.isEnabled = it <= 1
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private val postNotificationResultCallback: ActivityResultCallback<MutableMap<String, Boolean>> =
         ActivityResultCallback { result ->
@@ -78,7 +67,6 @@ class MainActivity : AppCompatActivity() {
         permissionHelper = PermissionHelper(this@MainActivity.activityResultRegistry)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
         Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
         Appoxee.instance().subscribe(appoxeeObserver)
@@ -116,10 +104,5 @@ class MainActivity : AppCompatActivity() {
                 postNotificationResultCallback
             )
         }
-    }
-
-    override fun onDestroy() {
-        supportFragmentManager.removeOnBackStackChangedListener(onBackStackChangedListener)
-        super.onDestroy()
     }
 }

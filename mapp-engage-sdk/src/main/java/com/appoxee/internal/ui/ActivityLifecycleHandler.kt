@@ -54,7 +54,11 @@ internal class ActivityLifecycleHandler(
         scope.launch(dispatchersProvider.mainDispatcher) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleEventObserver {
                 override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-                    isApplicationInForeground.set(event <= Lifecycle.Event.ON_RESUME)
+                    when (event) {
+                        Lifecycle.Event.ON_START -> isApplicationInForeground.set(true)
+                        Lifecycle.Event.ON_STOP -> isApplicationInForeground.set(false)
+                        else -> {}
+                    }
                 }
             })
         }
