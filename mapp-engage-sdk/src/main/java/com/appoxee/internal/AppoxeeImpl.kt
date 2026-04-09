@@ -122,11 +122,11 @@ internal open class AppoxeeImpl(
         Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
-            // save only if current options are changed compared to the saved one
             if (!options.areEquals(storage.getInitOptions())) {
                 storage.clearRegistration()
-                storage.saveInitOptions(options)
             }
+            // always store options for possible changes of other attributes, not used for comparing
+            storage.saveInitOptions(options)
         } else {
             if (storage.getInitOptions() == null) {
                 throw IllegalStateException("Engage SDK wasn't supplied with initialization parameters!")
