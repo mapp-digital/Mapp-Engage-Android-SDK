@@ -59,7 +59,11 @@ internal class PushManagerImpl(
                 reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_SILENT)
             } else {
                 // regular push
-                if (notificationMode == NotificationMode.BACKGROUND_AND_FOREGROUND || !appoxeeContainer.activityLifecycleHandler.isInForeground()) {
+                if (shouldShowNotification(
+                        notificationMode,
+                        appoxeeContainer.activityLifecycleHandler.isInForeground()
+                    )
+                ) {
                     createAndShowNotification(pushData)
                 } else {
                     Logger.i(
@@ -69,6 +73,17 @@ internal class PushManagerImpl(
                 }
                 reportPushReceived(context, pushData, LocalPushBroadcast.PUSH_RECEIVED)
             }
+        }
+    }
+
+    private fun shouldShowNotification(
+        notificationMode: NotificationMode,
+        isInForeground: Boolean
+    ): Boolean {
+        return when (notificationMode) {
+            NotificationMode.SILENT_ONLY -> false
+            NotificationMode.BACKGROUND_ONLY -> !isInForeground
+            NotificationMode.BACKGROUND_AND_FOREGROUND -> true
         }
     }
 
