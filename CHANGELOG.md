@@ -2,20 +2,24 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
-## [7.0.2] - UNRELEASED
+## [7.0.2] - 2026-04-14
 
 ### Bug Fixes
 
 - **Push opt-state token fallback** — `enablePush(Boolean, String?)` now trims the provided Firebase token and falls back to fetching a fresh token when the supplied value is blank, preventing opt-in / opt-out updates from failing due to empty token strings.
+- **Notification mode update persistence** — `notificationMode` is now persisted correctly during SDK initialisation, so apps can change the mode after first launch instead of being stuck with the original value.
+- **`SILENT_ONLY` notification mode restoration** — Restored the missing `NotificationMode.SILENT_ONLY` value and aligned push handling so silent-only mode suppresses notification UI while still processing push events.
 
 ### Improvements
 
 - **Dependency alignment** — Updated project dependency recommendations and version catalog entries to current stable versions, including Kotlin 2.3.20, Firebase BOM 34.11.0, AndroidX Lifecycle 2.10.0, DataStore 1.2.1, Media3 1.10.0, and related test libraries.
 - **Documentation refresh** — README requirements and integration snippets now document the current Kotlin, Gradle, AGP, and Firebase BOM versions, making the setup guidance consistent with the SDK build configuration.
+- **Foreground detection cleanup** — Activity foreground tracking now uses lifecycle start/stop events, which makes notification display decisions more predictable.
 
 ### Build
 
-- **Version bump to 7.0.2** — Updated the published SDK version and refreshed the sample consumer version reference to `7.0.1` for released dependency usage.
+- **Version bump to 7.0.2** — Updated the published SDK version.
+
 
 ## [7.0.1] - 2026-03-19
 
