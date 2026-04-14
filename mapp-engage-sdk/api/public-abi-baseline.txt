@@ -194,6 +194,7 @@ public abstract class com.appoxee.shared.MappResult<T> {
 ### com.appoxee.shared.NotificationMode
 public final class com.appoxee.shared.NotificationMode extends java.lang.Enum<com.appoxee.shared.NotificationMode> {
   public static final com.appoxee.shared.NotificationMode BACKGROUND_ONLY;
+  public static final com.appoxee.shared.NotificationMode SILENT_ONLY;
   public static final com.appoxee.shared.NotificationMode BACKGROUND_AND_FOREGROUND;
   public static com.appoxee.shared.NotificationMode[] values();
   public static com.appoxee.shared.NotificationMode valueOf(java.lang.String);
