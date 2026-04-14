@@ -1,3 +1,9 @@
+## Project Rules
+
+### Builds
+
+- Never build the project after making code changes. Builds are done manually by the user.
+
 ## Skills
 
 A skill is a set of local instructions to follow that is stored in a `SKILL.md` file.
