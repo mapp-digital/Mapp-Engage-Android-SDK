@@ -1,8 +1,10 @@
 import com.android.build.api.dsl.LibraryExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     id("com.android.library")
+    id("jacoco")
     id("kotlin-parcelize")
     id("maven-publish")
     id("io.github.tafilovic.central-portal-publisher")
@@ -123,8 +125,57 @@ kotlin {
     }
 }
 
+jacoco {
+    toolVersion = "0.8.13"
+}
+
 tasks.withType<Test>().configureEach {
     maxParallelForks = Runtime.getRuntime().availableProcessors()
+    extensions.configure(org.gradle.testing.jacoco.plugins.JacocoTaskExtension::class) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+val jacocoProdDebugUnitTestReport by tasks.registering(JacocoReport::class) {
+    group = "verification"
+    description = "Generate JaCoCo XML and HTML coverage reports for the ProdDebug unit tests."
+
+    dependsOn("testProdDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "**/databinding/**"
+    )
+
+    val kotlinClasses = fileTree(layout.buildDirectory.dir("intermediates/built_in_kotlinc/prodDebug/compileProdDebugKotlin/classes")) {
+        exclude(fileFilter)
+    }
+    val javaClasses = fileTree(layout.buildDirectory.dir("intermediates/javac/prodDebug/compileProdDebugJavaWithJavac/classes")) {
+        exclude(fileFilter)
+    }
+
+    classDirectories.setFrom(kotlinClasses, javaClasses)
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    additionalSourceDirs.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.asFile.get()) {
+            include(
+                "jacoco/testProdDebugUnitTest.exec",
+                "outputs/unit_test_code_coverage/prodDebugUnitTest/testProdDebugUnitTest.exec"
+            )
+        }
+    )
 }
 
 val generatePublicAbiSnapshot by tasks.registering(GeneratePublicAbiSnapshotTask::class) {
