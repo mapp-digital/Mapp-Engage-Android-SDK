@@ -4,7 +4,7 @@ import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     id("com.android.library")
-    id("jacoco")
+    id("jacoco") // The JaCoCo plugin provides code coverage metrics for Java code via integration with JaCoCo.
     id("kotlin-parcelize")
     id("maven-publish")
     id("io.github.tafilovic.central-portal-publisher")
