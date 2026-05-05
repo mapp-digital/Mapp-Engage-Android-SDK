@@ -10,7 +10,7 @@ import com.appoxee.sdk.R
 import com.appoxee.internal.util.LibraryExtensions.getBitmap
 import com.appoxee.internal.util.LibraryExtensions.isValidSmallIcon
 
-class IconProviderImpl(private val context: Context) : IconProvider {
+internal class IconProviderImpl(private val context: Context) : IconProvider {
     private val customSmallIconColorName = "com.engage.mapp_notification_small_icon_color"
     private val customSmallIconName = "com.engage.mapp_notification_small_icon"
     private val customLargeIconName = "com.engage.mapp_notification_large_icon"

@@ -6,7 +6,6 @@ import android.app.Notification
 import android.app.Notification.FLAG_AUTO_CANCEL
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.appoxee.internal.Actions
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.provider.IconProvider
@@ -138,10 +137,10 @@ internal class NotificationFactory(
         notificationId: Int,
         click: EventType
     ) {
-        val language = pushData.language
+
         val uriType =
             if (isDestructive) PushUriType.KEY_APP_DESTROY_PUSH else PushUriType.KEY_PLAY
-        val pendingIntent = if (Actions.Button.TURN_OFF.equals(buttonTitle, true)) {
+        val pendingIntent = if (Actions.Button.TURN_OFF == buttonTitle) {
             pendingIntentProvider.createDismissPendingIntent(notificationId, pushData)
         } else {
             pendingIntentProvider.createCustomPendingIntent(

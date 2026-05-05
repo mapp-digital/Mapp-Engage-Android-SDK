@@ -60,8 +60,7 @@ internal class PushManagerImpl(
             } else {
                 // regular push
                 if (shouldShowNotification(
-                        notificationMode,
-                        appoxeeContainer.activityLifecycleHandler.isInForeground()
+                        notificationMode, appoxeeContainer.activityLifecycleHandler.isInForeground()
                     )
                 ) {
                     createAndShowNotification(pushData)
@@ -77,8 +76,7 @@ internal class PushManagerImpl(
     }
 
     private fun shouldShowNotification(
-        notificationMode: NotificationMode,
-        isInForeground: Boolean
+        notificationMode: NotificationMode, isInForeground: Boolean
     ): Boolean {
         return when (notificationMode) {
             NotificationMode.SILENT_ONLY -> false
@@ -90,8 +88,7 @@ internal class PushManagerImpl(
     private suspend fun createAndShowNotification(pushData: PushData) {
         val notificationId = (System.currentTimeMillis() / 100).toInt()
         Logger.d(
-            TAG,
-            "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
+            TAG, "BACKGROUND AND FOREGROUND $pushData - notificationId: $notificationId"
         )
         val notification = createNotification(pushData, notificationId)
         withContext(dispatchersProvider.mainDispatcher) {
@@ -108,14 +105,12 @@ internal class PushManagerImpl(
     }
 
     override suspend fun handleSilentPush(pushData: PushData) {
-        if (SilentType.SYS_OPТ_IN.value.equals(pushData.silentType, true)) {
+        if (SilentType.SYS_OPТ_IN.value == pushData.silentType) {
             val isOptedIn = pushData.silentData.toBoolean()
             val token = FirebaseMessaging.getInstance().token.await()
-            if (isOptedIn)
-                appoxeeContainer.appoxeeAdapter.optIn(token)
-            else
-                appoxeeContainer.appoxeeAdapter.optOut(token)
-        } else if (SilentType.SYS_SET_ALIAS.value.equals(pushData.silentType, true)) {
+            if (isOptedIn) appoxeeContainer.appoxeeAdapter.optIn(token)
+            else appoxeeContainer.appoxeeAdapter.optOut(token)
+        } else if (SilentType.SYS_SET_ALIAS.value == pushData.silentType) {
             val alias = pushData.silentData
             if (!alias.isNullOrBlank()) appoxeeContainer.appoxeeAdapter.setAlias(alias)
         }
@@ -124,8 +119,7 @@ internal class PushManagerImpl(
     override suspend fun createNotification(pushData: PushData, notificationId: Int): Notification {
         return withContext(dispatchersProvider.ioDispatcher) {
             notificationFactory.createSimpleNotification(
-                pushData,
-                notificationId
+                pushData, notificationId
             )
         }
     }
@@ -140,8 +134,7 @@ internal class PushManagerImpl(
     }
 
     override fun showNotification(
-        notification: Notification,
-        notificationId: Int
+        notification: Notification, notificationId: Int
     ) {
         notify.showNotification(notification, notificationId)
     }

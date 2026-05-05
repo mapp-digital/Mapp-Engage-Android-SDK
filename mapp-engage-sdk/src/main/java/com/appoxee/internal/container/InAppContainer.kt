@@ -18,7 +18,7 @@ internal class InAppContainer(
 ) {
     internal val dispatchersProvider: DispatchersProvider by lazy { DispatchersProviderImpl() }
 
-    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { c, t ->
+    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { _, t ->
         Logger.e(this.javaClass.name, t)
     })
 

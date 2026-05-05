@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 
-interface IconProvider {
+internal interface IconProvider {
     fun getLargeIcon(): Bitmap?
 
     @DrawableRes

@@ -6,7 +6,7 @@ import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.MappResult
 
 @Keep
-class ObserversProvider {
+internal class ObserversProvider {
 
     private val observers: MutableSet<AppoxeeObserver> = mutableSetOf()
 

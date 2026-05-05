@@ -19,12 +19,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
 import java.util.Objects
+import kotlin.collections.contains
 
 class MappInternalBroadcastReceiver : BroadcastReceiver() {
     internal val TAG = this.javaClass.name
 
     private lateinit var appoxeeContainer: AppoxeeContainer
-    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { c, throwable ->
+    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { _, throwable ->
         Logger.e(TAG, throwable)
     })
 
@@ -42,32 +43,48 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
                     val clickType = i.getStringExtra("clickType")?.let { ClickType.fromString(it) }
                         ?: ClickType.LAUNCH_APP
                     val notificationId = bundle.getInt("notificationId")
-                    val eventType = bundle.getInt("eventType").let { EventType.entries.getOrNull(it) ?: EventType.CLICK }
+                    val eventType = bundle.getInt("eventType")
+                        .let { EventType.entries.getOrNull(it) ?: EventType.CLICK }
 
-                    // goAsync() extends the BroadcastReceiver's lifecycle beyond onReceive() so that
-                    // the coroutine can complete before the system reclaims the receiver.
-                    // The try/catch handles the Android stub RuntimeException in JVM unit test environments.
-                    val pendingResult = try { goAsync() } catch (e: RuntimeException) { null }
-                    scope.launch {
-                        try {
-                            // event for push received is not sent to a backend; all others are sent.
-                            // Intentionally use actionsForReporting instead of LocalPushBroadcast.allActions.
-                            if (LocalPushBroadcast.actionsForReporting.contains(action)) {
-                                sendReportEvent(pushData, clickType, eventType)
-                            }
-
-                            // notify client app about push event
-                            notifyClientApp(ctx, pushData, action)
-
-                            // if event is dismiss, then try to clear notification from system status bar
-                            if (Objects.equals(eventType, EventType.DISMISS)) {
-                                dismissNotification(context, notificationId)
-                            }
-                        } finally {
-                            pendingResult?.finish()
-                        }
-                    }
+                    handleAction(ctx,action,pushData,clickType,eventType,notificationId)
                 }
+            }
+        }
+    }
+
+    internal fun handleAction(
+        context: Context,
+        action: String?,
+        pushData: PushData,
+        clickType: ClickType,
+        eventType: EventType,
+        notificationId: Int
+    ) {
+        // goAsync() extends the BroadcastReceiver's lifecycle beyond onReceive() so that
+        // the coroutine can complete before the system reclaims the receiver.
+        // The try/catch handles the Android stub RuntimeException in JVM unit test environments.
+        val pendingResult = try {
+            goAsync()
+        } catch (e: RuntimeException) {
+            null
+        }
+        scope.launch {
+            try {
+                // event for push received is not sent to a backend; all others are sent.
+                // Intentionally use actionsForReporting instead of LocalPushBroadcast.allActions.
+                if (LocalPushBroadcast.actionsForReporting.contains(action)) {
+                    sendReportEvent(pushData, clickType, eventType)
+                }
+
+                // notify client app about push event
+                notifyClientApp(context, pushData, action)
+
+                // if event is dismiss, then try to clear notification from system status bar
+                if (Objects.equals(eventType, EventType.DISMISS)) {
+                    dismissNotification(context, notificationId)
+                }
+            } finally {
+                pendingResult?.finish()
             }
         }
     }

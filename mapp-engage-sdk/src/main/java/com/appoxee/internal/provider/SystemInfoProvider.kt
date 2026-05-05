@@ -1,6 +1,6 @@
 package com.appoxee.internal.provider
 
-interface SystemInfoProvider {
-    fun currentSdkInt():Int
+internal fun interface SystemInfoProvider {
+    fun currentSdkInt(): Int
 }
 

@@ -28,10 +28,11 @@ fun InputStream?.convertToString(): String? {
                     }
                 } while (line != null)
             } catch (ignored: Exception) {
+                //ignored
             }
         }
     }
-    return if (sb.isNullOrEmpty()) null else sb.toString()
+    return if (sb.isEmpty()) null else sb.toString()
 }
 
 fun JSONObject.getNullableString(name: String): String? {
@@ -50,26 +51,26 @@ fun JSONObject.getLongOrDefault(name: String, default: Long = 0L): Long {
     if (!this.has(name) || this.isNull(name)) return default
     return try {
         this.getLong(name)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         default
     }
 }
 
 fun JSONObject.getIntOrDefault(name: String, default: Int = 0): Int {
-    if (!this.has(name)|| this.isNull(name)) return default
+    if (!this.has(name) || this.isNull(name)) return default
 
     return try {
         this.getInt(name)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         default
     }
 }
 
 fun JSONObject.getNullableLong(name: String): Long? {
-    if (!this.has(name)|| this.isNull(name)) return null
+    if (!this.has(name) || this.isNull(name)) return null
     return try {
         this.getLong(name)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }
@@ -119,7 +120,7 @@ fun String?.parseAsJSON(): JSONObject {
     if (this.isNullOrEmpty()) return JSONObject()
     return try {
         JSONObject(this)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         JSONObject().apply {
             put("data", this)
         }

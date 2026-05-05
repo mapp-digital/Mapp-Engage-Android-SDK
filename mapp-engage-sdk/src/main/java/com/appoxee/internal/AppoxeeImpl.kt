@@ -13,7 +13,9 @@ import com.appoxee.internal.container.InAppContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
+import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.attributes.CustomAttributesPayload
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
@@ -42,6 +44,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 
 @Suppress("UNCHECKED_CAST")
 @Keep
@@ -128,9 +133,7 @@ internal open class AppoxeeImpl(
             // always store options for possible changes of other attributes, not used for comparing
             storage.saveInitOptions(options)
         } else {
-            if (storage.getInitOptions() == null) {
-                throw IllegalStateException("Engage SDK wasn't supplied with initialization parameters!")
-            }
+            checkNotNull(storage.getInitOptions()) {"Engage SDK wasn't supplied with initialization parameters!"}
         }
 
         // check device registration
@@ -146,7 +149,7 @@ internal open class AppoxeeImpl(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun validateRegistration(): DevicePayload? {
         // get cached device from local storage
-        var devicePayload: DevicePayload? = storage.getDevicePayload()
+        val devicePayload: DevicePayload? = storage.getDevicePayload()
 
         // get cached registration data used to register device on server
         val savedRegisterPayload = storage.getRegistrationDevice()
@@ -154,88 +157,151 @@ internal open class AppoxeeImpl(
         // calculate current registration data of device
         val newRegisterPayload = deviceProvider.generateRegistrationDevice()
 
-        // if local device payload exist and data are not expired
-        if (devicePayload?.udidHashed != null /* && not expired */) {
-            Logger.d(TAG, "has device payload")
-            // check if saved registration data and currently calculated registration data differs
-            if (savedRegisterPayload != null) {
-                Logger.d(TAG, "has registration payload")
-                val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
-                val alias = devicePayload.alias
-
-                if (!alias.isNullOrEmpty() && updatedParams.isNotEmpty()) {
-                    appoxeeAdapter.updateDevice(alias = alias, params = updatedParams)
-                }
-                // device already registered and channel is unchanged
-                updateOptStatus(devicePayload, null)
+        val validatedDevicePayload =
+            if (devicePayload?.udidHashed != null) {
+                validateExistingRegistration(
+                    devicePayload = devicePayload,
+                    savedRegisterPayload = savedRegisterPayload,
+                    newRegisterPayload = newRegisterPayload
+                )
             } else {
-                // when registration data differs, register data again to update values on server
-                appoxeeAdapter.register(newRegisterPayload)
-
-                // update optIn or optOut status with firebase token
-                // this fulfills requirement to preserve OptIn/OptOut state when channel changed
-                updateOptStatus(devicePayload, null)
-
-                // get device payload from server after new registration
-                Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
-                devicePayload = appoxeeAdapter.getDevice()
+                validateMissingRegistration(devicePayload, newRegisterPayload)
             }
+
+        saveValidatedRegistration(newRegisterPayload, validatedDevicePayload)
+
+        // returns device payload
+        return validatedDevicePayload
+    }
+
+    private suspend fun validateExistingRegistration(
+        devicePayload: DevicePayload,
+        savedRegisterPayload: RegisterDevice?,
+        newRegisterPayload: RegisterDevice
+    ): DevicePayload? {
+        // if local device payload exist and data are not expired
+        Logger.d(TAG, "has device payload")
+        // check if saved registration data and currently calculated registration data differs
+        return if (savedRegisterPayload != null) {
+            Logger.d(TAG, "has registration payload")
+            val updatedParams = savedRegisterPayload.getChangedParams(newRegisterPayload)
+            val alias = devicePayload.alias
+
+            if (!alias.isNullOrEmpty() && updatedParams.isNotEmpty()) {
+                appoxeeAdapter.updateDevice(alias = alias, params = updatedParams)
+            }
+
+            // device already registered and channel is unchanged
+            updateOptStatus(devicePayload, null)
+            devicePayload
         } else {
-            // check if device registered with older version (v6) and needs to be migrated
-            val oldOptions = migrationHelper.getRegistrationOptions()
+            registerChangedRegistration(devicePayload, newRegisterPayload)
+        }
+    }
 
-            // get old registration options
-            val oldRegistration = migrationHelper.fetchRegistrationData()
+    private suspend fun registerChangedRegistration(
+        devicePayload: DevicePayload?,
+        newRegisterPayload: RegisterDevice
+    ): DevicePayload? {
+        // when registration data differs, register data again to update values on server
+        appoxeeAdapter.register(newRegisterPayload)
 
-            // if channel is unchanged, reuse device registration and do not register device again.
-            // migrate registration to SDK v7 structure and delete SDK v6 registration data.
+        // update optIn or optOut status with firebase token
+        // this fulfills requirement to preserve OptIn/OptOut state when channel changed
+        updateOptStatus(devicePayload, null)
+
+        // get device payload from server after new registration
+        Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
+        return appoxeeAdapter.getDevice()
+    }
+
+    private suspend fun validateMissingRegistration(
+        currentDevicePayload: DevicePayload?,
+        newRegisterPayload: RegisterDevice
+    ): DevicePayload? {
+        // check if device registered with older version (v6) and needs to be migrated
+        val oldOptions = migrationHelper.getRegistrationOptions()
+
+        // get old registration options
+        val oldRegistration = migrationHelper.fetchRegistrationData()
+
+        // if channel is unchanged, reuse device registration and do not register device again.
+        // migrate registration to SDK v7 structure and delete SDK v6 registration data.
+        val devicePayload =
             if (options?.areEquals(oldOptions) == true) {
-                devicePayload = appoxeeAdapter.getDevice()
-
-                // update only optOut state to refresh firebase token if it is changed
-                updateOptStatus(devicePayload, oldRegistration)
-
-                // delete old registration data only if migration succeeded;
-                // if getDevice() failed (e.g. network error), keep v6 data so the
-                // migration can be retried on the next launch instead of re-registering.
-                if (devicePayload?.udidHashed != null) {
-                    // seed v7 local cache with tags and custom attributes from v6
-                    // so they are available without requiring a full re-sync from the server
-                    oldRegistration?.let { reg ->
-                        if (reg.tags.isNotEmpty()) storage.addTags(reg.tags.toList())
-                        if (reg.customAttributes.isNotEmpty()) storage.setCustomAttributesCache(reg.customAttributes)
-                    }
-                    migrationHelper.deleteOldRegistration()
-                }
+                migrateSameChannelRegistration(oldRegistration)
+            } else {
+                currentDevicePayload
             }
 
-            // Device payload is null if device was not previously registered or if channel data were changed.
-            // In this case, register new device and update optIn/optOut state
-            if (devicePayload?.udidHashed == null) {
-                // if device payload doesn't exist after all checkins, register device
-                appoxeeAdapter.register(newRegisterPayload)
+        // Device payload is null if device was not previously registered or if channel data were changed.
+        // In this case, register new device and update optIn/optOut state
+        return if (devicePayload?.udidHashed != null) {
+            devicePayload
+        } else {
+            registerNewDevice(newRegisterPayload, devicePayload, oldRegistration)
+        }
+    }
 
-                // update optIn or optOut status with firebase token
-                updateOptStatus(devicePayload, oldRegistration)
+    private suspend fun migrateSameChannelRegistration(
+        oldRegistration: OldRegistration?
+    ): DevicePayload? {
+        val devicePayload = appoxeeAdapter.getDevice()
 
-                // delete old registration data if still exists
-                migrationHelper.deleteOldRegistration()
+        // update only optOut state to refresh firebase token if it is changed
+        updateOptStatus(devicePayload, oldRegistration)
 
-                // get device payload from server after new registration
-                Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
-                devicePayload = appoxeeAdapter.getDevice()
-            }
+        // delete old registration data only if migration succeeded;
+        // if getDevice() failed (e.g. network error), keep v6 data so the
+        // migration can be retried on the next launch instead of re-registering.
+        if (devicePayload.hasValidUdid()) {
+            seedMigratedRegistration(oldRegistration)
+            migrationHelper.deleteOldRegistration()
         }
 
+        return devicePayload
+    }
+
+    private suspend fun seedMigratedRegistration(oldRegistration: OldRegistration?) {
+        // seed v7 local cache with tags and custom attributes from v6
+        // so they are available without requiring a full re-sync from the server
+        oldRegistration?.let { reg ->
+            if (reg.tags.isNotEmpty()) storage.addTags(reg.tags.toList())
+            if (reg.customAttributes.isNotEmpty()) storage.setCustomAttributesCache(reg.customAttributes)
+        }
+    }
+
+    private suspend fun registerNewDevice(
+        newRegisterPayload: RegisterDevice,
+        devicePayload: DevicePayload?,
+        oldRegistration: OldRegistration?
+    ): DevicePayload? {
+        // if device payload doesn't exist after all checkins, register device
+        appoxeeAdapter.register(newRegisterPayload)
+
+        // update optIn or optOut status with firebase token
+        updateOptStatus(devicePayload, oldRegistration)
+
+        // delete old registration data if still exists
+        migrationHelper.deleteOldRegistration()
+
+        // get device payload from server after new registration
+        Logger.d(TAG, "validateRegistration - new device registered; udidHashed != null")
+        return appoxeeAdapter.getDevice()
+    }
+
+    private suspend fun saveValidatedRegistration(
+        newRegisterPayload: RegisterDevice,
+        devicePayload: DevicePayload?
+    ) {
         // save device registration data (device fingerprint) to a local storage for later access
         storage.saveRegistrationDevice(newRegisterPayload)
 
         // save device payload from server for a registered device
         storage.saveDevicePayload(devicePayload)
-
-        // returns device payload
-        return devicePayload
     }
+
+    private fun DevicePayload?.hasValidUdid(): Boolean = this?.udidHashed != null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun updateOptStatus(
@@ -350,9 +416,8 @@ internal open class AppoxeeImpl(
     override fun isGeofencingActive(): Call<Boolean> = buildHttpCall {
         val geoContainer = appoxeeContainer.geoContainer
         val isWorkerActive = geoContainer.geofenceScheduler.isGeofencingActive()
-        //val isPendingIntentActive = geoContainer.geofenceClient.isGeofencingActive()
 
-        isWorkerActive /*&& isPendingIntentActive*/
+        isWorkerActive
     }
 
     override fun logout(pushEnabled: Boolean): Call<Boolean> = buildHttpCall {
@@ -422,28 +487,36 @@ internal open class AppoxeeImpl(
     }
 
     private suspend fun loadCustomAttributesFromBackend(result: MutableMap<String, Any?>) {
-        val attributesWithNoValue = result.filter { it.value == null }
-        if (attributesWithNoValue.isNotEmpty()) {
-            val response =
-                appoxeeAdapter.getCustomAttributes(attributesWithNoValue.keys.toList())
+        val missingKeys = result.filter { it.value == null }.keys
+
+        if (missingKeys.isNotEmpty()) {
+            val response = appoxeeAdapter.getCustomAttributes(missingKeys.toList())
             if (response.isSuccess()) {
-                val payload = response.data?.payload
-                if (!payload.isNullOrEmpty()) {
-                    val updatedCache = storage.getCustomAttributesCache().attributes.toMutableMap()
-                    payload.forEach { (key, value) ->
-                        val normalized =
-                            if (value?.toString()?.isNotEmpty() == true) value else null
-                        result[key] = normalized
-                        if (normalized == null) {
-                            updatedCache.remove(key)
-                        } else {
-                            updatedCache[key] = normalized
-                        }
-                    }
-                    storage.setCustomAttributesCache(updatedCache)
-                }
+                handleAttributesResponse(response.data?.payload, result)
             }
         }
+    }
+
+    private suspend fun handleAttributesResponse(
+        payload: Map<String, Any?>?,
+        result: MutableMap<String, Any?>
+    ) {
+        if (payload.isNullOrEmpty()) return
+
+        val updatedCache = storage.getCustomAttributesCache().attributes.toMutableMap()
+
+        payload.forEach { (key, value) ->
+            val normalized = if (!value?.toString().isNullOrEmpty()) value else null
+            result[key] = normalized
+
+            if (normalized == null) {
+                updatedCache.remove(key)
+            } else {
+                updatedCache[key] = normalized
+            }
+        }
+
+        storage.setCustomAttributesCache(updatedCache)
     }
 
     override fun getCustomAttributes(attributes: Set<String>): Call<Map<String, Any?>> =

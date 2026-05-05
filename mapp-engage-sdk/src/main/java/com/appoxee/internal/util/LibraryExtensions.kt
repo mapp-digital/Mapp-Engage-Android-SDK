@@ -98,8 +98,8 @@ object LibraryExtensions {
     internal fun String?.toColor(): Int {
         if (this == null) return Color.TRANSPARENT
         try {
-            if (this.startsWith("#")) {
-                return this.toColorInt()
+            return if (this.startsWith("#")) {
+                this.toColorInt()
             } else if (this.startsWith("rgba")) {
                 // format "rgba(r,g,b,a)" where r,g,b are integers (0-255), and "a" is float 0.0-1.0
                 val values = this.replace("rgba(", "")
@@ -109,9 +109,9 @@ object LibraryExtensions {
                 val g = values[1].toInt()
                 val b = values[2].toInt()
                 val a = (values[3].toFloat() * 255).toInt()
-                return Color.argb(a, r, g, b)
+                Color.argb(a, r, g, b)
             } else {
-                return Color.TRANSPARENT
+                Color.TRANSPARENT
             }
         } catch (e: Exception) {
             return Color.TRANSPARENT

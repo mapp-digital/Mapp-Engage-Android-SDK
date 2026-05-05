@@ -20,7 +20,7 @@ internal class Logger private constructor(application: Application) {
 
         @JvmStatic
         internal fun d(tag: String, message: String) {
-            print(tag, message) { s1, s2, t ->
+            print(tag, message) { s1, s2, _ ->
                 Log.d(s1, s2)
             }
         }

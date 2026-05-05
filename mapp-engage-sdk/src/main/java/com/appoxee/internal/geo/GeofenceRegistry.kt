@@ -61,8 +61,8 @@ internal class GeofenceRegistryImpl(
 
     @SuppressLint("InlinedApi")
     override fun hasRequiredPermissions(): Boolean {
-        if (systemInfoProvider.currentSdkInt() <= Build.VERSION_CODES.M) {
-            return true
+        return if (systemInfoProvider.currentSdkInt() <= Build.VERSION_CODES.M) {
+            true
         } else {
             val requiredPermissions = mutableListOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -72,7 +72,7 @@ internal class GeofenceRegistryImpl(
                 requiredPermissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
 
-            return requiredPermissions.all {
+            requiredPermissions.all {
                 ContextCompat.checkSelfPermission(
                     context,
                     it

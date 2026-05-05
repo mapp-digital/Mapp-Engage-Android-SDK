@@ -10,12 +10,12 @@ internal class BaseAdapter<T>(private val parser: (JSONObject) -> T) :
         data: JSONObject?,
         error: Throwable?
     ): Response<ResponseData<T>> {
-        if(error!=null || statusCode !in 200..299){
-            return Response.error(error)
+        return if(error!=null || statusCode !in 200..299){
+            Response.error(error)
         }else {
             val json: JSONObject = data ?: return Response.error(error)
             val responseData: ResponseData<T> = ResponseData.fromJSON(json, payloadParser = parser)
-            return if (responseData.metadata?.error == true) {
+            if (responseData.metadata?.error == true) {
                 Response.error(Throwable(responseData.metadata.errorMessage))
             } else {
                 Response.success(statusCode, responseData)

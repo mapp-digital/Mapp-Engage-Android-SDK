@@ -1,10 +1,9 @@
 package com.appoxee.internal.ui.inapp
 
-import android.net.Uri
+import androidx.core.net.toUri
 import com.appoxee.internal.model.response.inapp.ActionData
 import com.appoxee.internal.model.response.inapp.InappActionType
 import com.appoxee.internal.ui.action.ActionHandler
-import androidx.core.net.toUri
 
 internal class InappActionHandlerImpl(private val actionHandler: ActionHandler) :
     InappActionHandler {

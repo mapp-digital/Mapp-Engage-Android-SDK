@@ -128,7 +128,7 @@ internal data class PushData(
             return if (array != null) PushButton.fromJSON(array, category) else emptyList()
         }
 
-        private fun getExtraFields(map: MutableMap<String, String?>): Map<String, String> {
+        private fun getExtraFields(map: Map<String, String?>): Map<String, String> {
             val data = mutableMapOf<String, String>()
             map.entries.forEach {
                 if (it.value != null) {
@@ -144,7 +144,7 @@ internal data class PushData(
             return value
         }
 
-        private fun getUriType(data: MutableMap<String, String?>): String {
+        private fun getUriType(data: Map<String, String?>): String {
             if (data.isEmpty()) return ""
             if (data.containsKey(KEY_DEEP_LINK)) return KEY_DEEP_LINK
             if (data.containsKey(KEY_URL)) return KEY_URL
@@ -157,25 +157,30 @@ internal data class PushData(
         private fun getPushOpenUriString(data: MutableMap<String, String?>): String? {
             var url: String? = null
             var key: String? = null
-            if (data.containsKey(KEY_DEEP_LINK)) {
-                url = data[KEY_DEEP_LINK]
-                key = KEY_DEEP_LINK
-            } else if (data.containsKey(KEY_APP_PACKAGE)) {
-                url = data[KEY_APP_PACKAGE]
-                key = KEY_APP_PACKAGE
-            } else if (data.containsKey(KEY_INBOX)) {
-                url = data[KEY_INBOX]
-                key = KEY_INBOX
-            } else {
-                if (data.containsKey(KEY_URL)) {
-                    url = data[KEY_URL]
-                    key = KEY_URL
-                } else if (data.containsKey(KEY_URL_INTERNAL)) {
-                    url = data[KEY_URL_INTERNAL]
-                    key = KEY_URL_INTERNAL
+            when {
+                data.containsKey(KEY_DEEP_LINK) -> {
+                    url = data[KEY_DEEP_LINK]
+                    key = KEY_DEEP_LINK
                 }
-                if (url != null && !url.startsWith("http://") && !url.startsWith("https://")) {
-                    url = "http://$url"
+                data.containsKey(KEY_APP_PACKAGE) -> {
+                    url = data[KEY_APP_PACKAGE]
+                    key = KEY_APP_PACKAGE
+                }
+                data.containsKey(KEY_INBOX) -> {
+                    url = data[KEY_INBOX]
+                    key = KEY_INBOX
+                }
+                else -> {
+                    if (data.containsKey(KEY_URL)) {
+                        url = data[KEY_URL]
+                        key = KEY_URL
+                    } else if (data.containsKey(KEY_URL_INTERNAL)) {
+                        url = data[KEY_URL_INTERNAL]
+                        key = KEY_URL_INTERNAL
+                    }
+                    if (url != null && !url.startsWith("http://") && !url.startsWith("https://")) {
+                        url = "http://$url"
+                    }
                 }
             }
             key?.let { data.remove(it) }

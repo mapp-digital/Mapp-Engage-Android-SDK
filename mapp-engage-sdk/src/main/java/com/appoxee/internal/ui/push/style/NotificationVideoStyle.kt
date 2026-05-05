@@ -17,12 +17,11 @@ internal class NotificationVideoStyle(private val pushData: PushData) : Notifica
 
     private fun getBitmap(path: String?): Bitmap? {
         if (path.isNullOrEmpty()) return null
-        var bitmap: Bitmap? = null
+        var bitmap: Bitmap?
         var mediaMetadataRetriever: MediaMetadataRetriever? = null
         try {
             mediaMetadataRetriever = MediaMetadataRetriever()
             mediaMetadataRetriever.setDataSource(path, HashMap<String, String>())
-            //   mediaMetadataRetriever.setDataSource(videoPath);
             bitmap = mediaMetadataRetriever.frameAtTime
         } catch (e: Exception) {
             e.printStackTrace()

@@ -52,7 +52,7 @@ internal class AppoxeeAdapter(
         alias: String,
         resendCustomAttributes: Boolean = false
     ): DevicePayload? {
-        if (alias.isEmpty()) throw IllegalArgumentException("Alias can not be empty!")
+        require(!(alias.isEmpty())) {throw IllegalArgumentException("Alias can not be empty!")}
         val device = storage.getDevicePayload()
         // new alias same as old alias
         if (Objects.equals(device?.alias, alias)) {
@@ -188,17 +188,17 @@ internal class AppoxeeAdapter(
         }
 
         // send custom attributes to a backend if map is not empty
-        if (attributesToUpdate.isNotEmpty()) {
+        return if (attributesToUpdate.isNotEmpty()) {
             val response = engageApi.addCustomAttributes(attributesToUpdate)
             if (response.isSuccess()) {
                 val mergedAttributes =
                     cachedAttributes.attributes.toMutableMap().apply { putAll(attributesToUpdate) }
                 storage.setCustomAttributesCache(mergedAttributes)
             }
-            return response
+            response
         } else {
             // return success for case when there is no new custom attributes to update
-            return Response.success(
+            Response.success(
                 data = ResponseData(),
                 statusCode = 200
             )

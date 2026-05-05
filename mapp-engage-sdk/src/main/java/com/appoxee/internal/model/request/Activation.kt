@@ -2,7 +2,6 @@ package com.appoxee.internal.model.request
 
 import com.appoxee.internal.network.NetworkData
 import org.json.JSONObject
-import java.util.Date
 
 internal data class Activation(val timeSpent: Long) : NetworkData {
     private lateinit var json: JSONObject
@@ -11,7 +10,7 @@ internal data class Activation(val timeSpent: Long) : NetworkData {
             val timeSpent = JSONObject().apply {
                 put("timeSpent", timeSpent.toString())
             }
-            json=JSONObject().apply {
+            json = JSONObject().apply {
                 put("activation", timeSpent)
             }
         }

@@ -23,8 +23,6 @@ import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.DispatchersProviderImpl
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 
 internal class AppoxeeContainer private constructor(
     context: Context,
@@ -53,7 +51,7 @@ internal class AppoxeeContainer private constructor(
     internal var localPushBroadcast: Class<*>? = null
 
     internal val defaultExceptionHandler: CoroutineExceptionHandler =
-        CoroutineExceptionHandler { coroutineContext, throwable ->
+        CoroutineExceptionHandler { _, throwable ->
             Logger.e(Thread.currentThread().name, throwable)
         }
 

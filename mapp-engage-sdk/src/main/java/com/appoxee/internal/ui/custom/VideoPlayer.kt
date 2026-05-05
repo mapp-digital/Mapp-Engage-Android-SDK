@@ -56,6 +56,7 @@ class VideoPlayer(context: Context, attributeSet: AttributeSet?, defStyle: Int) 
                 }
 
                 Player.STATE_IDLE -> {
+                    // not needed to do anything, but linter forcing this to be stated
                 }
             }
         }

@@ -1,7 +1,6 @@
 package com.appoxee.internal.ui.custom
 
 import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -13,15 +12,15 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.view.setPadding
 import androidx.fragment.app.DialogFragment
 import androidx.media3.common.util.UnstableApi
-import com.appoxee.sdk.R
 import com.appoxee.internal.ui.push.model.NotificationType
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.LibraryExtensions.toPx
-import androidx.core.net.toUri
+import com.appoxee.sdk.R
 
 internal class MediaDialog : DialogFragment() {
     companion object {
@@ -74,7 +73,7 @@ internal class MediaDialog : DialogFragment() {
             }
 
             else -> {
-
+                // Image and Text are handled in different dialogs, as they are not types of "RICH PUSH MESSAGES"
             }
         }
     }

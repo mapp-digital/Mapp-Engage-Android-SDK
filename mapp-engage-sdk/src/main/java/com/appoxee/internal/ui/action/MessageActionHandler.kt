@@ -10,12 +10,12 @@ import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
-import com.appoxee.sdk.R
+import androidx.core.net.toUri
 import com.appoxee.internal.Actions
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.Logger
-import androidx.core.net.toUri
+import com.appoxee.sdk.R
 
 /**
  * Default implementation of [ActionHandler]
@@ -26,19 +26,18 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
 
     private val appoxeeContainer by lazy { AppoxeeContainer.getInstance(context) }
     override fun openAppStore(url: String) {
-        val applicationId = url
-        val message = "AppStore: $applicationId"
+        val message = "AppStore: $url"
         Logger.d(TAG, message)
-        val playStoreUri = "https://play.google.com/store/apps/details?id=${applicationId}".toUri()
+        val playStoreUri = "https://play.google.com/store/apps/details?id=$url".toUri()
         val webUri =
-            "https://play.google.com/store/apps/details?id=${applicationId}".toUri()
+            "https://play.google.com/store/apps/details?id=$url".toUri()
 
         val playStoreIntent = Intent(Intent.ACTION_VIEW, playStoreUri).apply {
             setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         }
         try {
             context.startActivity(playStoreIntent, null)
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             // Play Store app is not installed, fallback to the web browser
             val webIntent = Intent(Intent.ACTION_VIEW, webUri).apply {
                 setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
@@ -50,7 +49,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
     override fun openDeepLink(url: String, messageId: String?) {
         val message = "Deeplink: $url"
         Logger.d(ContentValues.TAG, message)
-        //val uri = Uri.parse("${Actions.DEEP_LINK_URI}$url&messageId=${actionData.messageId}")
+
         val uriBuilder = Uri.Builder()
             .scheme(Actions.MAPP_DEEP_LINK_SCHEME)
             .authority(Actions.MAPP_DEEP_LINK_AUTHORITY)
@@ -104,7 +103,7 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
                     .replace(" ", "")
                     .replace("tel:", "tel:+")
                     .trim()
-                data = Uri.parse(number)
+                data = number.toUri()
             }
             context.startActivity(intent)
         }
@@ -123,7 +122,8 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
         val message = "Landing Page In App: $url"
         Logger.d(TAG, message)
         val toolbarColor = ContextCompat.getColor(context, android.R.color.holo_orange_light)
-        val backIcon = AppCompatResources.getDrawable(context, R.drawable.me_ic_arrow_back)?.toBitmap()
+        val backIcon =
+            AppCompatResources.getDrawable(context, R.drawable.me_ic_arrow_back)?.toBitmap()
         val customTabColorSchemeParams = CustomTabColorSchemeParams.Builder()
             .setToolbarColor(toolbarColor)
             .build()
@@ -160,6 +160,6 @@ internal class MessageActionHandler(private val context: Context) : ActionHandle
     }
 
     override fun customAction(uri: Uri) {
-
+        // no implementation; left for potential future extending
     }
 }

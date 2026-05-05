@@ -35,7 +35,7 @@ internal class ActivityLifecycleHandler(
 
     private val TAG = ActivityLifecycleHandler::class.java.name
 
-    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { c, t ->
+    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { _, t ->
         Logger.e(this.javaClass.name, t)
     })
 
@@ -57,7 +57,9 @@ internal class ActivityLifecycleHandler(
                     when (event) {
                         Lifecycle.Event.ON_START -> isApplicationInForeground.set(true)
                         Lifecycle.Event.ON_STOP -> isApplicationInForeground.set(false)
-                        else -> {}
+                        else -> {
+                            // not needed other lifecycle events handling
+                        }
                     }
                 }
             })
@@ -95,6 +97,7 @@ internal class ActivityLifecycleHandler(
     }
 
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
+        Logger.d(TAG, "ACTIVITY SAVED INSTANCE STATE: ${activity::class.java.name}")
     }
 
     override fun onActivityDestroyed(activity: Activity) {

@@ -4,7 +4,6 @@ import androidx.annotation.IntRange
 import com.appoxee.internal.util.getIntOrDefault
 import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
-import com.appoxee.shared.AppoxeeOptions.Server
 import org.json.JSONObject
 
 
@@ -156,8 +155,8 @@ class AppoxeeOptions(
         }
     }
 
-    fun areEquals(other: AppoxeeOptions?):Boolean{
-        if(this===other) return true
+    fun areEquals(other: AppoxeeOptions?): Boolean {
+        if (this === other) return true
 
         if (server != other?.server) return false
         if (sdkKey != other.sdkKey) return false

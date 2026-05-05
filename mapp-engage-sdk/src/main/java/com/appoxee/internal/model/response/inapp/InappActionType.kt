@@ -1,8 +1,5 @@
 package com.appoxee.internal.model.response.inapp
 
-import androidx.media3.extractor.mp4.Track
-import com.appoxee.internal.model.request.events.TrackingKey
-
 enum class InappActionType(private val value: String) {
     DEEPLINK("0"),
     LANDING_PAGE("1"),
@@ -16,7 +13,7 @@ enum class InappActionType(private val value: String) {
             "1" -> LANDING_PAGE
             "2" -> APP_STORE
             "3" -> DIALER
-            "4"->CUSTOM
+            "4" -> CUSTOM
             else -> null
         }
 
@@ -25,7 +22,7 @@ enum class InappActionType(private val value: String) {
             "landingPage" -> LANDING_PAGE
             "appStore" -> APP_STORE
             "deepLink" -> DEEPLINK
-            "custom"->CUSTOM
+            "custom" -> CUSTOM
             else -> null
         }
     }

@@ -3,7 +3,7 @@ package com.appoxee.internal.provider
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import com.appoxee.internal.broadcast.MappInternalBroadcastReceiver
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
@@ -13,7 +13,6 @@ import com.appoxee.internal.ui.push.model.PushUriType
 import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import com.appoxee.internal.util.CompatExt
 import com.appoxee.shared.LocalPushBroadcast
-import androidx.core.net.toUri
 
 internal class PendingIntentProviderImpl(private val context: Context) : PendingIntentProvider {
     override fun createPendingIntent(
@@ -67,8 +66,8 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
         notificationId: Int,
         eventType: EventType,
     ): PendingIntent {
-        if (uriType == PushUriType.KEY_APP_DESTROY_PUSH) {
-            return createDismissPendingIntent(notificationId, pushData)
+        return if (uriType == PushUriType.KEY_APP_DESTROY_PUSH) {
+            createDismissPendingIntent(notificationId, pushData)
         } else {
             val intent = FullScreenActivity.getIntent(context).apply {
                 setAction(action)
@@ -78,7 +77,7 @@ internal class PendingIntentProviderImpl(private val context: Context) : Pending
                 actionData?.let { data = it.toUri() }
                 pushData?.let { putExtra("pushData", it) }
             }
-            return PendingIntent.getActivity(
+            PendingIntent.getActivity(
                 context,
                 notificationId,
                 intent,
