@@ -15,7 +15,6 @@ import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.attributes.CustomAttributesPayload
 import com.appoxee.internal.model.response.inbox.InboxMessage
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.MessageStatus
@@ -44,9 +43,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 
 @Suppress("UNCHECKED_CAST")
 @Keep
@@ -133,7 +129,7 @@ internal open class AppoxeeImpl(
             // always store options for possible changes of other attributes, not used for comparing
             storage.saveInitOptions(options)
         } else {
-            checkNotNull(storage.getInitOptions()) {"Engage SDK wasn't supplied with initialization parameters!"}
+            checkNotNull(storage.getInitOptions()) { "Engage SDK wasn't supplied with initialization parameters!" }
         }
 
         // check device registration

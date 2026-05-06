@@ -55,6 +55,66 @@ fun collectInternalPublicSymbols(): List<String> {
     return symbols.sorted()
 }
 
+fun collectCoverageExcludesForInterfacesAndPlainDataClasses(): List<String> {
+    val packageRegex = Regex("^package\\s+([a-zA-Z0-9_.]+)")
+    val interfaceRegex = Regex(
+        "^(?:public\\s+|internal\\s+|private\\s+|protected\\s+)?(?:sealed\\s+)?(?:fun\\s+interface|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b"
+    )
+    val dataClassRegex = Regex(
+        "^(?:public\\s+|internal\\s+|private\\s+|protected\\s+)?data\\s+class\\s+([A-Za-z_][A-Za-z0-9_]*)\\b"
+    )
+
+    return fileTree("src/main/java").matching {
+        include("**/*.kt", "**/*.java")
+    }.files.flatMap fileLoop@{ file ->
+        val lines = file.readLines()
+        val pkg = lines.firstNotNullOfOrNull { line ->
+            packageRegex.find(line.trim())?.groupValues?.get(1)
+        } ?: return@fileLoop emptyList()
+        val packagePath = pkg.replace('.', '/')
+
+        lines.mapIndexedNotNull { index, line ->
+            val trimmedLine = line.trim()
+            interfaceRegex.find(trimmedLine)?.groupValues?.get(1)
+                ?: dataClassRegex.find(trimmedLine)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.takeIf { isPlainDataClass(lines, index) }
+        }.flatMap { symbol ->
+            listOf(
+                "**/$packagePath/$symbol.class",
+                "**/$packagePath/$symbol\$*.class"
+            )
+        }
+    }.distinct().sorted()
+}
+
+fun isPlainDataClass(lines: List<String>, startIndex: Int): Boolean {
+    var parenthesisDepth = 0
+    var sawConstructor = false
+
+    for (index in startIndex..lines.lastIndex) {
+        val code = lines[index].substringBefore("//")
+
+        code.forEach { char ->
+            when (char) {
+                '(' -> {
+                    sawConstructor = true
+                    parenthesisDepth++
+                }
+                ')' -> parenthesisDepth--
+                '{' -> if (sawConstructor && parenthesisDepth == 0) return false
+            }
+        }
+
+        if (sawConstructor && parenthesisDepth == 0) {
+            return true
+        }
+    }
+
+    return false
+}
+
 
 extensions.configure<LibraryExtension> {
     namespace = "com.appoxee.sdk"
@@ -156,7 +216,7 @@ val jacocoProdDebugUnitTestReport by tasks.registering(JacocoReport::class) {
         "**/Manifest*.*",
         "**/*Test*.*",
         "**/databinding/**"
-    )
+    ) + collectCoverageExcludesForInterfacesAndPlainDataClasses()
 
     val kotlinClasses = fileTree(layout.buildDirectory.dir("intermediates/built_in_kotlinc/prodDebug/compileProdDebugKotlin/classes")) {
         exclude(fileFilter)

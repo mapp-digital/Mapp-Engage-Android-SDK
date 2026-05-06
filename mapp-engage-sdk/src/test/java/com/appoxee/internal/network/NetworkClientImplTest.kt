@@ -34,7 +34,7 @@ internal class NetworkClientImplTest {
     private val inappEventsPathV5 = "api/v5/device/inapp/tracking"
     private val pushEventsPath = "/api/push/event"
 
-    private lateinit var server: MockWebServer
+    private lateinit var mockWebServer: MockWebServer
     private lateinit var networkClient: NetworkClientImpl
 
     @Before
@@ -46,6 +46,10 @@ internal class NetworkClientImplTest {
         every { Log.i(any(), any(), any()) } answers { 0 }
         every { Log.v(any(), any()) } answers { 0 }
 
+        mockWebServer = MockWebServer()
+        mockWebServer.start()
+        val baseUrl = mockWebServer.url("/").toString().removeSuffix("/")
+
         val options = mockk<AppoxeeOptions>() {
             every { server } returns AppoxeeOptions.Server.L3
             every { sdkKey } returns "1234567.890"
@@ -53,8 +57,8 @@ internal class NetworkClientImplTest {
             every { tenantId } returns "7890"
             every { readTimeout } returns 2000
             every { connectionTimeout } returns 2000
-            every { server.value } returns "http://127.0.0.1:8080"
-            every { server.internalCepUrl } returns "http://127.0.0.1:8080"
+            every { server.value } returns baseUrl
+            every { server.internalCepUrl } returns baseUrl
         }
 
         val storage = mockkClass(PrefsStorageImpl::class) {
@@ -62,21 +66,18 @@ internal class NetworkClientImplTest {
         }
 
         networkClient = spyk(NetworkClientImpl(storage))
-        server = MockWebServer()
-        server.start(8080)
     }
 
     @After
     fun tearDown() {
-        server.close()
-        server.shutdown()
+        mockWebServer.shutdown()
         unmockkAll()
     }
 
     @Test
     fun `test execute request and return response status`() {
         runTest {
-            server.enqueue(
+            mockWebServer.enqueue(
                 MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
             )
 
@@ -90,7 +91,7 @@ internal class NetworkClientImplTest {
 
             val response = networkClient.execute(request, adapter)
 
-            val recordedRequest = server.takeRequest()
+            val recordedRequest = mockWebServer.takeRequest()
 
             Truth.assertThat(response.data).isNotNull()
 
@@ -102,7 +103,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return response body`() = runTest {
-        server.enqueue(
+        mockWebServer.enqueue(
             MockResponse().setResponseCode(200).setBody(MockData.GET_DEVICE_RESPONSE)
         )
 
@@ -117,7 +118,7 @@ internal class NetworkClientImplTest {
 
         val responseData = response.data
 
-        val recordedRequest = server.takeRequest()
+        val recordedRequest = mockWebServer.takeRequest()
 
         coVerify { networkClient.execute(request, adapter) }
 
@@ -131,7 +132,7 @@ internal class NetworkClientImplTest {
     @Test
     fun `test execute request and return server exception status`() {
         runTest {
-            server.enqueue(
+            mockWebServer.enqueue(
                 MockResponse().setResponseCode(500)
             )
 
@@ -145,7 +146,7 @@ internal class NetworkClientImplTest {
             try {
                 networkClient.execute(request, adapter)
             } catch (e: Exception) {
-                val recordedRequest = server.takeRequest()
+                val recordedRequest = mockWebServer.takeRequest()
                 Truth.assertThat(e).isInstanceOf(ServerException::class.java)
                 Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
             }
@@ -155,7 +156,7 @@ internal class NetworkClientImplTest {
     @Test
     fun `test execute request and return client exception status`() {
         runTest {
-            server.enqueue(
+            mockWebServer.enqueue(
                 MockResponse().setResponseCode(400)
             )
 
@@ -169,7 +170,7 @@ internal class NetworkClientImplTest {
             try {
                 networkClient.execute(request, adapter)
             } catch (e: Exception) {
-                val recordedRequest = server.takeRequest()
+                val recordedRequest = mockWebServer.takeRequest()
                 Truth.assertThat(e).isInstanceOf(ClientException::class.java)
                 Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
             }
@@ -179,7 +180,7 @@ internal class NetworkClientImplTest {
     @Test
     fun `test execute request and return redirect exception status`() {
         runTest {
-            server.enqueue(
+            mockWebServer.enqueue(
                 MockResponse().setResponseCode(300)
             )
 
@@ -193,7 +194,7 @@ internal class NetworkClientImplTest {
             try {
                 networkClient.execute(request, adapter)
             } catch (e: Exception) {
-                val recordedRequest = server.takeRequest()
+                val recordedRequest = mockWebServer.takeRequest()
                 Truth.assertThat(e).isInstanceOf(RedirectException::class.java)
                 Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)
             }
@@ -202,7 +203,7 @@ internal class NetworkClientImplTest {
 
     @Test
     fun `test execute request and return socket exception`() = runTest {
-        server.enqueue(
+        mockWebServer.enqueue(
             MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_DURING_REQUEST_BODY)
         )
 
@@ -216,7 +217,7 @@ internal class NetworkClientImplTest {
         try {
             networkClient.execute(request, adapter)
         } catch (e: Exception) {
-            val recordedRequest = server.takeRequest()
+            val recordedRequest = mockWebServer.takeRequest()
             Truth.assertThat(e).isNotNull()
             Truth.assertThat(e).isInstanceOf(IOException::class.java)
             Truth.assertThat(recordedRequest.method).isEqualTo(Request.Method.PUT.name)

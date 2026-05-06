@@ -23,3 +23,4 @@ local.properties
 /buildSrc/.gradle
 /buildSrc/.kotlin
 .claude/settings.json
+/htmlReport
