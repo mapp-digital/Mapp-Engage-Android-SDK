@@ -3,6 +3,12 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader -> localProperties.load(reader) }
+}
+
 android {
     namespace 'com.mapp.engagesample'
     compileSdk = 36
@@ -16,6 +22,15 @@ android {
         versionName "2.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "MAPP_SDK_KEY", "\"${localProperties['mapp.sdk.key']}\""
+        buildConfigField "String", "MAPP_APP_ID", "\"${localProperties['mapp.app.id']}\""
+        buildConfigField "String", "MAPP_TENANT_ID", "\"${localProperties['mapp.tenant.id']}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+        viewBinding true
     }
 
     buildTypes {
@@ -29,10 +44,7 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    buildFeatures {
-        viewBinding true
-        flavorDimensions = ["main"]
-    }
+    flavorDimensions = ["main"]
 
     productFlavors {
         register("prod") {

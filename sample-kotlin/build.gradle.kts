@@ -1,9 +1,16 @@
 import com.android.build.api.dsl.ApplicationExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
 
 extensions.configure<ApplicationExtension> {
@@ -21,6 +28,10 @@ extensions.configure<ApplicationExtension> {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField("String", "MAPP_SDK_KEY", "\"${localProperties["mapp.sdk.key"]}\"")
+        buildConfigField("String", "MAPP_APP_ID", "\"${localProperties["mapp.app.id"]}\"")
+        buildConfigField("String", "MAPP_TENANT_ID", "\"${localProperties["mapp.tenant.id"]}\"")
     }
 
     buildTypes {
@@ -47,9 +58,11 @@ extensions.configure<ApplicationExtension> {
     }
 
     buildFeatures {
+        buildConfig = true
         viewBinding = true
-        flavorDimensions += listOf("main")
     }
+
+    flavorDimensions += listOf("main")
     productFlavors {
         create("prod") {
             dimension = flavorDimensions[0]
