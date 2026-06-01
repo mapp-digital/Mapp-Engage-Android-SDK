@@ -12,11 +12,8 @@ import com.appoxee.internal.model.response.inbox.MessageStatus
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
-import com.appoxee.internal.util.DispatchersProvider
-import com.appoxee.internal.util.DispatchersProviderImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Class is responsible for taking all messages (native and web) into single list of messages.
@@ -27,25 +24,33 @@ internal class InAppManagerImpl(
     private val webFactory: WebFactory,
     private val statsClient: StatsClient,
     private val scope: CoroutineScope,
-    private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl(),
 ) : InAppManager {
 
     override fun parseResponse(response: InappResponse?): List<Message> {
-        return response?.let {
-            val messages = mutableListOf<Message>()
-            messages.addAll(it.webMessages)
-            messages.addAll(it.nativeMessages)
-            messages.sortedBy { it.templateId }
-        } ?: emptyList()
+        if (response == null) return emptyList()
+        val messages = mutableListOf<Message>()
+        messages.addAll(response.webMessages)
+        messages.addAll(response.nativeMessages)
+        return messages.sortedByDescending { it.templateId }
     }
 
     override fun handleMessages(activity: Activity, messages: List<Message>) {
         if (messages.isEmpty()) return
-        val mutableMessages = messages.toMutableList()
 
-        val message = messages.first()
-        mutableMessages.remove(message)
-        showMessage(activity, message,
+        val first = messages.first()
+        val skipped = messages.drop(1)
+
+        scope.launch {
+            skipped.forEach { msg ->
+                reportInappEvent(
+                    msg,
+                    TrackingKey.IA_MSG_NOT_DISPLAYED,
+                    TrackingParams(reason = TrackingParams.REASON_OTHER_MESSAGE_DISPLAYING)
+                )
+            }
+        }
+
+        showMessage(activity, first,
             onShow = { msg ->
                 scope.launch {
                     reportInappEvent(msg, TrackingKey.IA_MSG_DISPLAYED, TrackingParams())
@@ -54,10 +59,6 @@ internal class InAppManagerImpl(
             onMessageClosed = { msg, key, params ->
                 scope.launch {
                     reportInappEvent(msg, key, params)
-                    withContext(dispatchersProvider.mainDispatcher) {
-                        if (mutableMessages.isNotEmpty())
-                            handleMessages(activity, mutableMessages.toList())
-                    }
                 }
             })
     }

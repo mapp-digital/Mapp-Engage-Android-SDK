@@ -31,6 +31,6 @@ internal class InAppContainer(
     }
 
     internal val inappManager: InAppManager by lazy {
-        InAppManagerImpl(nativeFactory, webFactory, statsClient, scope, dispatchersProvider)
+        InAppManagerImpl(nativeFactory, webFactory, statsClient, scope)
     }
 }
