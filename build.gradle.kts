@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application") version "9.1.0" apply false
-    id("com.android.library") version "9.1.0" apply false
+    id("com.android.application") version "9.2.1" apply false
+    id("com.android.library") version "9.2.1" apply false
     id("org.jetbrains.kotlin.android") version "2.3.20" apply false
     id("com.google.gms.google-services") version "4.4.4" apply false
     id("io.github.tafilovic.central-portal-publisher") version "2.0.13" apply false

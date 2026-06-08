@@ -36,6 +36,7 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,6 +44,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 @Suppress("UNCHECKED_CAST")
 @Keep
@@ -62,6 +64,12 @@ internal open class AppoxeeImpl(
     private val mutex = Mutex()
 
     internal val mIsReady by lazy { AtomicBoolean(false) }
+
+    private val registrationTimestampMs = AtomicLong(0L)
+
+    private companion object {
+        const val POST_REGISTRATION_DELAY_MS = 6_000L
+    }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val pushQueue by lazy { ConcurrentLinkedQueue<RemoteMessage>() }
@@ -273,7 +281,11 @@ internal open class AppoxeeImpl(
         oldRegistration: OldRegistration?
     ): DevicePayload? {
         // if device payload doesn't exist after all checkins, register device
-        appoxeeAdapter.register(newRegisterPayload)
+        val registerPayload = appoxeeAdapter.register(newRegisterPayload)
+
+        if (registerPayload != null) {
+            registrationTimestampMs.set(System.currentTimeMillis())
+        }
 
         // update optIn or optOut status with firebase token
         updateOptStatus(devicePayload, oldRegistration)
@@ -377,6 +389,14 @@ internal open class AppoxeeImpl(
     }
 
     override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
+        val registeredAt = registrationTimestampMs.get()
+        if (registeredAt > 0L) {
+            val remaining = POST_REGISTRATION_DELAY_MS - (System.currentTimeMillis() - registeredAt)
+            if (remaining > 0) {
+                Logger.d(TAG, "triggerInApp: waiting ${remaining}ms for post-registration settle window")
+                delay(remaining)
+            }
+        }
         val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
