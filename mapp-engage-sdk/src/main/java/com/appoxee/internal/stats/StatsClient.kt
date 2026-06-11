@@ -3,8 +3,8 @@ package com.appoxee.internal.stats
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
-import com.appoxee.internal.model.response.inbox.InboxMessage
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
+import com.appoxee.internal.model.response.inbox.MessageStatusDto
 
 internal interface StatsClient {
     suspend fun reportPushEvent(
@@ -23,5 +23,5 @@ internal interface StatsClient {
 
     suspend fun reportActivation(seconds: Int)
 
-    suspend fun markInboxMessageStatus(message: InboxMessage, status: MessageStatus): Boolean
+    suspend fun markInboxMessageStatus(message: InboxMessageDto, status: MessageStatusDto): Boolean
 }

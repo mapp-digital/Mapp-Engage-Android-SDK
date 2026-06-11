@@ -2,6 +2,21 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
+## [7.0.3] - 2026-06-11
+
+### Bug Fixes
+
+- **`triggerInApp` missed messages on first launch** — On the first run after device registration, `triggerInApp` now retries fetching in-app messages up to 3 times with a 2-second delay between each attempt, stopping early as soon as a non-empty response is received. This replaces the previous single-shot approach that used a fixed 6-second upfront wait and frequently returned no messages because the backend had not finished processing the new registration.
+
+### Breaking Changes
+
+- **Inbox public API types moved** — `InboxMessage`, `MessageStatus`, and `InboxMessagesResponse` have moved from `com.appoxee.internal.model.response.inbox` to `com.appoxee.shared`. Update your imports accordingly.
+
+### Build
+
+- **Version bump to 7.0.3** — Updated the published SDK version.
+
+
 ## [7.0.2] - 2026-04-14
 
 ### Bug Fixes

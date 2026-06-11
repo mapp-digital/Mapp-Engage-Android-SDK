@@ -16,7 +16,7 @@ import com.appoxee.internal.util.getStringOrEmpty
 import org.json.JSONObject
 
 @Suppress("UNCHECKED_CAST")
-data class InboxMessage(
+data class InboxMessageDto(
     val templateId: Long,
     val content: String,
     val subject: String,
@@ -25,7 +25,7 @@ data class InboxMessage(
     val sentDate: Long?,
     val expireDate: Long?,
     val firstSentTs: Long?,
-    val status: MessageStatus,
+    val status: MessageStatusDto,
     val isNativeInApp: Boolean,
     val extras: Map<String, String>,
     val eventId: String,
@@ -47,14 +47,14 @@ data class InboxMessage(
         }
     }
 
-    fun setStatus(status: MessageStatus): InboxMessage {
+    fun setStatus(status: MessageStatusDto): InboxMessageDto {
         return this.copy(status = status)
     }
 
     companion object {
-        fun fromJSON(json: JSONObject, eventId: String, eventKey: String): InboxMessage {
+        fun fromJSON(json: JSONObject, eventId: String, eventKey: String): InboxMessageDto {
             val isNativeInApp = json.optBoolean("is_native_in_app")
-            val inboxMessage = InboxMessage(
+            val inboxMessage = InboxMessageDto(
                 templateId = json.getLongOrDefault("template_id", 0),
                 content = json.getStringOrEmpty("content").decode(),
                 subject = json.getStringOrEmpty("subject"),
@@ -63,7 +63,7 @@ data class InboxMessage(
                 sentDate = json.getNullableLong("sent_ts"),
                 expireDate = json.getNullableLong("expire_ts"),
                 firstSentTs = json.getNullableLong("firts_sent_ts"),
-                status = MessageStatus.fromName(json.getStringOrEmpty("status")),
+                status = MessageStatusDto.fromName(json.getStringOrEmpty("status")),
                 isNativeInApp = isNativeInApp,
                 extras = json.arrayToMap("extras") { it.toString() },
                 eventId = eventId,

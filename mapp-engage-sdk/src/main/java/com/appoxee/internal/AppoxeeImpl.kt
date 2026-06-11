@@ -15,9 +15,13 @@ import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.inbox.InboxMessage
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.model.response.inbox.toDto
+import com.appoxee.internal.model.response.inbox.toPublic
+import com.appoxee.shared.InboxMessage
+import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
+import com.appoxee.shared.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
@@ -358,34 +362,64 @@ internal open class AppoxeeImpl(
         appoxeeAdapter.getAlias()
     }
 
-    override fun fetchInboxMessages(): Call<InboxMessagesResponse?> = buildHttpCall {
-        appoxeeAdapter.fetchInboxMessages("app_inbox")
+    override fun fetchInboxMessages(): Call<PublicInboxMessagesResponse?> = buildHttpCall {
+        appoxeeAdapter.fetchInboxMessages("app_inbox")?.toPublic()
     }
 
     override fun fetchInboxMessage(templateId: Long): Call<InboxMessage?> =
         buildHttpCall {
             val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
-            response?.messages?.firstOrNull { it.templateId == templateId }
+            response?.messages?.firstOrNull { it.templateId == templateId }?.toPublic()
         }
 
 
     override fun fetchLatestInboxMessage(): Call<InboxMessage?> =
         buildHttpCall {
             val response = appoxeeAdapter.fetchInboxMessages("app_inbox")
-            response?.messages?.maxByOrNull { it.templateId }
+            response?.messages?.maxByOrNull { it.templateId }?.toPublic()
         }
 
     override fun updateInboxMessageStatus(
         message: InboxMessage,
         status: MessageStatus
     ): Call<Boolean> = buildHttpCall {
-        inappContainer.inappManager.markInboxMessageStatus(message, status)
+        val dto = InboxMessageDto(
+            templateId = message.templateId,
+            content = message.content,
+            subject = message.subject,
+            summary = message.summary,
+            iconUrl = message.iconUrl,
+            sentDate = message.sentDate,
+            expireDate = message.expireDate,
+            firstSentTs = message.firstSentTs,
+            status = status.toDto(),
+            isNativeInApp = message.isNativeInApp,
+            extras = message.extras,
+            eventId = message.eventId,
+            eventKey = message.eventKey,
+        )
+        inappContainer.inappManager.markInboxMessageStatus(dto, status.toDto())
     }
 
     override fun showInboxMessage(context: Activity, message: InboxMessage) {
+        val dto = InboxMessageDto(
+            templateId = message.templateId,
+            content = message.content,
+            subject = message.subject,
+            summary = message.summary,
+            iconUrl = message.iconUrl,
+            sentDate = message.sentDate,
+            expireDate = message.expireDate,
+            firstSentTs = message.firstSentTs,
+            status = message.status.toDto(),
+            isNativeInApp = message.isNativeInApp,
+            extras = message.extras,
+            eventId = message.eventId,
+            eventKey = message.eventKey,
+        )
         inappContainer.inappManager.showMessage(
             activity = context,
-            message = message.getInappMessage()
+            message = dto.getInappMessage()
         )
     }
 

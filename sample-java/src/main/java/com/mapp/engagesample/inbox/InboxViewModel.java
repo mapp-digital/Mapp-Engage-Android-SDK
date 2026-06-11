@@ -5,8 +5,8 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.appoxee.Appoxee;
-import com.appoxee.internal.model.response.inbox.InboxMessage;
-import com.appoxee.internal.model.response.inbox.MessageStatus;
+import com.appoxee.shared.InboxMessage;
+import com.appoxee.shared.MessageStatus;
 
 import java.util.ArrayList;
 import java.util.List;

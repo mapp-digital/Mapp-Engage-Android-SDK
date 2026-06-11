@@ -5,8 +5,8 @@ import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.InappResponse
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
-import com.appoxee.internal.model.response.inbox.InboxMessage
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
+import com.appoxee.internal.model.response.inbox.MessageStatusDto
 
 internal interface InAppManager {
     fun parseResponse(response: InappResponse?): List<Message>
@@ -22,5 +22,5 @@ internal interface InAppManager {
         trackingKey: TrackingKey,
         trackingParams: TrackingParams,
     )
-    suspend fun markInboxMessageStatus(message: InboxMessage, status: MessageStatus): Boolean
+    suspend fun markInboxMessageStatus(message: InboxMessageDto, status: MessageStatusDto): Boolean
 }

@@ -7,8 +7,8 @@ import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.model.response.inapp.WebInappMessage
-import com.appoxee.internal.model.response.inbox.InboxMessage
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
+import com.appoxee.internal.model.response.inbox.MessageStatusDto
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.ui.inapp.nativ.NativeFactory
 import com.appoxee.internal.ui.inapp.web.WebFactory
@@ -97,8 +97,8 @@ internal class InAppManagerImpl(
     }
 
     override suspend fun markInboxMessageStatus(
-        message: InboxMessage,
-        status: MessageStatus
+        message: InboxMessageDto,
+        status: MessageStatusDto
     ): Boolean {
         return statsClient.markInboxMessageStatus(message, status)
     }

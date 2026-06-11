@@ -13,8 +13,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.appoxee.Appoxee;
-import com.appoxee.internal.model.response.inbox.InboxMessage;
-import com.appoxee.internal.model.response.inbox.MessageStatus;
+import com.appoxee.shared.InboxMessage;
+import com.appoxee.shared.MessageStatus;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 

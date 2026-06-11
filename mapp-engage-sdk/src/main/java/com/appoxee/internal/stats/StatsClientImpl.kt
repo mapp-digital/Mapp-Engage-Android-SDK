@@ -3,8 +3,8 @@ package com.appoxee.internal.stats
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
-import com.appoxee.internal.model.response.inbox.InboxMessage
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
+import com.appoxee.internal.model.response.inbox.MessageStatusDto
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
@@ -126,8 +126,8 @@ internal class StatsClientImpl(
     }
 
     override suspend fun markInboxMessageStatus(
-        message: InboxMessage,
-        status: MessageStatus
+        message: InboxMessageDto,
+        status: MessageStatusDto
     ): Boolean = withContext(dispatchersProvider.ioDispatcher) {
         val originalEventId = message.eventId
         val templateId = message.templateId

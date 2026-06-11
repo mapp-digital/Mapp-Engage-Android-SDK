@@ -1,6 +1,6 @@
 package com.mapp.engagesample.inbox
 
-import com.appoxee.internal.model.response.inbox.InboxMessage
+import com.appoxee.shared.InboxMessage
 
 data class InboxStateUI(
     val messages: List<InboxMessage>? = null,

@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.appoxee.internal.model.response.inbox.InboxMessage;
+import com.appoxee.shared.InboxMessage;
 import com.bumptech.glide.Glide;
 
 import java.util.Objects;

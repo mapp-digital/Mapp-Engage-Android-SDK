@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import coil.load
 import coil.transform.RoundedCornersTransformation
-import com.appoxee.internal.model.response.inbox.InboxMessage
+import com.appoxee.shared.InboxMessage
 import eu.brrm.shared_ui.databinding.RowInboxMessageBinding
 
 class InboxMessagesAdapter(

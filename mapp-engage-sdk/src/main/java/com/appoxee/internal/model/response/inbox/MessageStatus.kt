@@ -2,7 +2,7 @@ package com.appoxee.internal.model.response.inbox
 
 import com.appoxee.internal.model.request.events.TrackingKey
 
-enum class MessageStatus(val status: String) {
+enum class MessageStatusDto(val status: String) {
     READ("READ"), UNREAD("UNREAD"), DELETED("DELETED");
 
     fun getName(): String {
@@ -22,7 +22,7 @@ enum class MessageStatus(val status: String) {
     }
 
     companion object {
-        fun fromName(status: String): MessageStatus {
+        fun fromName(status: String): MessageStatusDto {
             return when (status.lowercase()) {
                 "read" -> READ
                 "deleted" -> DELETED

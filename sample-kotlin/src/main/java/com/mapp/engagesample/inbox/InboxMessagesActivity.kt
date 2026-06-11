@@ -8,7 +8,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.appoxee.Appoxee
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.shared.MessageStatus
+import com.appoxee.shared.InboxMessage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import eu.brrm.shared_ui.databinding.ActivityInboxMessagesBinding
@@ -27,7 +28,7 @@ class InboxMessagesActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[InboxViewModel::class.java]
 
         val adapter = InboxMessagesAdapter(
-            onClick = { message, index ->
+            onClick = { message, index->
                 Appoxee.instance().showInboxMessage(this, message)
             },
             onLongClick = { message, index ->

@@ -7,9 +7,9 @@ import android.os.Looper
 import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.internal.model.response.inbox.InboxMessage
-import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
-import com.appoxee.internal.model.response.inbox.MessageStatus
+import com.appoxee.shared.InboxMessage
+import com.appoxee.shared.InboxMessagesResponse
+import com.appoxee.shared.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.DispatchersProviderImpl
