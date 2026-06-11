@@ -68,7 +68,8 @@ internal open class AppoxeeImpl(
     private val registrationTimestampMs = AtomicLong(0L)
 
     private companion object {
-        const val POST_REGISTRATION_DELAY_MS = 6_000L
+        const val POST_REGISTRATION_DELAY_MS = 2_000L
+        const val POST_REGISTRATION_MAX_RETRIES = 3
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -390,14 +391,27 @@ internal open class AppoxeeImpl(
 
     override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
         val registeredAt = registrationTimestampMs.get()
-        if (registeredAt > 0L) {
-            val remaining = POST_REGISTRATION_DELAY_MS - (System.currentTimeMillis() - registeredAt)
-            if (remaining > 0) {
-                Logger.d(TAG, "triggerInApp: waiting ${remaining}ms for post-registration settle window")
-                delay(remaining)
+        val inappResponse = if (registeredAt > 0L) {
+            var response = appoxeeAdapter.fetchInappMessages(eventName)
+            var attempt = 1
+            while (attempt <= POST_REGISTRATION_MAX_RETRIES) {
+                val hasMessages = response?.webMessages?.isNotEmpty() == true ||
+                        response?.nativeMessages?.isNotEmpty() == true
+                if (hasMessages) {
+                    Logger.d(TAG, "triggerInApp: got messages on attempt $attempt, skipping further retries")
+                    break
+                }
+                Logger.d(TAG, "triggerInApp: attempt $attempt - no messages, waiting ${POST_REGISTRATION_DELAY_MS}ms before retry")
+                delay(POST_REGISTRATION_DELAY_MS)
+                if (attempt < POST_REGISTRATION_MAX_RETRIES) {
+                    response = appoxeeAdapter.fetchInappMessages(eventName)
+                }
+                attempt++
             }
+            response
+        } else {
+            appoxeeAdapter.fetchInappMessages(eventName)
         }
-        val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
             withContext(dispatcherProvider.mainDispatcher) {
