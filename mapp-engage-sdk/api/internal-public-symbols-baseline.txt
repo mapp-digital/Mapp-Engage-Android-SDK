@@ -32,9 +32,9 @@ com.appoxee.internal.model.response.inapp.Location
 com.appoxee.internal.model.response.inapp.NativeInappMessage
 com.appoxee.internal.model.response.inapp.TrackingParams
 com.appoxee.internal.model.response.inapp.WebInappMessage
-com.appoxee.internal.model.response.inbox.InboxMessage
+com.appoxee.internal.model.response.inbox.InboxMessageDto
 com.appoxee.internal.model.response.inbox.InboxMessagesResponse
-com.appoxee.internal.model.response.inbox.MessageStatus
+com.appoxee.internal.model.response.inbox.MessageStatusDto
 com.appoxee.internal.network.Call
 com.appoxee.internal.network.exceptions.CallConsumedException
 com.appoxee.internal.network.exceptions.ClientException
