@@ -50,7 +50,9 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 - **Thread-safe SDK initialisation** — `Appoxee.engage()` now uses a double-checked lock for safe instance creation across threads, eliminating race conditions during app startup.
 - **Reduced startup overhead** — Internal containers are now initialised lazily, improving app startup performance.
+- Updated 3rd party dependencies as regular maintainence to keep all up-to-date with applied fixes and security patches.
 
 ### Build
 
 - **Gradle 9.3.0 / AGP 9.1.0** — SDK is now built with Gradle 9.3.0 and Android Gradle Plugin 9.1.0. Ensure your project is compatible if consuming sources directly.
+- TargetSdk 37 required.

@@ -118,11 +118,11 @@ fun isPlainDataClass(lines: List<String>, startIndex: Int): Boolean {
 
 extensions.configure<LibraryExtension> {
     namespace = "com.appoxee.sdk"
-    compileSdk = 36
-    buildToolsVersion = "36.0.0"
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     lint {
-        targetSdk = 36
+        targetSdk = 37
         checkReleaseBuilds = false
     }
 
