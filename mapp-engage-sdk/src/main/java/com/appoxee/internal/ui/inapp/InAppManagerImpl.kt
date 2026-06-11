@@ -37,8 +37,9 @@ internal class InAppManagerImpl(
     override fun handleMessages(activity: Activity, messages: List<Message>) {
         if (messages.isEmpty()) return
 
-        val first = messages.first()
-        val skipped = messages.drop(1)
+        val sorted = messages.sortedByDescending { it.templateId }
+        val first = sorted.first()
+        val skipped = sorted.drop(1)
 
         scope.launch {
             skipped.forEach { msg ->

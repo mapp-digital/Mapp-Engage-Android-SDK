@@ -543,7 +543,7 @@ class AppoxeeImplUnitTest {
     @Test
     fun `fetch inbox messages returns success`() = runTest {
         val mockResponse = Response.success(
-            200, InboxMessagesResponse("1", listOf(mockk(), mockk()))
+            200, InboxMessagesResponse("1", listOf(mockk(relaxed = true), mockk(relaxed = true)))
         )
         coEvery { mockEngageApi.fetchInboxMessages(any()) } coAnswers { mockResponse }
 
