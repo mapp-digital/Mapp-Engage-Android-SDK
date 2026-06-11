@@ -13,11 +13,11 @@ public interface com.appoxee.Appoxee {
   public abstract com.appoxee.internal.network.Call<java.lang.Boolean> enablePush(boolean, java.lang.String);
   public abstract com.appoxee.internal.network.Call<java.lang.Boolean> isPushEnabled();
   public abstract com.appoxee.internal.network.Call<java.lang.String> getFirebaseToken();
-  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessagesResponse> fetchInboxMessages();
-  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessage> fetchInboxMessage(long);
-  public abstract com.appoxee.internal.network.Call<com.appoxee.internal.model.response.inbox.InboxMessage> fetchLatestInboxMessage();
-  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> updateInboxMessageStatus(com.appoxee.internal.model.response.inbox.InboxMessage, com.appoxee.internal.model.response.inbox.MessageStatus);
-  public abstract void showInboxMessage(android.app.Activity, com.appoxee.internal.model.response.inbox.InboxMessage);
+  public abstract com.appoxee.internal.network.Call<com.appoxee.shared.InboxMessagesResponse> fetchInboxMessages();
+  public abstract com.appoxee.internal.network.Call<com.appoxee.shared.InboxMessage> fetchInboxMessage(long);
+  public abstract com.appoxee.internal.network.Call<com.appoxee.shared.InboxMessage> fetchLatestInboxMessage();
+  public abstract com.appoxee.internal.network.Call<java.lang.Boolean> updateInboxMessageStatus(com.appoxee.shared.InboxMessage, com.appoxee.shared.MessageStatus);
+  public abstract void showInboxMessage(android.app.Activity, com.appoxee.shared.InboxMessage);
   public abstract com.appoxee.internal.network.Call<java.lang.Boolean> triggerInApp(android.app.Activity, java.lang.String);
   public abstract <T extends com.appoxee.shared.GeoStatus> com.appoxee.internal.network.Call<T> startGeofencing(int);
   public abstract <T extends com.appoxee.shared.GeoStatus> com.appoxee.internal.network.Call<T> stopGeofencing();
@@ -99,6 +99,57 @@ public class com.appoxee.shared.GeoStatus {
 public final class com.appoxee.shared.GeofenceException extends java.lang.Exception {
   public com.appoxee.shared.GeofenceException(com.appoxee.shared.GeoStatus);
   public final com.appoxee.shared.GeoStatus getGeoStatus();
+}
+
+### com.appoxee.shared.InboxMessage
+public final class com.appoxee.shared.InboxMessage {
+  public com.appoxee.shared.InboxMessage(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long, java.lang.Long, com.appoxee.shared.MessageStatus, boolean, java.util.Map<java.lang.String, java.lang.String>, java.lang.String, java.lang.String);
+  public static com.appoxee.shared.InboxMessage copy$default(com.appoxee.shared.InboxMessage, long, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long, java.lang.Long, com.appoxee.shared.MessageStatus, boolean, java.util.Map, java.lang.String, java.lang.String, int, java.lang.Object);
+  public final long getTemplateId();
+  public final java.lang.String getContent();
+  public final java.lang.String getSubject();
+  public final java.lang.String getSummary();
+  public final java.lang.String getIconUrl();
+  public final java.lang.Long getSentDate();
+  public final java.lang.Long getExpireDate();
+  public final java.lang.Long getFirstSentTs();
+  public final com.appoxee.shared.MessageStatus getStatus();
+  public final boolean isNativeInApp();
+  public final java.util.Map<java.lang.String, java.lang.String> getExtras();
+  public final java.lang.String getEventId();
+  public final java.lang.String getEventKey();
+  public final com.appoxee.shared.InboxMessage setStatus(com.appoxee.shared.MessageStatus);
+  public java.lang.String toString();
+  public final long component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final java.lang.String component4();
+  public final java.lang.String component5();
+  public final java.lang.Long component6();
+  public final java.lang.Long component7();
+  public final java.lang.Long component8();
+  public final com.appoxee.shared.MessageStatus component9();
+  public final boolean component10();
+  public final java.util.Map<java.lang.String, java.lang.String> component11();
+  public final java.lang.String component12();
+  public final java.lang.String component13();
+  public final com.appoxee.shared.InboxMessage copy(long, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long, java.lang.Long, com.appoxee.shared.MessageStatus, boolean, java.util.Map<java.lang.String, java.lang.String>, java.lang.String, java.lang.String);
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+
+### com.appoxee.shared.InboxMessagesResponse
+public final class com.appoxee.shared.InboxMessagesResponse {
+  public com.appoxee.shared.InboxMessagesResponse(java.lang.String, java.util.List<com.appoxee.shared.InboxMessage>);
+  public static com.appoxee.shared.InboxMessagesResponse copy$default(com.appoxee.shared.InboxMessagesResponse, java.lang.String, java.util.List, int, java.lang.Object);
+  public final java.lang.String getEventId();
+  public final java.util.List<com.appoxee.shared.InboxMessage> getMessages();
+  public final java.lang.String component1();
+  public final java.util.List<com.appoxee.shared.InboxMessage> component2();
+  public final com.appoxee.shared.InboxMessagesResponse copy(java.lang.String, java.util.List<com.appoxee.shared.InboxMessage>);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
 }
 
 ### com.appoxee.shared.LocalPushBroadcast
@@ -189,6 +240,19 @@ public abstract class com.appoxee.shared.MappResult<T> {
   public final boolean isSuccess();
   public final T getData();
   public final java.lang.Throwable getError();
+}
+
+### com.appoxee.shared.MessageStatus
+public final class com.appoxee.shared.MessageStatus extends java.lang.Enum<com.appoxee.shared.MessageStatus> {
+  public static final com.appoxee.shared.MessageStatus READ;
+  public static final com.appoxee.shared.MessageStatus UNREAD;
+  public static final com.appoxee.shared.MessageStatus DELETED;
+  public static com.appoxee.shared.MessageStatus[] values();
+  public static com.appoxee.shared.MessageStatus valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.appoxee.shared.MessageStatus> getEntries();
+  public final java.lang.String getStatus();
+  public final java.lang.String getName();
+  public java.lang.String toString();
 }
 
 ### com.appoxee.shared.NotificationMode
