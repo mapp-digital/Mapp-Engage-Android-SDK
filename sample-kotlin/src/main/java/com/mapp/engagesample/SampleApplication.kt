@@ -15,7 +15,7 @@ class SampleApplication : Application() {
             tenantId = BuildConfig.MAPP_TENANT_ID,
             appId = BuildConfig.MAPP_APP_ID,
         ).also {
-            it.notificationMode = NotificationMode.SILENT_ONLY
+            it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
         }
 
 
