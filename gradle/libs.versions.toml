@@ -30,7 +30,7 @@ androidx-test-espresso = "3.7.0"
 androidx-test-core = "1.7.0"
 androidx-test-mockk = "1.14.11"
 lifecycle-process = "2.10.0"
-mapp-engage="7.1.0"
+mapp-engage="7.1.1"
 
 [libraries]
 ## BASE
