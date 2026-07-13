@@ -91,7 +91,7 @@ internal abstract class Template(
             }
         }
 
-        message.behaviour?.displaySeconds?.toLong()?.let { seconds ->
+        message.behaviour?.displaySeconds?.takeIf { it > 0 }?.toLong()?.let { seconds ->
             job = scope.launch {
                 delay(TimeUnit.SECONDS.toMillis(seconds))
                 withContext(dispatchersProvider.mainDispatcher) {

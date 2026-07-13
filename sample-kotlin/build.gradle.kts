@@ -15,12 +15,12 @@ if (localPropertiesFile.exists()) {
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.mapp.engagesample"
-    compileSdk = 37
-    buildToolsVersion = "37.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.1.0"
     defaultConfig {
         applicationId = "com.appoxee.example"
         minSdk = 23
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 30
         versionName = "2.0.1"
 

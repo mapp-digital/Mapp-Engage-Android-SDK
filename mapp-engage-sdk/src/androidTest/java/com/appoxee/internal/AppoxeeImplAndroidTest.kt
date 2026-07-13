@@ -6,7 +6,7 @@ import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
-import com.appoxee.internal.model.response.inbox.InboxMessage
+import com.appoxee.internal.model.response.inbox.InboxMessageDto
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.response.Response
@@ -16,6 +16,7 @@ import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.push.base.PushManagerImpl
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.InboxMessage
 import com.appoxee.shared.MappResult
 import com.google.common.truth.Truth
 import com.google.firebase.messaging.RemoteMessage
@@ -121,7 +122,7 @@ class AppoxeeImplAndroidTest {
     @Test
     fun fetchInboxMessages() {
         runBlocking {
-            val inboxMessage = mockk<InboxMessage>()
+            val inboxMessage = mockk<InboxMessageDto>()
             coEvery { engageApiImpl.fetchInboxMessages(any()) } coAnswers {
                 Response.success(
                     200, InboxMessagesResponse("app_open", listOf(inboxMessage))
