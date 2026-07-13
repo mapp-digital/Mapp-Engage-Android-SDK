@@ -41,7 +41,9 @@ object LibraryExtensions {
     internal fun Activity.getDisplayMetrics(): DisplayMetrics {
         val displayMetrics = DisplayMetrics()
         displayMetrics.widthPixels = this.window.decorView.width
+            .takeIf { it > 0 } ?: this.resources.displayMetrics.widthPixels
         displayMetrics.heightPixels = this.window.decorView.height
+            .takeIf { it > 0 } ?: this.resources.displayMetrics.heightPixels
         return displayMetrics
     }
 

@@ -35,10 +35,10 @@ internal class NativeFactory(
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
         val inappActionHandler = actionContainer.inappActionHandler
-        val delaySeconds = getDelay(message)
+        val delayMillis = getDelay(message)
         var template: Template
         job = scope.launch {
-            delay(TimeUnit.SECONDS.toMillis(delaySeconds))
+            delay(delayMillis)
             withContext(dispatchersProvider.mainDispatcher) {
                 if (context.isDestroyed) return@withContext
                 template = createTemplate(
