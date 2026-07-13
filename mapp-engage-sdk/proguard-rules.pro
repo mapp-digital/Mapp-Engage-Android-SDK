@@ -5,6 +5,10 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+# Repackage obfuscated internal classes to avoid root-package collisions
+# with other independently-obfuscated AARs that also use short root-package names.
+-repackageclasses com.appoxee.internal
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
@@ -23,6 +27,15 @@
 ###############################################
 # General ProGuard rules for Android libraries
 ###############################################
+
+# Keep public SDK entry points stable for consumers.
+# This protects the API surface from accidental renaming while still allowing
+# internal implementation classes to be obfuscated and repackaged.
+-keep class com.appoxee.Appoxee { *; }
+-keep class com.appoxee.Appoxee$Companion { *; }
+-keep class com.appoxee.AppoxeeOptions { *; }
+-keep interface com.appoxee.AppoxeeObserver { *; }
+-keep class com.appoxee.shared.** { *; }
 
 # Keep all public/protected members in the SDK's own packages only.
 # Using "public class *" is too broad — it would prevent obfuscation of every

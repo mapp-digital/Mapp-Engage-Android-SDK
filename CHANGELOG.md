@@ -2,6 +2,16 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
+## [7.1.1] - 2026-07-07
+
+### Bug Fixes
+
+- **R8/ProGuard root-package collision fix** — Added explicit `-repackageclasses` for obfuscated internal classes and preserved public API entry points with focused `-keep` rules to prevent duplicate-root-package collisions when another obfuscated AAR is present.
+
+### Build
+
+- **Version bump to 7.1.1** — Updated the published SDK version.
+
 ## [7.1.0] - 2026-06-12
 
 ### Bug Fixes
