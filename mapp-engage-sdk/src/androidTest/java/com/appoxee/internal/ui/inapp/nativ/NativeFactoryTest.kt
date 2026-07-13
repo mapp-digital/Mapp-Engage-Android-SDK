@@ -81,6 +81,17 @@ class NativeFactoryTest {
     }
 
     @Test
+    fun getDelay_returns_delay_in_milliseconds() {
+        val message = mockk<NativeInappMessage>(relaxed = true) {
+            every { behaviour } returns Behaviour(3, 0)
+        }
+
+        val result = factory.getDelay(message)
+
+        Truth.assertThat(result).isEqualTo(3000)
+    }
+
+    @Test
     fun fullscreen_content_type_creates_fullscreen_template() {
         // Arrange
         val actionHandler = mockk<InappActionHandler>()

@@ -26,6 +26,7 @@ import com.appoxee.internal.model.response.inapp.NativeInappMessage
 import com.appoxee.internal.model.response.inapp.TrackingParams
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
+import com.appoxee.internal.ui.inapp.inappSizePercentOrDefault
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.getDisplayMetrics
 import com.appoxee.internal.util.LibraryExtensions.toColor
@@ -56,10 +57,12 @@ internal class StandardNativeTemplate<T : Message>(
         val view = inflater.inflate(layoutRes, null)
 
         width =
-            (activity.getDisplayMetrics().widthPixels * ((message.location?.width ?: 100) / 100f))
+            (activity.getDisplayMetrics().widthPixels *
+                    (message.location?.width.inappSizePercentOrDefault() / 100f))
                 .toInt()
         height =
-            (activity.getDisplayMetrics().heightPixels * ((message.location?.height ?: 100) / 100f))
+            (activity.getDisplayMetrics().heightPixels *
+                    (message.location?.height.inappSizePercentOrDefault() / 100f))
                 .toInt()
         alertDialog = AlertDialog.Builder(activity).create().apply {
             onViewCreated(message, view) { onDismiss() }

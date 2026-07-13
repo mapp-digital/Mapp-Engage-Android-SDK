@@ -34,12 +34,13 @@ internal class WebFactory(
         onMessageClosed: ((T, TrackingKey, TrackingParams) -> Unit)? = null
     ) {
         val inappActionHandler = actionContainer.inappActionHandler
-        val delaySeconds = getDelay(message)
+        val delayMillis = getDelay(message)
         var template: Template
         job = scope.launch {
             Logger.d(TAG, "createBanner: ${message.type.name}")
-            delay(TimeUnit.SECONDS.toMillis(delaySeconds))
+            delay(delayMillis)
             withContext(dispatchersProvider.mainDispatcher) {
+                if (context.isDestroyed) return@withContext
                 template = createTemplate(context, inappActionHandler, message, onMessageClosed)
                 template.show()
                 onShow?.invoke(message)

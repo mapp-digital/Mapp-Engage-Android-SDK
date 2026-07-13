@@ -21,6 +21,7 @@ import com.appoxee.internal.model.response.inapp.WebInappMessage
 import com.appoxee.internal.ui.custom.MappWebView
 import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
+import com.appoxee.internal.ui.inapp.inappSizePercentOrDefault
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.getDisplayMetrics
 import com.appoxee.internal.util.Logger
@@ -49,10 +50,12 @@ internal class BannerWebTemplate<T : Message>(
         val inflater = activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val position = BannerPosition.fromValue(message.location?.bannerPosition?.position ?: 0)
         val width =
-            (activity.getDisplayMetrics().widthPixels * ((message.location?.width ?: 100) / 100f))
+            (activity.getDisplayMetrics().widthPixels *
+                    (message.location?.width.inappSizePercentOrDefault() / 100f))
                 .toInt()
         val height =
-            (activity.getDisplayMetrics().heightPixels * ((message.location?.height ?: 100) / 100f))
+            (activity.getDisplayMetrics().heightPixels *
+                    (message.location?.height.inappSizePercentOrDefault() / 100f))
                 .toInt()
         view = inflater.inflate(layoutRes, null)
         windowManager = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
