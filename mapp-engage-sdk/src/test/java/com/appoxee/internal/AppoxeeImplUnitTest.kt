@@ -33,6 +33,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import io.mockk.Ordering
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -111,6 +112,7 @@ class AppoxeeImplUnitTest {
         every { Logger.w(any(), any(), any()) } just runs
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
+        every { Log.w(any(), any(), any()) } answers { 0 }
 
         mockContext = mockk<Context>(relaxed = true)
         mockApplication = mockk<Application>(relaxed = true)
@@ -254,7 +256,7 @@ class AppoxeeImplUnitTest {
         coEvery { sut.updateReadyStatus(any(), any()) } just runs
         coEvery { sut.fetchAppConfig() } just runs
 
-        sut.initializeSdk()
+        advanceUntilIdle()
 
         coVerify(exactly = 0) { mockAppoxeeAdapter.register(any()) }
         verify(exactly = 1) {
@@ -264,17 +266,17 @@ class AppoxeeImplUnitTest {
 
     @Test
     fun `intelligence event failure does not fail sdk initialization`() = runTest {
-        coEvery { sut.validateRegistration() } returns mockDevicePayload
-        coEvery { sut.updateReadyStatus(any(), any()) } just runs
-        coEvery { sut.fetchAppConfig() } just runs
+        coEvery { mockStorage.getDevicePayload() } returns mockDevicePayload
+        coEvery { mockStorage.getRegistrationDevice() } returns mockRegisterDevice
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
         every {
             mockIntelligenceEventSender.sendDmcUserId(any())
         } throws IllegalStateException("failure")
 
-        sut.initializeSdk()
+        advanceUntilIdle()
 
-        coVerify(exactly = 1) {
-            sut.updateReadyStatus(true, match { it is MappResult.Success<*> })
+        verify(exactly = 1) {
+            observersProvider.notify(true, match { it is MappResult.Success<*> })
         }
         verify(exactly = 1) {
             mockIntelligenceEventSender.sendDmcUserId(mockDevicePayload.dmcUserId!!)
@@ -283,12 +285,18 @@ class AppoxeeImplUnitTest {
 
     @Test
     fun `sdk initialization does not send empty dmc user id`() = runTest {
-        coEvery { sut.validateRegistration() } returns DevicePayload(
+        // Complete the initialization queued by the constructor with the default fixture data,
+        // then isolate the explicit empty-ID initialization exercised by this test.
+        advanceUntilIdle()
+        clearMocks(mockIntelligenceEventSender, answers = false)
+
+        val devicePayload = DevicePayload(
             dmcUserId = "",
             udidHashed = "device-id",
         )
-        coEvery { sut.updateReadyStatus(any(), any()) } just runs
-        coEvery { sut.fetchAppConfig() } just runs
+        coEvery { mockStorage.getDevicePayload() } returns devicePayload
+        coEvery { mockStorage.getRegistrationDevice() } returns mockRegisterDevice
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
 
         sut.initializeSdk()
 
