@@ -9,7 +9,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.appoxee.Appoxee
 import com.appoxee.shared.MessageStatus
-import com.appoxee.shared.InboxMessage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import eu.brrm.shared_ui.databinding.ActivityInboxMessagesBinding

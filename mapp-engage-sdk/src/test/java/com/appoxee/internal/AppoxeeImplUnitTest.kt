@@ -6,6 +6,7 @@ import android.content.Context
 import android.util.Log
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
+import com.appoxee.internal.integration.IntelligenceEventSender
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
@@ -82,6 +83,8 @@ class AppoxeeImplUnitTest {
 
     private lateinit var mockAppoxeeAdapter: AppoxeeAdapter
 
+    private lateinit var mockIntelligenceEventSender: IntelligenceEventSender
+
     private lateinit var mockNetworkClient: NetworkClient
 
     private lateinit var mockDevicePayload: DevicePayload
@@ -105,6 +108,7 @@ class AppoxeeImplUnitTest {
         mockkStatic(Log::class)
         mockkStatic(Logger::class)
         every { Logger.d(any(), any()) } just runs
+        every { Logger.w(any(), any(), any()) } just runs
         every { Log.d(any(), any()) } answers { 0 }
         every { Log.e(any(), any(), any()) } answers { 0 }
 
@@ -156,6 +160,7 @@ class AppoxeeImplUnitTest {
         mockStorage = mockk<Storage>(relaxed = true)
         mockEngageApi = mockk(relaxed = true)
         mockMigrationHelper = mockk(relaxed = true)
+        mockIntelligenceEventSender = mockk(relaxed = true)
         observersProvider = mockk(relaxed = true)
         mockAppoxeeAdapter = spyk(AppoxeeAdapter(mockEngageApi, mockStorage))
 
@@ -186,6 +191,7 @@ class AppoxeeImplUnitTest {
         every { mockAppoxeeContainer.deviceProvider } returns mockDeviceProvider
         every { mockAppoxeeContainer.engageApi } returns mockEngageApi
         every { mockAppoxeeContainer.networkClient } returns mockNetworkClient
+        every { mockAppoxeeContainer.intelligenceEventSender } returns mockIntelligenceEventSender
 
         sut = spyk(
             AppoxeeImpl(
@@ -237,6 +243,56 @@ class AppoxeeImplUnitTest {
             mockStorage.saveRegistrationDevice(mockRegisterDevice)
             mockStorage.saveDevicePayload(mockDevicePayload)
         }
+    }
+
+    @Test
+    fun `sdk initialization sends cached dmc user id without registering again`() = runTest {
+        coEvery { mockStorage.getDevicePayload() } returns mockDevicePayload
+        coEvery { mockStorage.getRegistrationDevice() } returns mockRegisterDevice
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
+        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateReadyStatus(any(), any()) } just runs
+        coEvery { sut.fetchAppConfig() } just runs
+
+        sut.initializeSdk()
+
+        coVerify(exactly = 0) { mockAppoxeeAdapter.register(any()) }
+        verify(exactly = 1) {
+            mockIntelligenceEventSender.sendDmcUserId(mockDevicePayload.dmcUserId!!)
+        }
+    }
+
+    @Test
+    fun `intelligence event failure does not fail sdk initialization`() = runTest {
+        coEvery { sut.validateRegistration() } returns mockDevicePayload
+        coEvery { sut.updateReadyStatus(any(), any()) } just runs
+        coEvery { sut.fetchAppConfig() } just runs
+        every {
+            mockIntelligenceEventSender.sendDmcUserId(any())
+        } throws IllegalStateException("failure")
+
+        sut.initializeSdk()
+
+        coVerify(exactly = 1) {
+            sut.updateReadyStatus(true, match { it is MappResult.Success<*> })
+        }
+        verify(exactly = 1) {
+            mockIntelligenceEventSender.sendDmcUserId(mockDevicePayload.dmcUserId!!)
+        }
+    }
+
+    @Test
+    fun `sdk initialization does not send empty dmc user id`() = runTest {
+        coEvery { sut.validateRegistration() } returns DevicePayload(
+            dmcUserId = "",
+            udidHashed = "device-id",
+        )
+        coEvery { sut.updateReadyStatus(any(), any()) } just runs
+        coEvery { sut.fetchAppConfig() } just runs
+
+        sut.initializeSdk()
+
+        verify(exactly = 0) { mockIntelligenceEventSender.sendDmcUserId(any()) }
     }
 
     @Test

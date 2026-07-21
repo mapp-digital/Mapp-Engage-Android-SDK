@@ -16,7 +16,6 @@ import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inbox.InboxMessageDto
-import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.model.response.inbox.toDto
 import com.appoxee.internal.model.response.inbox.toPublic
 import com.appoxee.shared.InboxMessage
@@ -148,6 +147,7 @@ internal open class AppoxeeImpl(
         // check device registration
         // update if exist or register new device
         validateRegistration()?.let {
+            notifyMappIntelligence(it)
             updateReadyStatus(true, MappResult.Success(it))
         }
 
@@ -181,6 +181,19 @@ internal open class AppoxeeImpl(
 
         // returns device payload
         return validatedDevicePayload
+    }
+
+    private fun notifyMappIntelligence(devicePayload: DevicePayload?) {
+        val dmcUserId = devicePayload?.dmcUserId?.takeIf { it.isNotEmpty() } ?: return
+        try {
+            appoxeeContainer.intelligenceEventSender.sendDmcUserId(dmcUserId)
+        } catch (exception: Exception) {
+            Logger.w(
+                TAG,
+                "Failed to notify Mapp Intelligence during SDK initialization",
+                exception,
+            )
+        }
     }
 
     private suspend fun validateExistingRegistration(

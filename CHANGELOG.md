@@ -2,6 +2,20 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
+## [7.1.2] - 2026-07-21
+
+### Bug Fixes
+
+- **In-app web template display** — Fixed sizing and rendering issues that could prevent web-based in-app messages from being shown.
+
+### Improvements
+
+- **Mapp Intelligence integration** — The SDK now broadcasts the registered DMC user ID to installed Mapp Intelligence receivers after successful registration validation.
+
+### Build
+
+- **Version bump to 7.1.2** — Updated the published SDK version.
+
 ## [7.1.1] - 2026-07-07
 
 ### Bug Fixes

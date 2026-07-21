@@ -4,6 +4,8 @@ package com.appoxee.internal.container
 
 import android.content.Context
 import com.appoxee.internal.AppoxeeAdapter
+import com.appoxee.internal.integration.AndroidIntelligenceEventSender
+import com.appoxee.internal.integration.IntelligenceEventSender
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.MigrationHelperImpl
 import com.appoxee.internal.network.EngageApi
@@ -92,6 +94,10 @@ internal class AppoxeeContainer private constructor(
 
     internal val geoContainer: GeoContainer by lazy {
         GeoContainer(context, systemInfoProvider, engageApi, dispatchersProvider)
+    }
+
+    internal val intelligenceEventSender: IntelligenceEventSender by lazy {
+        AndroidIntelligenceEventSender(context.applicationContext)
     }
 
     internal val appoxeeAdapter: AppoxeeAdapter by lazy {

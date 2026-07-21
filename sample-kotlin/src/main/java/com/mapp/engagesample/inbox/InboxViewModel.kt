@@ -12,7 +12,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.internal.toImmutableList
 
 class InboxViewModel : ViewModel() {
     private val tag = InboxViewModel::class.java.simpleName
@@ -35,7 +34,7 @@ class InboxViewModel : ViewModel() {
                 result.getData()?.messages?.let {
                     messages.addAll(it)
                 }
-                state.value = InboxStateUI(messages = messages.toImmutableList())
+                state.value = InboxStateUI(messages = messages.toList())
             } else {
                 val error = result.getError()?.message
                 state.value = InboxStateUI(error = error)
@@ -50,7 +49,7 @@ class InboxViewModel : ViewModel() {
                 Appoxee.instance().updateInboxMessageStatus(message, messageStatus).asSuspend()
             if (result.isSuccess()) {
                 messages[index] = message.setStatus(messageStatus)
-                state.value = InboxStateUI(messages = messages.toImmutableList())
+                state.value = InboxStateUI(messages = messages.toList())
             } else {
                 val error = result.getError()?.message
                 state.value = InboxStateUI(error = error)
