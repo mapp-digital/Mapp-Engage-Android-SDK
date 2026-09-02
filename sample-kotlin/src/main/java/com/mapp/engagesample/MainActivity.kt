@@ -3,6 +3,7 @@ package com.mapp.engagesample
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -12,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.lifecycleScope
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
@@ -20,6 +22,7 @@ import eu.brrm.shared_ui.PermissionHelper
 import eu.brrm.shared_ui.Util
 import eu.brrm.shared_ui.Util.camelCaseToWords
 import eu.brrm.shared_ui.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,11 +55,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private val appoxeeObserver = object : AppoxeeObserver {
-        override fun onReadyStatusChanged(status: Boolean, mappResult: MappResult<DevicePayload>) {
-            if (!mappResult.isSuccess()) {
-                val errMessage = mappResult.getError()?.message ?: "Unknown message"
-                Util.showDialog(this@MainActivity, "Error", errMessage)
+    private val appoxeeObserver = AppoxeeObserver { status, mappResult ->
+        if (!mappResult.isSuccess()) {
+            val errMessage = mappResult.getError()?.message ?: "Unknown message"
+            Util.showDialog(this@MainActivity, "Error", errMessage)
+        }else{
+            //setupAlias()
+        }
+    }
+
+    private fun setupAlias(){
+        lifecycleScope.launch {
+            val alias="user02092026-02@test.com"
+            Appoxee.instance().setAlias(alias,false).asSuspend()
+            val deviceResponse=Appoxee.instance().getDevice().asSuspend()
+            if(deviceResponse.isSuccess()){
+                deviceResponse.getData()?.let {
+                    Log.d(this@MainActivity.javaClass.name,"New alias set: ${it.alias}")
+                }
+            }else{
+                val error=deviceResponse.getError()?.message ?: "Error setting up alias"
+                Log.e(this@MainActivity.javaClass.name,error)
             }
         }
     }

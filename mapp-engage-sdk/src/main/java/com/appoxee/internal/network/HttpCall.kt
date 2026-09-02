@@ -29,7 +29,7 @@ internal class HttpCall<T>(
 
     override suspend fun asSuspend(): MappResult<T> {
         if (markAsExecuted()) throw CallConsumedException()
-        return withContext(dispatchersProvider.defaultDispatcher) {
+        return withContext(dispatchersProvider.ioDispatcher) {
             executeWithErrorHandling()
         }
     }
@@ -44,7 +44,7 @@ internal class HttpCall<T>(
             return
         }
         scope.launch {
-            val result = withContext(dispatchersProvider.defaultDispatcher) {
+            val result = withContext(dispatchersProvider.ioDispatcher) {
                 executeWithErrorHandling()
             }
             withContext(dispatchersProvider.mainDispatcher) {

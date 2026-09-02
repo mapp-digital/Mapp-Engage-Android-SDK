@@ -14,6 +14,7 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
 import com.appoxee.shared.AppoxeeOptions
+import okhttp3.internal.platform.android.AndroidLogHandler.flush
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -60,18 +61,16 @@ internal class NetworkClientImpl(
 
                 // write request body if exists
                 val data = request.requestBody?.asJson().toString()
-                if (data.isNotEmpty()) {
-                    DataOutputStream(outputStream).run {
-                        write(data.toByteArray(Charsets.UTF_8))
-                        flush()
-                        close()
-                    }
-                }
-
                 Logger.w(
                     TAG,
                     "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data"
                 )
+                if (data.isNotEmpty()) {
+                    DataOutputStream(outputStream).use { stream ->
+                        stream.write(data.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    }
+                }
                 // retrieve request result
                 val statusCode = responseCode
 

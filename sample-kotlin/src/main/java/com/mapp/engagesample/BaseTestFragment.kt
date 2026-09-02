@@ -167,7 +167,7 @@ class BaseTestFragment : Fragment() {
 
 
     private fun logout(pushEnabled: Boolean) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().logout(pushEnabled).asSuspend()
             if(result.isSuccess()){
                 val msg=if(pushEnabled) "Opted in" else "Opted out"
@@ -178,7 +178,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun pushEnable(enabled: Boolean) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val call = Appoxee.instance().enablePush(enabled)
             val result = call.asSuspend()
             updatePushEnabledStatus(enabled)
@@ -199,7 +199,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun getFirebaseToken() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().getFirebaseToken().asSuspend()
             if (result.isSuccess()) {
                 result.getData()?.let {
@@ -220,7 +220,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun setAlias() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val etAlias = binding.editTextAlias
             val alias = etAlias.text?.toString() ?: ""
             if (alias.isBlank()) {
@@ -246,7 +246,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun getAlias() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().getAlias().asSuspend()
             showDialog(
                 requireContext(), "Alias", if (result.isSuccess()) result.getData().toString()
@@ -256,14 +256,22 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun getDevice(clipboard: ClipboardManager?) {
-        lifecycleScope.launch {
-            val result = Appoxee.instance().getDevice().asSuspend()
-            Util.showDeviceInfoDialog(requireContext(), result.getData(), clipboard)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val button = binding.btnGetDevice
+            button.isEnabled = false
+            button.text = "Loading..."
+            try {
+                val result = Appoxee.instance().getDevice().asSuspend()
+                Util.showDeviceInfoDialog(requireContext(), result.getData(), clipboard)
+            } finally {
+                button.text = "Get Device"
+                button.isEnabled = true
+            }
         }
     }
 
     private fun fetchInappMessages() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result =
                 Appoxee.instance().triggerInApp(requireActivity(), "app_open").asSuspend()
             if (!result.isSuccess()) {
@@ -277,7 +285,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun setTags() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result =
                 Appoxee.instance().addTags(setOf("female", "makeup", "fashion")).asSuspend()
             if (result.isSuccess()) {
@@ -293,7 +301,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun removeTags() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().removeTags(setOf("female", "makeup")).asSuspend()
             if (result.isSuccess()) {
                 showDialog(requireContext(), "Remove tags", result.getData().toString())
@@ -308,7 +316,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun getTags() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().getTags().asSuspend()
             if (result.isSuccess()) {
                 showDialog(requireContext(), "Tags", result.getData()?.joinToString(", "))
@@ -317,21 +325,21 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun openCustomAttributesSetup() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val intent = Intent(requireContext(), SetCustomAttributesActivity::class.java)
             startActivity(intent)
         }
     }
 
     private fun openGetCustomAttributes() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val intent = Intent(requireContext(), GetCustomAttributesActivity::class.java)
             startActivity(intent)
         }
     }
 
     private fun startGeofencing() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().startGeofencing<GeoStatus>(0).asSuspend()
             result.getData()?.let { geoStatus ->
                 if (geoStatus is GeoStatus.GeoStartedOk) {
@@ -350,7 +358,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun stopGeofencing() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().stopGeofencing<GeoStatus>().asSuspend()
             result.getData()?.let { geoStatus ->
                 if (geoStatus is GeoStatus.GeoStoppedOk) {
@@ -367,7 +375,7 @@ class BaseTestFragment : Fragment() {
     }
 
     private fun checkGeofencingStatus() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val result = Appoxee.instance().isGeofencingActive().asSuspend()
             if (result.isSuccess()) {
                 val message =
