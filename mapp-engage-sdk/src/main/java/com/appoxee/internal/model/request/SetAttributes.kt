@@ -43,6 +43,6 @@ class SetAttributes(
     }
 
     override fun asString(): String {
-        return json.toString()
+        return asJson().toString()
     }
 }

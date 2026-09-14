@@ -30,7 +30,7 @@ internal class InappEvent(
     }
 
     override fun asString(): String {
-        return json.toString()
+        return asJson().toString()
     }
 }
 
@@ -54,7 +54,7 @@ internal class Tracking(
     }
 
     override fun asString(): String {
-        return json.toString()
+        return asJson().toString()
     }
 
 }
@@ -76,6 +76,6 @@ internal class MessageContext(
     }
 
     override fun asString(): String {
-        return json.toString()
+        return asJson().toString()
     }
 }

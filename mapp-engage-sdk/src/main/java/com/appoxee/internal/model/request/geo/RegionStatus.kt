@@ -18,7 +18,7 @@ data class RegionStatus(
     override fun asJson(): JSONObject {
         if (!::json.isInitialized) {
             val regionStatus = JSONObject().apply {
-                put("timeStamp", timeZone)
+                put("timeStamp", timestamp)
                 put("event_type", geoEvent.ordinal)
                 put("dmc_user_id", dmcUserId)
                 put("latitude", latitude)

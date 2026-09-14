@@ -55,67 +55,6 @@ fun collectInternalPublicSymbols(): List<String> {
     return symbols.sorted()
 }
 
-fun collectCoverageExcludesForInterfacesAndPlainDataClasses(): List<String> {
-    val packageRegex = Regex("^package\\s+([a-zA-Z0-9_.]+)")
-    val interfaceRegex = Regex(
-        "^(?:public\\s+|internal\\s+|private\\s+|protected\\s+)?(?:sealed\\s+)?(?:fun\\s+interface|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b"
-    )
-    val dataClassRegex = Regex(
-        "^(?:public\\s+|internal\\s+|private\\s+|protected\\s+)?data\\s+class\\s+([A-Za-z_][A-Za-z0-9_]*)\\b"
-    )
-
-    return fileTree("src/main/java").matching {
-        include("**/*.kt", "**/*.java")
-    }.files.flatMap fileLoop@{ file ->
-        val lines = file.readLines()
-        val pkg = lines.firstNotNullOfOrNull { line ->
-            packageRegex.find(line.trim())?.groupValues?.get(1)
-        } ?: return@fileLoop emptyList()
-        val packagePath = pkg.replace('.', '/')
-
-        lines.mapIndexedNotNull { index, line ->
-            val trimmedLine = line.trim()
-            interfaceRegex.find(trimmedLine)?.groupValues?.get(1)
-                ?: dataClassRegex.find(trimmedLine)
-                    ?.groupValues
-                    ?.get(1)
-                    ?.takeIf { isPlainDataClass(lines, index) }
-        }.flatMap { symbol ->
-            listOf(
-                "**/$packagePath/$symbol.class",
-                "**/$packagePath/$symbol\$*.class"
-            )
-        }
-    }.distinct().sorted()
-}
-
-fun isPlainDataClass(lines: List<String>, startIndex: Int): Boolean {
-    var parenthesisDepth = 0
-    var sawConstructor = false
-
-    for (index in startIndex..lines.lastIndex) {
-        val code = lines[index].substringBefore("//")
-
-        code.forEach { char ->
-            when (char) {
-                '(' -> {
-                    sawConstructor = true
-                    parenthesisDepth++
-                }
-                ')' -> parenthesisDepth--
-                '{' -> if (sawConstructor && parenthesisDepth == 0) return false
-            }
-        }
-
-        if (sawConstructor && parenthesisDepth == 0) {
-            return true
-        }
-    }
-
-    return false
-}
-
-
 extensions.configure<LibraryExtension> {
     namespace = "com.appoxee.sdk"
     compileSdk = 36
@@ -134,6 +73,9 @@ extensions.configure<LibraryExtension> {
     }
 
     buildTypes {
+        debug {
+            enableAndroidTestCoverage = true
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(
@@ -199,9 +141,10 @@ tasks.withType<Test>().configureEach {
 
 val jacocoProdDebugUnitTestReport by tasks.registering(JacocoReport::class) {
     group = "verification"
-    description = "Generate JaCoCo XML and HTML coverage reports for the ProdDebug unit tests."
+    description = "Generate JaCoCo XML and HTML coverage reports for the ProdDebug SDK tests."
 
     dependsOn("testProdDebugUnitTest")
+    mustRunAfter("connectedProdDebugAndroidTest")
 
     reports {
         xml.required.set(true)
@@ -214,9 +157,29 @@ val jacocoProdDebugUnitTestReport by tasks.registering(JacocoReport::class) {
         "**/R$*.class",
         "**/BuildConfig.*",
         "**/Manifest*.*",
-        "**/*Test*.*",
-        "**/databinding/**"
-    ) + collectCoverageExcludesForInterfacesAndPlainDataClasses()
+        "**/databinding/**",
+        // Logic-free declarations and thin platform adapters. Keep aligned with Sonar.
+        "**/com/appoxee/internal/migration/data/OldRegistration.class",
+        "**/com/appoxee/internal/migration/data/OldRegistration$*.class",
+        "**/com/appoxee/internal/model/request/geo/GeoEvent.class",
+        "**/com/appoxee/internal/model/request/geo/GeoEvent$*.class",
+        "**/com/appoxee/internal/model/response/inapp/Message.class",
+        "**/com/appoxee/internal/model/response/inapp/Message$*.class",
+        "**/com/appoxee/internal/provider/SystemInfoProviderImpl.class",
+        "**/com/appoxee/internal/provider/SystemInfoProviderImpl$*.class",
+        "**/com/appoxee/internal/stats/StatsClient.class",
+        "**/com/appoxee/internal/stats/StatsClient$*.class",
+        "**/com/appoxee/internal/ui/inapp/InAppManager.class",
+        "**/com/appoxee/internal/ui/inapp/InAppManager$*.class",
+        "**/com/appoxee/internal/ui/push/model/SilentType.class",
+        "**/com/appoxee/internal/ui/push/model/SilentType$*.class",
+        "**/com/appoxee/shared/ActionButton.class",
+        "**/com/appoxee/shared/ActionButton$*.class",
+        "**/com/appoxee/shared/InboxMessagesResponse.class",
+        "**/com/appoxee/shared/InboxMessagesResponse$*.class",
+        "**/com/appoxee/shared/NotificationMode.class",
+        "**/com/appoxee/shared/NotificationMode$*.class"
+    )
 
     val kotlinClasses = fileTree(layout.buildDirectory.dir("intermediates/built_in_kotlinc/prodDebug/compileProdDebugKotlin/classes")) {
         exclude(fileFilter)
@@ -232,7 +195,8 @@ val jacocoProdDebugUnitTestReport by tasks.registering(JacocoReport::class) {
         fileTree(layout.buildDirectory.asFile.get()) {
             include(
                 "jacoco/testProdDebugUnitTest.exec",
-                "outputs/unit_test_code_coverage/prodDebugUnitTest/testProdDebugUnitTest.exec"
+                "outputs/unit_test_code_coverage/prodDebugUnitTest/testProdDebugUnitTest.exec",
+                "outputs/code_coverage/prodDebugAndroidTest/connected/**/*.ec"
             )
         }
     )

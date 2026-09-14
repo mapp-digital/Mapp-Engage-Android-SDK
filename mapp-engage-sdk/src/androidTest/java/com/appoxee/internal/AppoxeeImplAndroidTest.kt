@@ -8,6 +8,7 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.model.response.inbox.InboxMessageDto
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
+import com.appoxee.internal.model.response.inbox.MessageStatusDto
 import com.appoxee.internal.network.EngageApiImpl
 import com.appoxee.internal.network.response.Response
 import com.appoxee.internal.provider.ObserversProvider
@@ -122,7 +123,21 @@ class AppoxeeImplAndroidTest {
     @Test
     fun fetchInboxMessages() {
         runBlocking {
-            val inboxMessage = mockk<InboxMessageDto>()
+            val inboxMessage = InboxMessageDto(
+                templateId = 1,
+                content = "content",
+                subject = "subject",
+                summary = null,
+                iconUrl = null,
+                sentDate = null,
+                expireDate = null,
+                firstSentTs = null,
+                status = MessageStatusDto.UNREAD,
+                isNativeInApp = false,
+                extras = emptyMap(),
+                eventId = "event-id",
+                eventKey = "event-key"
+            )
             coEvery { engageApiImpl.fetchInboxMessages(any()) } coAnswers {
                 Response.success(
                     200, InboxMessagesResponse("app_open", listOf(inboxMessage))

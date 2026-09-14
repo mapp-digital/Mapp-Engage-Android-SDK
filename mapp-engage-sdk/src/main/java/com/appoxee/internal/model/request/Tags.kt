@@ -24,6 +24,6 @@ internal class Tags(private val tags: List<String>, private val action: TagsActi
     }
 
     override fun asString(): String {
-        return json.toString()
+        return asJson().toString()
     }
 }

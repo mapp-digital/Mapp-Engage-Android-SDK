@@ -8,9 +8,13 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 - **Network request dispatching** — Public asynchronous SDK calls now execute blocking network operations on the I/O dispatcher instead of the default dispatcher, preventing network calls from occupying threads intended for CPU-bound work.
 - **Network request logging** — Request details are now logged before opening the connection output stream, so logs accurately show when a request starts instead of appearing only after connection setup and request-body transmission.
+- **Request payload serialization** — `SetAttributes`, tag updates, and in-app tracking payloads can now be converted to strings before their JSON representation has been requested, preventing uninitialized-property failures.
+- **Geofence event timestamps** — Region status payloads now send the supplied event timestamp in the `timeStamp` field instead of incorrectly sending the device time-zone value.
 
 ### Improvements
 
+- **SDK regression coverage** — Expanded automated coverage for request serialization, response parsing, push-action routing, category fallback behavior, observer lifecycle, and in-app sizing defaults.
+- **Instrumentation coverage reporting** — Android instrumentation coverage can now be combined with JVM unit-test coverage, ensuring device-tested SDK behavior is represented in the consolidated report.
 - **Get Device sample feedback** — The Kotlin sample disables the Get Device button and displays a loading state while the request is running, preventing duplicate requests from rapid repeated taps.
 
 ## [7.1.2] - 2026-07-21
