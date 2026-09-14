@@ -1,5 +1,3 @@
-@file:OptIn(UnstableApi::class)
-
 package com.appoxee.internal.ui.custom
 
 import android.content.Context
@@ -10,7 +8,6 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
-import androidx.annotation.OptIn
 import androidx.core.view.children
 import androidx.core.view.setMargins
 import androidx.media3.common.MediaItem
@@ -38,6 +35,7 @@ class VideoPlayer(context: Context, attributeSet: AttributeSet?, defStyle: Int) 
 
 
     private val playerListener = object : Player.Listener {
+        @androidx.annotation.OptIn(UnstableApi::class)
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
                 Player.STATE_READY -> {
@@ -69,7 +67,7 @@ class VideoPlayer(context: Context, attributeSet: AttributeSet?, defStyle: Int) 
         createPlayer()
     }
 
-    @OptIn(UnstableApi::class)
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun createPlayer() {
         // create playerView and setup it's look
         playerView = PlayerView(context).apply {
@@ -125,6 +123,7 @@ class VideoPlayer(context: Context, attributeSet: AttributeSet?, defStyle: Int) 
             }
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun playUri(uri: Uri) {
         player.addMediaItem(MediaItem.fromUri(uri))
         player.createMessage { _, _ ->

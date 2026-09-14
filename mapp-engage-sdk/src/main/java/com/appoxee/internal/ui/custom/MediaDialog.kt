@@ -10,7 +10,6 @@ import android.widget.FrameLayout
 import android.widget.FrameLayout.LayoutParams
 import android.widget.ImageButton
 import android.widget.ImageView
-import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.setPadding
@@ -84,7 +83,7 @@ internal class MediaDialog : DialogFragment() {
         gifViewer.loadGif(pushData.iosApxMedia)
     }
 
-    @OptIn(UnstableApi::class)
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun addVideoView(container: ViewGroup?, pushData: PushData) {
         val uri = pushData.iosApxMedia?.toUri() ?: return
         val playerView = VideoPlayer(requireContext(), uri)

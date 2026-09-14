@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.Context
 import android.os.Looper
 import androidx.annotation.VisibleForTesting
-import com.appoxee.Appoxee.Companion.engage
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.network.Call

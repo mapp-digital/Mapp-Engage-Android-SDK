@@ -1,6 +1,5 @@
 package com.appoxee.shared
 
-import androidx.annotation.IntRange
 import com.appoxee.internal.util.getIntOrDefault
 import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
@@ -33,7 +32,7 @@ class AppoxeeOptions(
     /**
      * Sets connection timeout in milliseconds
      */
-    @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
+    @androidx.annotation.IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
     internal var connectionTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
             if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
@@ -44,7 +43,7 @@ class AppoxeeOptions(
     /**
      * Sets connection read timeout in milliseconds
      */
-    @IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
+    @androidx.annotation.IntRange(from = MIN_TIMEOUT.toLong(), to = MAX_TIMEOUT.toLong())
     internal var readTimeout: Int = DEFAULT_TIMEOUT
         set(value) {
             if (value in MIN_TIMEOUT..MAX_TIMEOUT) {
