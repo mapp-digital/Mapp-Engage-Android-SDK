@@ -12,7 +12,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
-import com.appoxee.sdk.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.BannerPosition
 import com.appoxee.internal.model.response.inapp.Message
@@ -25,6 +24,7 @@ import com.appoxee.internal.ui.inapp.inappSizePercentOrDefault
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.LibraryExtensions.getDisplayMetrics
 import com.appoxee.internal.util.Logger
+import com.appoxee.sdk.R
 import kotlinx.coroutines.CoroutineScope
 
 internal class BannerWebTemplate<T : Message>(

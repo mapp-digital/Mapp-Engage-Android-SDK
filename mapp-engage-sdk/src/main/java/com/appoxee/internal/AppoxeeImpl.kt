@@ -18,9 +18,6 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.inbox.InboxMessageDto
 import com.appoxee.internal.model.response.inbox.toDto
 import com.appoxee.internal.model.response.inbox.toPublic
-import com.appoxee.shared.InboxMessage
-import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
-import com.appoxee.shared.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.network.HttpCall
 import com.appoxee.internal.provider.DeviceProvider
@@ -32,8 +29,10 @@ import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
 import com.appoxee.shared.GeofenceException
+import com.appoxee.shared.InboxMessage
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
+import com.appoxee.shared.MessageStatus
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -48,6 +47,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
 
 @Suppress("UNCHECKED_CAST")
 @Keep

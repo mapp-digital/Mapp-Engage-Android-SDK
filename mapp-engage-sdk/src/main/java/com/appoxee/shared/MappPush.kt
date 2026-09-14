@@ -2,10 +2,10 @@ package com.appoxee.shared
 
 import android.net.Uri
 import android.os.Parcelable
+import androidx.core.net.toUri
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.ui.push.model.PushUriType.Companion.toPushAction
 import kotlinx.parcelize.Parcelize
-import androidx.core.net.toUri
 
 @ConsistentCopyVisibility
 @Parcelize

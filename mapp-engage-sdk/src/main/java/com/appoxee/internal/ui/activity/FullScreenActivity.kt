@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import com.appoxee.internal.container.ActionContainer
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
@@ -13,7 +14,6 @@ import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.ui.push.model.PushData
 import com.appoxee.internal.util.CompatExt.getParcelableCompat
 import com.appoxee.internal.util.Logger
-import androidx.core.net.toUri
 
 class FullScreenActivity : AppCompatActivity() {
 

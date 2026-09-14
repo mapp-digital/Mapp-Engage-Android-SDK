@@ -14,7 +14,6 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
 import com.appoxee.shared.AppoxeeOptions
-import okhttp3.internal.platform.android.AndroidLogHandler.flush
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL

@@ -1,6 +1,5 @@
 package com.appoxee.internal.integration
 
-import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -43,7 +42,7 @@ internal class AndroidIntelligenceEventSender(
                     component = ComponentName(activityInfo.packageName, activityInfo.name)
                 }
                 applicationContext.sendBroadcast(explicitIntent)
-                Logger.d(TAG,"Sent broadcast with intent: $intent")
+                Logger.d(TAG, "Sent broadcast with intent: $intent")
             }
         } catch (exception: Exception) {
             Logger.w(TAG, "Failed to send Mapp Intelligence integration event", exception)

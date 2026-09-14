@@ -2,6 +2,17 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
+## [7.1.3] - 2026-09-02
+
+### Bug Fixes
+
+- **Network request dispatching** — Public asynchronous SDK calls now execute blocking network operations on the I/O dispatcher instead of the default dispatcher, preventing network calls from occupying threads intended for CPU-bound work.
+- **Network request logging** — Request details are now logged before opening the connection output stream, so logs accurately show when a request starts instead of appearing only after connection setup and request-body transmission.
+
+### Improvements
+
+- **Get Device sample feedback** — The Kotlin sample disables the Get Device button and displays a loading state while the request is running, preventing duplicate requests from rapid repeated taps.
+
 ## [7.1.2] - 2026-07-21
 
 ### Bug Fixes

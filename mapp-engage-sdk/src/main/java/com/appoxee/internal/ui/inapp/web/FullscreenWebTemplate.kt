@@ -10,7 +10,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RelativeLayout
-import com.appoxee.sdk.R
 import com.appoxee.internal.model.request.events.TrackingKey
 import com.appoxee.internal.model.response.inapp.Message
 import com.appoxee.internal.model.response.inapp.TrackingParams
@@ -20,6 +19,7 @@ import com.appoxee.internal.ui.inapp.InappActionHandler
 import com.appoxee.internal.ui.inapp.Template
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.Logger
+import com.appoxee.sdk.R
 import kotlinx.coroutines.CoroutineScope
 
 internal class FullscreenWebTemplate<T : Message>(

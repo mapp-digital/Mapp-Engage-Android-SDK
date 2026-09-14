@@ -2,11 +2,11 @@ package com.appoxee.internal.ui.push.model
 
 import android.net.Uri
 import android.os.Parcelable
+import androidx.core.net.toUri
 import com.appoxee.internal.model.response.Category
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
-import androidx.core.net.toUri
 
 @Parcelize
 internal data class PushData(

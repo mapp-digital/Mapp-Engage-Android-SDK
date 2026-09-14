@@ -1,12 +1,12 @@
 package com.appoxee.internal.migration
 
 import android.content.Context
+import androidx.core.content.edit
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import org.json.JSONObject
 import java.io.File
-import androidx.core.content.edit
 
 internal class MigrationHelperImpl(context: Context) : MigrationHelper {
 

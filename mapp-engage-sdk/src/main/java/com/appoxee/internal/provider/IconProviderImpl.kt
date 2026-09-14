@@ -6,9 +6,9 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.core.content.ContextCompat
-import com.appoxee.sdk.R
 import com.appoxee.internal.util.LibraryExtensions.getBitmap
 import com.appoxee.internal.util.LibraryExtensions.isValidSmallIcon
+import com.appoxee.sdk.R
 
 internal class IconProviderImpl(private val context: Context) : IconProvider {
     private val customSmallIconColorName = "com.engage.mapp_notification_small_icon_color"

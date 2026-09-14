@@ -6,8 +6,8 @@ import android.os.Build
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.WindowManager
-import com.appoxee.sdk.BuildConfig
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.sdk.BuildConfig
 import java.util.Locale
 import java.util.TimeZone
 

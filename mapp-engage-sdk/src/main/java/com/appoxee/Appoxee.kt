@@ -5,11 +5,9 @@ import android.app.Application
 import android.content.Context
 import android.os.Looper
 import androidx.annotation.VisibleForTesting
+import com.appoxee.Appoxee.Companion.engage
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.model.response.DevicePayload
-import com.appoxee.shared.InboxMessage
-import com.appoxee.shared.InboxMessagesResponse
-import com.appoxee.shared.MessageStatus
 import com.appoxee.internal.network.Call
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.DispatchersProviderImpl
@@ -17,7 +15,10 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.GeoStatus
+import com.appoxee.shared.InboxMessage
+import com.appoxee.shared.InboxMessagesResponse
 import com.appoxee.shared.LocalPushBroadcast
+import com.appoxee.shared.MessageStatus
 import com.google.firebase.messaging.RemoteMessage
 
 /**
