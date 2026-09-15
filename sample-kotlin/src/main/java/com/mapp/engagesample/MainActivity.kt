@@ -57,8 +57,10 @@ class MainActivity : AppCompatActivity() {
 
     private val appoxeeObserver = AppoxeeObserver { status, mappResult ->
         if (!mappResult.isSuccess()) {
-            val errMessage = mappResult.getError()?.message ?: "Unknown message"
-            Util.showDialog(this@MainActivity, "Error", errMessage)
+            runOnUiThread {
+                val errMessage = mappResult.getError()?.message ?: "Unknown message"
+                Util.showDialog(this@MainActivity, "Error", errMessage)
+            }
         }else{
             //setupAlias()
         }

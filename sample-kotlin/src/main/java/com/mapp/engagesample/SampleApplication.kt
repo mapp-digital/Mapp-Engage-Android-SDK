@@ -10,12 +10,13 @@ class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         val options: AppoxeeOptions = AppoxeeOptions(
-            server = AppoxeeOptions.Server.L3,
+            server = AppoxeeOptions.Server.TEST_61,
             sdkKey = BuildConfig.MAPP_SDK_KEY,
             tenantId = BuildConfig.MAPP_TENANT_ID,
             appId = BuildConfig.MAPP_APP_ID,
         ).also {
             it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
+            it.logType= AppoxeeOptions.LogLevel.RELEASE
         }
 
 

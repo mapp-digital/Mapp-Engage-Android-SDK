@@ -21,8 +21,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.appoxee.example"
         minSdk = 23
         targetSdk = 36
-        versionCode = 30
-        versionName = "2.0.1"
+        versionCode = 31
+        versionName = "2.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -34,13 +34,26 @@ extensions.configure<ApplicationExtension> {
         buildConfigField("String", "MAPP_TENANT_ID", "\"${localProperties["mapp.tenant.id"]}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile =
+                file("../keystore.jks")
+            storePassword = "testtest"
+            keyAlias = "test"
+            keyPassword = "testtest"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable=false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

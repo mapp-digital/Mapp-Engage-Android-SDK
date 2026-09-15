@@ -3,6 +3,7 @@ package com.appoxee.shared
 import com.appoxee.internal.util.getIntOrDefault
 import com.appoxee.internal.util.getNullableString
 import com.appoxee.internal.util.getStringOrEmpty
+import org.jetbrains.annotations.TestOnly
 import org.json.JSONObject
 
 
@@ -68,9 +69,13 @@ class AppoxeeOptions(
     private var onStartRemoveNotification: Boolean = false
 
     /**
-     * Defines the level for outputting logs
+     * Controls SDK logging. Set before calling Appoxee.engage.
+     * [LogLevel.DEBUG] (default) logs only when the host app is debuggable.
+     * [LogLevel.RELEASE] logs in both debug and release apps.
+     * Saved with the options and restored when engaging without options.
+     * Supplying options replaces the saved logging setting.
      */
-    internal var logType: LogLevel = LogLevel.RELEASE
+    var logType: LogLevel = LogLevel.DEBUG
 
     /**
      * Defines notification mode; It can be one of the following values:
@@ -103,6 +108,13 @@ class AppoxeeOptions(
             value = "https://jamie.m.shortest-route.com/charon",
             internalCepUrl = "https://jamie.m.shortest-route.com"
         ),
+
+        @TestOnly
+        STAGING(
+            value = "https://charon-test.shortest-route.com",
+            internalCepUrl = "https://jamie-test.shortest-route.com"
+        ),
+
         TEST(
             value = "https://charon-test.shortest-route.com",
             internalCepUrl = "https://jamie-test.shortest-route.com"
@@ -131,7 +143,9 @@ class AppoxeeOptions(
      * Defines supported levels for Logging
      */
     enum class LogLevel(value: String) {
+        /** Logs only when the host app is debuggable. */
         DEBUG("debug"),
+        /** Logs in both debug and release apps. */
         RELEASE("release");
     }
 

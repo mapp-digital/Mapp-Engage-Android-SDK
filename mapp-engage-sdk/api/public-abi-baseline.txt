@@ -74,8 +74,8 @@ public final class com.appoxee.shared.AppoxeeOptions {
   public final void setConnectionTimeout$mapp_engage_sdk(int);
   public final int getReadTimeout$mapp_engage_sdk();
   public final void setReadTimeout$mapp_engage_sdk(int);
-  public final com.appoxee.shared.AppoxeeOptions$LogLevel getLogType$mapp_engage_sdk();
-  public final void setLogType$mapp_engage_sdk(com.appoxee.shared.AppoxeeOptions$LogLevel);
+  public final com.appoxee.shared.AppoxeeOptions$LogLevel getLogType();
+  public final void setLogType(com.appoxee.shared.AppoxeeOptions$LogLevel);
   public final com.appoxee.shared.NotificationMode getNotificationMode();
   public final void setNotificationMode(com.appoxee.shared.NotificationMode);
   public java.lang.String toString();

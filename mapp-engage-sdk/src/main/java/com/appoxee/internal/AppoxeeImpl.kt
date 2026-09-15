@@ -117,7 +117,7 @@ internal open class AppoxeeImpl(
 
     init {
         // initialize logger
-        Logger.init(application)
+        Logger.init(application, options?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
 
         // attach activity lifecycle listener
         application.registerActivityLifecycleCallbacks(
@@ -132,16 +132,20 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun initializeSdk() = withContext(dispatcherProvider.defaultDispatcher) {
+        val savedOptions = storage.getInitOptions()
+        if (options == null) {
+            Logger.init(application, savedOptions?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
+        }
         Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
-            if (!options.areEquals(storage.getInitOptions())) {
+            if (!options.areEquals(savedOptions)) {
                 storage.clearRegistration()
             }
             // always store options for possible changes of other attributes, not used for comparing
             storage.saveInitOptions(options)
         } else {
-            checkNotNull(storage.getInitOptions()) { "Engage SDK wasn't supplied with initialization parameters!" }
+            checkNotNull(savedOptions) { "Engage SDK wasn't supplied with initialization parameters!" }
         }
 
         // check device registration

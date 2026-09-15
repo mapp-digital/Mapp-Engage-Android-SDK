@@ -2,10 +2,11 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
-## [7.1.3] - 2026-09-02
+## [7.1.3] - [UNRELEASED]
 
 ### Bug Fixes
 
+- **SDK logging configuration** — Exposed `AppoxeeOptions.logType` and made the logger honor it: `DEBUG` (the new default) logs only in debuggable host apps, while `RELEASE` also enables release logging. Supplied options override and save the logging setting; initialization without options restores the saved value. Changing only `logType` does not clear device registration.
 - **Network request dispatching** — Public asynchronous SDK calls now execute blocking network operations on the I/O dispatcher instead of the default dispatcher, preventing network calls from occupying threads intended for CPU-bound work.
 - **Network request logging** — Request details are now logged before opening the connection output stream, so logs accurately show when a request starts instead of appearing only after connection setup and request-body transmission.
 - **Request payload serialization** — `SetAttributes`, tag updates, and in-app tracking payloads can now be converted to strings before their JSON representation has been requested, preventing uninitialized-property failures.
