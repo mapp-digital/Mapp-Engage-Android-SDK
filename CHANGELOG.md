@@ -6,6 +6,9 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Bug Fixes
 
+- **Alias updates** — Successful `setAlias()` calls now save the requested alias and returned DMC user ID directly, without an immediate device GET. This prevents a temporary backend read delay from leaving the previous alias cached. Alias updates require successful response metadata and a non-empty DMC user ID before changing the cache.
+- **Registration data persistence** — The alias and DMC user ID returned by registration are saved immediately, preserving other cached device fields. A failed follow-up device GET no longer clears the saved identity.
+- **Device lookup alias** — Device GET requests now include the cached alias when available, including the alias saved from registration.
 - **SDK logging configuration** — Exposed `AppoxeeOptions.logType` and made the logger honor it: `DEBUG` (the new default) logs only in debuggable host apps, while `RELEASE` also enables release logging. Supplied options override and save the logging setting; initialization without options restores the saved value. Changing only `logType` does not clear device registration.
 - **Network request dispatching** — Public asynchronous SDK calls now execute blocking network operations on the I/O dispatcher instead of the default dispatcher, preventing network calls from occupying threads intended for CPU-bound work.
 - **Network request logging** — Request details are now logged before opening the connection output stream, so logs accurately show when a request starts instead of appearing only after connection setup and request-body transmission.
@@ -14,9 +17,7 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Improvements
 
-- **SDK regression coverage** — Expanded automated coverage for request serialization, response parsing, push-action routing, category fallback behavior, observer lifecycle, and in-app sizing defaults.
-- **Instrumentation coverage reporting** — Android instrumentation coverage can now be combined with JVM unit-test coverage, ensuring device-tested SDK behavior is represented in the consolidated report.
-- **Get Device sample feedback** — The Kotlin sample disables the Get Device button and displays a loading state while the request is running, preventing duplicate requests from rapid repeated taps.
+- **Fewer registration requests** — Removed the duplicate device GET after push-token updates during registration. Registration retains one final device refresh; standalone push opt-in and opt-out updates retain their existing refresh behavior.
 
 ## [7.1.2] - 2026-07-21
 

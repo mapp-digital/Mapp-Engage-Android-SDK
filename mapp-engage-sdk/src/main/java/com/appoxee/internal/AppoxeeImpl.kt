@@ -234,7 +234,7 @@ internal open class AppoxeeImpl(
 
         // update optIn or optOut status with firebase token
         // this fulfills requirement to preserve OptIn/OptOut state when channel changed
-        updateOptStatus(devicePayload, null)
+        updateOptStatus(devicePayload, null, refreshDevice = false)
 
         // get device payload from server after new registration
         Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
@@ -310,7 +310,7 @@ internal open class AppoxeeImpl(
         }
 
         // update optIn or optOut status with firebase token
-        updateOptStatus(devicePayload, oldRegistration)
+        updateOptStatus(devicePayload, oldRegistration, refreshDevice = false)
 
         // delete old registration data if still exists
         migrationHelper.deleteOldRegistration()
@@ -328,7 +328,8 @@ internal open class AppoxeeImpl(
         storage.saveRegistrationDevice(newRegisterPayload)
 
         // save device payload from server for a registered device
-        storage.saveDevicePayload(devicePayload)
+        // Keep the registration response cached if the follow-up GET fails.
+        if (devicePayload != null) storage.saveDevicePayload(devicePayload)
     }
 
     private fun DevicePayload?.hasValidUdid(): Boolean = this?.udidHashed != null
@@ -336,7 +337,8 @@ internal open class AppoxeeImpl(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun updateOptStatus(
         devicePayload: DevicePayload?,
-        oldRegistration: OldRegistration?
+        oldRegistration: OldRegistration?,
+        refreshDevice: Boolean = true
     ) {
         Logger.d(TAG, "updateOptStatus()")
         val pushToken = try {
@@ -351,12 +353,12 @@ internal open class AppoxeeImpl(
             // if device opted In and optIn token is expired, update optIn token
             if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
                 if (pushToken != devicePayload?.pushToken) {
-                    appoxeeAdapter.optIn(pushToken)
+                    appoxeeAdapter.optIn(pushToken, refreshDevice)
                 }
             } else {
                 // if device opted Out and optOut token is expired, update optOut token
                 if (pushToken != devicePayload?.pushTokenBk) {
-                    appoxeeAdapter.optOut(pushToken)
+                    appoxeeAdapter.optOut(pushToken, refreshDevice)
                 }
             }
         } catch (e: Exception) {

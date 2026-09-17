@@ -36,7 +36,20 @@ internal class AppoxeeAdapter(
 
     internal suspend fun register(deviceModel: RegisterDevice): RegisterPayload? {
         val response = engageApi.registerDevice(deviceModel)
-        return if (response.isSuccess()) response.data?.payload else null
+        val payload = if (response.isSuccess()) response.data?.payload else null
+        payload?.let {
+            val device = storage.getDevicePayload()
+            storage.saveDevicePayload(
+                DevicePayload(
+                    dmcUserId = it.dmcUserId.takeIf { id -> id.isNotBlank() } ?: device?.dmcUserId,
+                    udidHashed = device?.udidHashed,
+                    pushTokenBk = device?.pushTokenBk,
+                    pushToken = device?.pushToken,
+                    alias = it.alias?.takeIf { alias -> alias.isNotBlank() } ?: device?.alias
+                )
+            )
+        }
+        return payload
     }
 
     internal suspend fun updateDevice(
@@ -52,7 +65,7 @@ internal class AppoxeeAdapter(
         alias: String,
         resendCustomAttributes: Boolean = false
     ): DevicePayload? {
-        require(!(alias.isEmpty())) {throw IllegalArgumentException("Alias can not be empty!")}
+        require(!(alias.isEmpty())) { throw IllegalArgumentException("Alias can not be empty!") }
         val device = storage.getDevicePayload()
         // new alias same as old alias
         if (Objects.equals(device?.alias, alias)) {
@@ -60,14 +73,28 @@ internal class AppoxeeAdapter(
         }
         // alias has changed, update value to a server
         val response = engageApi.setAlias(alias)
-        if (response.isSuccess()) {
+        if (response.isSuccess() && response.data?.metadata?.statusCode == 200 && !response.data.metadata.error
+        ) {
+            val dmcUserId = response.data.payload?.dmcUserId
+                ?.takeIf { it.isNotBlank() }
+                ?: throw Throwable("Missing dmcUserId in set alias response")
+            val updatedDevice = DevicePayload(
+                dmcUserId = dmcUserId,
+                udidHashed = device?.udidHashed,
+                pushTokenBk = device?.pushTokenBk,
+                pushToken = device?.pushToken,
+                alias = alias
+            )
+            storage.saveDevicePayload(updatedDevice)
             if (resendCustomAttributes) {
                 resyncCustomAttributes()
             }
-            val updatedDevice = getDevice()
             return updatedDevice
         } else {
-            throw Throwable(response.error?.message ?: "Failed to set alias")
+            throw Throwable(
+                response.error?.message ?: response.data?.metadata?.errorMessage
+                ?: "Failed to set alias"
+            )
         }
     }
 
@@ -85,23 +112,23 @@ internal class AppoxeeAdapter(
         return result.data?.payload
     }
 
-    internal suspend fun optIn(pushToken: String): Boolean {
+    internal suspend fun optIn(pushToken: String, refreshDevice: Boolean = true): Boolean {
         val device = storage.getDevicePayload()
         if (pushToken == device?.pushToken) {
             return true
         }
         val response = engageApi.optIn(pushToken = pushToken)
-        getDevice()
+        if (refreshDevice) getDevice()
         return response.isSuccess()
     }
 
-    internal suspend fun optOut(pushToken: String): Boolean {
+    internal suspend fun optOut(pushToken: String, refreshDevice: Boolean = true): Boolean {
         val device = storage.getDevicePayload()
         if (Objects.equals(pushToken, device?.pushTokenBk)) {
             return true
         }
         val response = engageApi.optOut(pushTokenBk = pushToken)
-        getDevice()
+        if (refreshDevice) getDevice()
         return response.isSuccess()
     }
 
@@ -157,7 +184,10 @@ internal class AppoxeeAdapter(
         if (response.isSuccess()) {
             storage.setCustomAttributesCache(cachedAttributes)
         } else {
-            Logger.e("AppoxeeAdapter", "resyncCustomAttributes() failed: ${response.error?.message}")
+            Logger.e(
+                "AppoxeeAdapter",
+                "resyncCustomAttributes() failed: ${response.error?.message}"
+            )
         }
     }
 

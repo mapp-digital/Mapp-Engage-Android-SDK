@@ -150,6 +150,7 @@ internal class EngageApiImpl(
     override suspend fun getDevice(): Response<ResponseData<DevicePayload>> {
         return executeDevicePutRequest(
             actions = GetDevice(),
+            alias = storage.getDevicePayload()?.alias,
             adapter = BaseAdapter { DevicePayload.fromJSON(it.getJSONObject("get")) }
         )
     }

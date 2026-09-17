@@ -16,7 +16,7 @@ class SampleApplication : Application() {
             appId = BuildConfig.MAPP_APP_ID,
         ).also {
             it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
-            it.logType= AppoxeeOptions.LogLevel.RELEASE
+            it.logType= AppoxeeOptions.LogLevel.DEBUG
         }
 
 

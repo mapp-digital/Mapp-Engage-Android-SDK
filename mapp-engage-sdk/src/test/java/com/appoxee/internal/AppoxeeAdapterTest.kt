@@ -5,6 +5,8 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.Metadata
+import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.model.response.geo.RegionsResponse
 import com.appoxee.internal.model.response.inapp.InappResponse
@@ -18,6 +20,7 @@ import com.appoxee.internal.util.LibraryExtensions.toUtcString
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.unmockkAll
@@ -48,151 +51,202 @@ class AppoxeeAdapterTest {
         unmockkAll()
     }
 
-    /**
-     * Test device registration and get successful response
-     */
     @Test
-    fun `register device successful response`() = runTest {
+    fun `register saves returned identity before any device refresh`() = runTest {
         val deviceModel = mockk<RegisterDevice>()
-        coEvery { engageApi.registerDevice(any()) } answers {
-            Response.success(
-                200, ResponseData(metadata = null, payload = mockk())
-            )
+        val payload = RegisterPayload("registered-user", "AUTO_app_hash")
+        coEvery { storage.getDevicePayload() } returns null
+        coEvery { engageApi.registerDevice(deviceModel) } returns Response.success(
+            200, ResponseData(payload = payload)
+        )
+
+        Truth.assertThat(appoxeeAdapter.register(deviceModel)).isEqualTo(payload)
+
+        coVerify(exactly = 1) {
+            storage.saveDevicePayload(match {
+                it?.alias == "AUTO_app_hash" && it.dmcUserId == "registered-user" &&
+                    it.udidHashed == null && it.pushToken == null && it.pushTokenBk == null
+            })
         }
-        val response = appoxeeAdapter.register(deviceModel)
-        Truth.assertThat(response).isNotNull()
-        coVerify { engageApi.registerDevice(any()) }
+        coVerify(exactly = 0) { engageApi.getDevice() }
     }
 
-    /**
-     * Test device registration and get some error
-     */
     @Test
-    fun `register device error response`() = runTest {
+    fun `register preserves cached fields not supplied by response`() = runTest {
         val deviceModel = mockk<RegisterDevice>()
-        coEvery { engageApi.registerDevice(any()) } answers {
-            Response.error(UnknownHostException())
-        }
-        val response = appoxeeAdapter.register(deviceModel)
-        Truth.assertThat(response).isNull()
-        coVerify { engageApi.registerDevice(any()) }
-    }
+        coEvery { storage.getDevicePayload() } returns DevicePayload(
+            dmcUserId = "old-user", alias = "old-alias", udidHashed = "device-id",
+            pushToken = "push-token", pushTokenBk = "backup-token"
+        )
+        coEvery { engageApi.registerDevice(deviceModel) } returns Response.success(
+            200, ResponseData(payload = RegisterPayload("new-user", null))
+        )
 
-    /**
-     * Test when new alias is set.
-     * Network call is executed and value is returned from a server
-     */
-    @Test
-    fun `setAlias with new value successful`() {
-        runTest {
-            val testAlias = "test@alias.com"
-            val devicePayload = DevicePayload(
-                dmcUserId = "1234",
-                udidHashed = "5678",
-                pushTokenBk = "",
-                pushToken = "abc.1234",
-                alias = "user@test.com"
-            )
-            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
-            val mockResponseDefault = Response.success(
-                200, ResponseData(payload = DefaultResponse("1234", listOf("", "")))
-            )
-            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
-            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+        appoxeeAdapter.register(deviceModel)
 
-            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
-            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
-
-            val response = appoxeeAdapter.setAlias(testAlias)
-            Truth.assertThat(response).isNotNull()
-            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
+        coVerify(exactly = 1) {
+            storage.saveDevicePayload(match {
+                it?.dmcUserId == "new-user" && it.alias == "old-alias" &&
+                    it.udidHashed == "device-id" && it.pushToken == "push-token" &&
+                    it.pushTokenBk == "backup-token"
+            })
         }
     }
 
-    /**
-     * Test case when calling setAlias(string,boolean)
-     * If new alias value was passed and resendCustomAttributes is TRUE, then customAttributes are re-sent to the backend
-     */
     @Test
-    fun `setAlias with resend custom attributes set to true with new alias value triggers sending custom attributes`() {
-        runTest {
-            val testAlias = "test@alias.com"
-            val devicePayload = DevicePayload(
-                dmcUserId = "1234",
-                udidHashed = "5678",
-                pushTokenBk = "",
-                pushToken = "abc.1234",
-                alias = "user@test.com"
-            )
+    fun `register error or missing payload does not change cached device`() = runTest {
+        val deviceModel = mockk<RegisterDevice>()
+        coEvery { engageApi.registerDevice(deviceModel) } returnsMany listOf(
+            Response.error(UnknownHostException()),
+            Response.success(200, ResponseData<RegisterPayload>(payload = null))
+        )
 
-            val customAttributes = mapOf(
-                "a" to 1, "b" to false, "c" to "lorem ipsum"
-            )
-            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
-            val mockResponseDefault = Response.success(
-                200, ResponseData(payload = DefaultResponse("1234", listOf("", "")))
-            )
-            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
-            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+        Truth.assertThat(appoxeeAdapter.register(deviceModel)).isNull()
+        Truth.assertThat(appoxeeAdapter.register(deviceModel)).isNull()
 
-            coEvery { storage.getCustomAttributesCache() } coAnswers {
-                CustomAttributesCache(
-                    customAttributes
-                )
-            }
-            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
-            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
-            coEvery { engageApi.addCustomAttributes(any()) } coAnswers {
-                Response.success(200, ResponseData(payload = DefaultResponse("1234", listOf("", ""))))
-            }
-
-            val response = appoxeeAdapter.setAlias(testAlias, true)
-            Truth.assertThat(response).isNotNull()
-            coVerify { engageApi.addCustomAttributes(any()) }
-            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
-        }
+        coVerify(exactly = 0) { storage.saveDevicePayload(any()) }
     }
 
-    /**
-     * Test case when calling setAlias(string,boolean)
-     * If new alias value was passed and resendCustomAttributes is FALSE, then customAttributes are NOT SENT to the backend
-     */
     @Test
-    fun `setAlias with resend custom attributes set to false with new alias value doesn't trigger sending custom attributes`() {
+    fun `setAlias saves returned identity and preserves device fields without GET`() = runTest {
+        val testAlias = "test@alias.com"
+        var cachedDevice = DevicePayload(
+            dmcUserId = "old-user",
+            udidHashed = "5678",
+            pushTokenBk = "backup-token",
+            pushToken = "abc.1234",
+            alias = "AUTO_app_hash"
+        )
+        coEvery { storage.getDevicePayload() } answers { cachedDevice }
+        coEvery { storage.saveDevicePayload(any()) } answers {
+            cachedDevice = firstArg<DevicePayload>()
+        }
+        coEvery { engageApi.setAlias(testAlias) } returns Response.success(
+            200, ResponseData(
+                metadata = Metadata(error = false, statusCode = 200),
+                payload = DefaultResponse("106254147", emptyList())
+            )
+        )
+
+        val response = appoxeeAdapter.setAlias(testAlias)
+
+        Truth.assertThat(response).isSameInstanceAs(cachedDevice)
+        Truth.assertThat(cachedDevice.alias).isEqualTo(testAlias)
+        Truth.assertThat(cachedDevice.dmcUserId).isEqualTo("106254147")
+        Truth.assertThat(cachedDevice.udidHashed).isEqualTo("5678")
+        Truth.assertThat(cachedDevice.pushToken).isEqualTo("abc.1234")
+        Truth.assertThat(cachedDevice.pushTokenBk).isEqualTo("backup-token")
+        Truth.assertThat(appoxeeAdapter.getAlias()).isEqualTo(testAlias)
+        coVerify(exactly = 1) { engageApi.setAlias(testAlias) }
+        coVerify(exactly = 1) { storage.saveDevicePayload(any()) }
+        coVerify(exactly = 0) { engageApi.getDevice() }
+    }
+
+    @Test
+    fun `setAlias saves identity before resending custom attributes`() = runTest {
+        val testAlias = "test@alias.com"
+        val customAttributes = mapOf("a" to 1, "b" to false, "c" to "lorem ipsum")
+        coEvery { storage.getDevicePayload() } returns DevicePayload(alias = "old-alias")
+        coEvery { engageApi.setAlias(testAlias) } returns Response.success(
+            200, ResponseData(
+                metadata = Metadata(error = false, statusCode = 200),
+                payload = DefaultResponse("106254147", emptyList())
+            )
+        )
+        coEvery { storage.getCustomAttributesCache() } returns CustomAttributesCache(
+            customAttributes
+        )
+        coEvery { engageApi.addCustomAttributes(customAttributes) } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("106254147", emptyList()))
+        )
+
+        val response = appoxeeAdapter.setAlias(testAlias, true)
+
+        Truth.assertThat(response?.dmcUserId).isEqualTo("106254147")
+        coVerifyOrder {
+            engageApi.setAlias(testAlias)
+            storage.saveDevicePayload(match {
+                it?.alias == testAlias && it.dmcUserId == "106254147"
+            })
+            engageApi.addCustomAttributes(customAttributes)
+        }
+        coVerify(exactly = 0) { engageApi.getDevice() }
+    }
+
+    @Test
+    fun `setAlias does not resend custom attributes when disabled`() = runTest {
+        val testAlias = "test@alias.com"
+        coEvery { storage.getDevicePayload() } returns DevicePayload(alias = "old-alias")
+        coEvery { engageApi.setAlias(testAlias) } returns Response.success(
+            200, ResponseData(
+                metadata = Metadata(error = false, statusCode = 200),
+                payload = DefaultResponse("106254147", emptyList())
+            )
+        )
+
+        val response = appoxeeAdapter.setAlias(testAlias, false)
+
+        Truth.assertThat(response?.alias).isEqualTo(testAlias)
+        coVerify(exactly = 1) { storage.saveDevicePayload(any()) }
+        coVerify(exactly = 0) { engageApi.addCustomAttributes(any()) }
+        coVerify(exactly = 0) { engageApi.getDevice() }
+    }
+
+    @Test
+    fun `setAlias rejects invalid responses without changing storage or resending attributes`() =
         runTest {
             val testAlias = "test@alias.com"
-            val devicePayload = DevicePayload(
-                dmcUserId = "1234",
-                udidHashed = "5678",
-                pushTokenBk = "",
-                pushToken = "abc.1234",
-                alias = "user@test.com"
+            val device = DevicePayload(alias = "AUTO_app_hash", dmcUserId = "old-user")
+            val validMetadata = Metadata(error = false, statusCode = 200)
+            val validPayload = DefaultResponse("106254147", emptyList())
+            val invalidResponses = listOf(
+                Response.success(
+                    500,
+                    ResponseData(metadata = validMetadata, payload = validPayload)
+                ),
+                Response.success(
+                    200,
+                    ResponseData(metadata = Metadata(true, 200), payload = validPayload)
+                ),
+                Response.success(
+                    200,
+                    ResponseData(metadata = Metadata(false, 404), payload = validPayload)
+                ),
+                Response.success(200, ResponseData(metadata = null, payload = validPayload)),
+                Response.success(
+                    200,
+                    ResponseData<DefaultResponse>(metadata = validMetadata, payload = null)
+                ),
+                Response.success(
+                    200,
+                    ResponseData(
+                        metadata = validMetadata,
+                        payload = DefaultResponse("", emptyList())
+                    )
+                ),
+                Response.success(
+                    200,
+                    ResponseData(
+                        metadata = validMetadata,
+                        payload = DefaultResponse("   ", emptyList())
+                    )
+                ),
+                Response.success<ResponseData<DefaultResponse>>(200, null)
             )
+            coEvery { storage.getDevicePayload() } returns device
 
-            val customAttributes = mapOf(
-                "a" to 1, "b" to false, "c" to "lorem ipsum"
-            )
-            val mockResponseDevice = Response.success(200, ResponseData(payload = devicePayload))
-            val mockResponseDefault = Response.success(
-                200, ResponseData(payload = DefaultResponse("1234", listOf("", "")))
-            )
-            coEvery { engageApi.setAlias(testAlias) } coAnswers { mockResponseDefault }
-            coEvery { engageApi.getDevice() } coAnswers { mockResponseDevice }
+            for (invalidResponse in invalidResponses) {
+                coEvery { engageApi.setAlias(testAlias) } returns invalidResponse
 
-            coEvery { storage.getCustomAttributesCache() } coAnswers {
-                CustomAttributesCache(
-                    customAttributes
-                )
+                val result = runCatching { appoxeeAdapter.setAlias(testAlias, true) }
+
+                Truth.assertThat(result.isFailure).isTrue()
+                Truth.assertThat(appoxeeAdapter.getAlias()).isEqualTo("AUTO_app_hash")
             }
-            coEvery { storage.getDevicePayload() } coAnswers { devicePayload }
-            coEvery { appoxeeAdapter.refreshDevicePayload() } coAnswers { devicePayload }
-
-            val response = appoxeeAdapter.setAlias(testAlias, false)
-            Truth.assertThat(response).isNotNull()
+            coVerify(exactly = 0) { storage.saveDevicePayload(any()) }
             coVerify(exactly = 0) { engageApi.addCustomAttributes(any()) }
-            coVerify(exactly = 1) { engageApi.setAlias(any(String::class)) } //no network call
+            coVerify(exactly = 0) { engageApi.getDevice() }
         }
-    }
 
     /**
      * Test when set alias is called with existing value
@@ -302,9 +356,36 @@ class AppoxeeAdapterTest {
 
             val response = appoxeeAdapter.optIn("1243abcdxyz")
             coVerify { engageApi.optIn(any(String::class)) }
+            coVerify(exactly = 1) { engageApi.getDevice() }
             Truth.assertThat(response).isNotNull()
             Truth.assertThat(response).isTrue()
         }
+    }
+
+    @Test
+    fun `optIn can skip device refresh`() = runTest {
+        coEvery { storage.getDevicePayload() } returns DevicePayload(pushToken = "old-token")
+        coEvery { engageApi.optIn("new-token") } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user12345", emptyList()))
+        )
+
+        Truth.assertThat(appoxeeAdapter.optIn("new-token", refreshDevice = false)).isTrue()
+
+        coVerify(exactly = 1) { engageApi.optIn("new-token") }
+        coVerify(exactly = 0) { engageApi.getDevice() }
+    }
+
+    @Test
+    fun `optOut can skip device refresh`() = runTest {
+        coEvery { storage.getDevicePayload() } returns DevicePayload(pushTokenBk = "old-token")
+        coEvery { engageApi.optOut("new-token") } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user12345", emptyList()))
+        )
+
+        Truth.assertThat(appoxeeAdapter.optOut("new-token", refreshDevice = false)).isTrue()
+
+        coVerify(exactly = 1) { engageApi.optOut("new-token") }
+        coVerify(exactly = 0) { engageApi.getDevice() }
     }
 
     @Test
@@ -344,7 +425,8 @@ class AppoxeeAdapterTest {
         }
 
         val response = appoxeeAdapter.optOut("1243abcdxyz")
-        //coVerify { engageApi.optOut(any(String::class)) }
+        coVerify(exactly = 1) { engageApi.optOut("1243abcdxyz") }
+        coVerify(exactly = 1) { engageApi.getDevice() }
         Truth.assertThat(response).isNotNull()
         Truth.assertThat(response).isTrue()
     }
@@ -567,7 +649,7 @@ class AppoxeeAdapterTest {
                 )
             }
 
-            val currentDate=Date()
+            val currentDate = Date()
             val attributes = mapOf(
                 "a" to 1, "b" to true, "c" to currentDate, "d" to "test attribute"
             )
@@ -579,9 +661,16 @@ class AppoxeeAdapterTest {
             }
 
             val response = appoxeeAdapter.addCustomAttributes(attributes)
-            coVerify { engageApi.addCustomAttributes(mapOf(
-                "a" to 1, "b" to true, "c" to currentDate.toUtcString(), "d" to "test attribute"
-            )) }
+            coVerify {
+                engageApi.addCustomAttributes(
+                    mapOf(
+                        "a" to 1,
+                        "b" to true,
+                        "c" to currentDate.toUtcString(),
+                        "d" to "test attribute"
+                    )
+                )
+            }
             Truth.assertThat(response.statusCode).isEqualTo(200)
         }
     }
@@ -598,7 +687,7 @@ class AppoxeeAdapterTest {
                 )
             }
 
-            val currentDate=Date()
+            val currentDate = Date()
             val attributes = mapOf(
                 "date" to currentDate
             )
@@ -639,7 +728,7 @@ class AppoxeeAdapterTest {
 
             val diffAttributes =
                 allAttributes.filterNot {
-                    val item= (it.value as? Date)?.toUtcString() ?: it.value
+                    val item = (it.value as? Date)?.toUtcString() ?: it.value
                     cachedAttributes.getOrDefault(it.key) { null } == item
                 }
 
