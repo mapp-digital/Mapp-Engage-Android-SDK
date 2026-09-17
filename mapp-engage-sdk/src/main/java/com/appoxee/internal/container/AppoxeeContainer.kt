@@ -19,6 +19,7 @@ import com.appoxee.internal.provider.SystemInfoProviderImpl
 import com.appoxee.internal.stats.StatsClient
 import com.appoxee.internal.stats.StatsClientImpl
 import com.appoxee.internal.storage.PrefsStorageImpl
+import com.appoxee.internal.storage.RefreshingStorage
 import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.ui.ActivityLifecycleHandler
 import com.appoxee.internal.util.DispatchersProvider
@@ -58,9 +59,10 @@ internal class AppoxeeContainer private constructor(
         }
 
     internal val storage: Storage by lazy {
-        PrefsStorageImpl(
-            context = context,
-            dispatchersProvider = dispatchersProvider
+        RefreshingStorage(
+            delegate = PrefsStorageImpl(context, dispatchersProvider),
+            api = { engageApi },
+            dispatchers = dispatchersProvider
         )
     }
 

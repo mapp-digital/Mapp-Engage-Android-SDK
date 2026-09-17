@@ -44,6 +44,21 @@ internal class PrefsStorageImplTest {
     }
 
     @Test
+    fun device_refresh_timestamp_persists_and_partial_updates_do_not_extend_it() = runBlocking {
+        storage.clearRegistration()
+        storage.saveRefreshedDevicePayload(devicePayload)
+        val refreshedAt = storage.getDeviceTimestamp()
+        Truth.assertThat(refreshedAt).isGreaterThan(0L)
+
+        val reopened = PrefsStorageImpl(application, dispatchersProvider)
+        Truth.assertThat(reopened.getDeviceTimestamp()).isEqualTo(refreshedAt)
+        reopened.saveDevicePayload(DevicePayload(alias = "updated-alias"))
+        Truth.assertThat(reopened.getDeviceTimestamp()).isEqualTo(refreshedAt)
+        reopened.saveDevicePayload(null)
+        Truth.assertThat(reopened.getDeviceTimestamp()).isEqualTo(0L)
+    }
+
+    @Test
     fun retrieve_device_payload_when_previously_saved_and_cache_valid_returns_valid_payload() =
         runBlocking {
             storage.saveDevicePayload(devicePayload)

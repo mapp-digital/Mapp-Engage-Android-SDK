@@ -17,6 +17,8 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Improvements
 
+- **Device and configuration cache refresh** — Cached device data and app configuration expire independently after 24 hours and refresh on their next use, including while the app remains running. Failed refreshes retain the last known values and retry on a later access. Concurrent reads share the refresh, and partial identity updates do not extend the lifetime of the full device cache.
+
 - **Fewer registration requests** — Removed the duplicate device GET after push-token updates during registration. Registration retains one final device refresh; standalone push opt-in and opt-out updates retain their existing refresh behavior.
 
 ## [7.1.2] - 2026-07-21

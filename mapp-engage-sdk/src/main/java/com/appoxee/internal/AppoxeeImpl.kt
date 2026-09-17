@@ -690,18 +690,7 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun fetchAppConfig() {
-        withContext(dispatcherProvider.defaultDispatcher) {
-            if (!storage.isCacheValid()) {
-                val result = appoxeeAdapter.getAppConfig()
-                if (result.isSuccess()) {
-                    storage.saveAppConfig(result.data?.payload)
-                    storage.updateCacheTimestamp()
-                    Logger.d(TAG, "APP CONFIG: ${result.data?.toString()}")
-                } else {
-                    Logger.e(TAG, result.error?.toString() ?: "Error")
-                }
-            }
-        }
+        storage.getAppConfig()
     }
 
     override fun closeNotification(notificationId: Int) {

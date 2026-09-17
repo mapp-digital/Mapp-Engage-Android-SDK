@@ -32,6 +32,7 @@ internal class PrefsStorageImpl(
 
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
     private val registerDeviceKey = stringPreferencesKey("registerDevice")
+    private val deviceTimestampKey = longPreferencesKey("deviceTimestamp")
     private val timestampKey = longPreferencesKey("timestamp")
     private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
     private val appConfigKey = stringPreferencesKey("appConfig")
@@ -50,6 +51,13 @@ internal class PrefsStorageImpl(
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
         }
+    }
+
+    override suspend fun getDeviceTimestamp(): Long =
+        dataStore.data.first()[deviceTimestampKey] ?: 0
+
+    override suspend fun updateDeviceTimestamp() {
+        dataStore.edit { it[deviceTimestampKey] = System.currentTimeMillis() }
     }
 
     override suspend fun addTags(tags: List<String>) {
@@ -150,6 +158,7 @@ internal class PrefsStorageImpl(
             dataStore.edit { prefs ->
                 prefs.remove(registerDeviceKey)
                 prefs.remove(devicePayloadKey)
+                prefs.remove(deviceTimestampKey)
                 prefs.remove(timestampKey)
                 prefs.remove(appConfigKey)
                 prefs.remove(appoxeeOptionsKey)
@@ -163,6 +172,7 @@ internal class PrefsStorageImpl(
             dataStore.edit { prefs ->
                 if (devicePayload == null) {
                     prefs.remove(devicePayloadKey)
+                    prefs.remove(deviceTimestampKey)
                 } else {
                     val json = devicePayload.toJSON()
                     prefs[devicePayloadKey] = json.toString()
@@ -182,6 +192,7 @@ internal class PrefsStorageImpl(
                 Logger.e(PrefsStorageImpl::class.java.name, "Failed to deserialize DevicePayload, clearing: ${e.message}", e)
                 dataStore.edit { prefs ->
                     prefs.remove(devicePayloadKey)
+                    prefs.remove(deviceTimestampKey)
                 }
                 null
             }
