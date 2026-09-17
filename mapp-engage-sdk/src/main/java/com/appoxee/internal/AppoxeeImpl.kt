@@ -307,6 +307,8 @@ internal open class AppoxeeImpl(
 
         if (registerPayload != null) {
             registrationTimestampMs.set(System.currentTimeMillis())
+            // Allow backend provisioning to settle before dependent requests.
+            delay(POST_REGISTRATION_DELAY_MS)
         }
 
         // update optIn or optOut status with firebase token
