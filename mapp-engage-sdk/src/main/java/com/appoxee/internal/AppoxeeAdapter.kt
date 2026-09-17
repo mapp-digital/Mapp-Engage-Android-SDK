@@ -104,12 +104,14 @@ internal class AppoxeeAdapter(
 
     internal suspend fun getDevice(): DevicePayload? {
         val result = engageApi.getDevice()
-        if (result.isSuccess()) {
+        if (result.isSuccess() && result.data?.metadata?.error != true) {
             result.data?.payload?.let { devicePayload ->
                 storage.saveDevicePayload(devicePayload)
+                storage.updateDeviceFetchTimestamp()
             }
+            return result.data?.payload
         }
-        return result.data?.payload
+        return null
     }
 
     internal suspend fun optIn(pushToken: String, refreshDevice: Boolean = true): Boolean {

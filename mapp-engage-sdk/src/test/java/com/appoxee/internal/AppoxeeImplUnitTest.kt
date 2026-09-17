@@ -158,6 +158,7 @@ class AppoxeeImplUnitTest {
 
         mockDeviceProvider = mockk(relaxed = true)
         mockStorage = mockk<Storage>(relaxed = true)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns System.currentTimeMillis()
         mockEngageApi = mockk(relaxed = true)
         mockMigrationHelper = mockk(relaxed = true)
         mockIntelligenceEventSender = mockk(relaxed = true)
@@ -885,6 +886,46 @@ class AppoxeeImplUnitTest {
 
             Truth.assertThat(result).isFalse()
         }
+
+    @Test
+    fun `startup device refresh skips a fresh cache`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns System.currentTimeMillis()
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(mockDevicePayload)
+        coVerify(exactly = 0) { mockAppoxeeAdapter.getDevice() }
+    }
+
+    @Test
+    fun `startup device refresh fetches after one hour`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns
+            (System.currentTimeMillis() - 60 * 60 * 1_000L)
+        val refreshed = DevicePayload(dmcUserId = "refreshed", udidHashed = "device")
+        coEvery { mockAppoxeeAdapter.getDevice() } returns refreshed
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(refreshed)
+        coVerify(exactly = 1) { mockAppoxeeAdapter.getDevice() }
+    }
+
+    @Test
+    fun `startup device refresh without timestamp retains cache on failure`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns 0L
+        coEvery { mockAppoxeeAdapter.getDevice() } returns null
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(mockDevicePayload)
+        coVerify(exactly = 1) { mockAppoxeeAdapter.getDevice() }
+    }
 
     @Test
     fun `fetchConfig runs and get configuration successfully`() = runTest {

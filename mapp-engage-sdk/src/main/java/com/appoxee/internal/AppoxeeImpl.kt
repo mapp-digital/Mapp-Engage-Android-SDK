@@ -36,6 +36,7 @@ import com.appoxee.shared.MessageStatus
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -73,6 +74,7 @@ internal open class AppoxeeImpl(
     private companion object {
         const val POST_REGISTRATION_DELAY_MS = 2_000L
         const val POST_REGISTRATION_MAX_RETRIES = 3
+        const val DEVICE_CACHE_TTL_MS = 60 * 60 * 1_000L
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -151,8 +153,9 @@ internal open class AppoxeeImpl(
         // check device registration
         // update if exist or register new device
         validateRegistration()?.let {
-            notifyMappIntelligence(it)
-            updateReadyStatus(true, MappResult.Success(it))
+            val device = fetchDeviceIfExpired(it)
+            notifyMappIntelligence(device)
+            updateReadyStatus(true, MappResult.Success(device))
         }
 
         // fetch InApp Configuration parameters
@@ -688,6 +691,25 @@ internal open class AppoxeeImpl(
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun fetchDeviceIfExpired(cachedDevice: DevicePayload): DevicePayload {
+        val fetchedAt = storage.getDeviceFetchTimestamp()
+        val cacheAgeMs = System.currentTimeMillis() - fetchedAt
+        if (fetchedAt > 0 && cacheAgeMs >= 0 && cacheAgeMs < DEVICE_CACHE_TTL_MS) {
+            return cachedDevice
+        }
+        return try {
+            withContext(dispatcherProvider.ioDispatcher) {
+                appoxeeAdapter.getDevice()
+            } ?: cachedDevice
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(TAG, "Device refresh failed; retaining cached data", e)
+            cachedDevice
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

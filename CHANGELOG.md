@@ -18,6 +18,7 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Improvements
 
+- **Device refresh on SDK startup** — SDK initialization refreshes cached device data when the last successful device fetch is at least one hour old. The timestamp persists across app restarts, failed refreshes retain cached data, and explicit `getDevice()` calls still fetch from the backend.
 - **Fewer registration requests** — Removed the duplicate device GET after push-token updates during registration. Registration retains one final device refresh; standalone push opt-in and opt-out updates retain their existing refresh behavior.
 
 ## [7.1.2] - 2026-07-21

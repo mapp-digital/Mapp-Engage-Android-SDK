@@ -14,6 +14,10 @@ internal interface Storage {
 
     suspend fun getDevicePayload(): DevicePayload?
 
+    suspend fun getDeviceFetchTimestamp(): Long
+
+    suspend fun updateDeviceFetchTimestamp()
+
     suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?)
 
     suspend fun getRegistrationDevice(): RegisterDevice?
