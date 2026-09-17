@@ -38,7 +38,7 @@ internal class AppoxeeAdapter(
         val response = engageApi.registerDevice(deviceModel)
         val payload = if (response.isSuccess()) response.data?.payload else null
         payload?.let {
-            val device = storage.peekDevicePayload()
+            val device = storage.getDevicePayload()
             storage.saveDevicePayload(
                 DevicePayload(
                     dmcUserId = it.dmcUserId.takeIf { id -> id.isNotBlank() } ?: device?.dmcUserId,
@@ -106,14 +106,14 @@ internal class AppoxeeAdapter(
         val result = engageApi.getDevice()
         if (result.isSuccess()) {
             result.data?.payload?.let { devicePayload ->
-                storage.saveRefreshedDevicePayload(devicePayload)
+                storage.saveDevicePayload(devicePayload)
             }
         }
         return result.data?.payload
     }
 
     internal suspend fun optIn(pushToken: String, refreshDevice: Boolean = true): Boolean {
-        val device = if (refreshDevice) storage.getDevicePayload() else storage.peekDevicePayload()
+        val device = storage.getDevicePayload()
         if (pushToken == device?.pushToken) {
             return true
         }
@@ -123,7 +123,7 @@ internal class AppoxeeAdapter(
     }
 
     internal suspend fun optOut(pushToken: String, refreshDevice: Boolean = true): Boolean {
-        val device = if (refreshDevice) storage.getDevicePayload() else storage.peekDevicePayload()
+        val device = storage.getDevicePayload()
         if (Objects.equals(pushToken, device?.pushTokenBk)) {
             return true
         }

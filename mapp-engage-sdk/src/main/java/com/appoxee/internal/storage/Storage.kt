@@ -14,18 +14,6 @@ internal interface Storage {
 
     suspend fun getDevicePayload(): DevicePayload?
 
-    // Read identity for a refresh request without recursively refreshing the cache.
-    suspend fun peekDevicePayload(): DevicePayload? = getDevicePayload()
-
-    suspend fun getDeviceTimestamp(): Long
-
-    suspend fun updateDeviceTimestamp()
-
-    suspend fun saveRefreshedDevicePayload(devicePayload: DevicePayload) {
-        saveDevicePayload(devicePayload)
-        updateDeviceTimestamp()
-    }
-
     suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?)
 
     suspend fun getRegistrationDevice(): RegisterDevice?

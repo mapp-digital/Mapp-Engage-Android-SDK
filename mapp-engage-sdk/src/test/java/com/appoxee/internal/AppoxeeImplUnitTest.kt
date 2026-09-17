@@ -9,6 +9,7 @@ import com.appoxee.internal.integration.IntelligenceEventSender
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
 import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
@@ -31,6 +32,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.common.truth.Truth
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
+import io.mockk.Ordering
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -292,7 +294,6 @@ class AppoxeeImplUnitTest {
         clearMocks(mockStorage, answers = false)
         var cachedDevice: DevicePayload? = null
         coEvery { mockStorage.getDevicePayload() } answers { cachedDevice }
-        coEvery { mockStorage.peekDevicePayload() } answers { cachedDevice }
         coEvery { mockStorage.saveDevicePayload(any()) } answers {
             cachedDevice = firstArg<DevicePayload?>()
         }
@@ -885,17 +886,41 @@ class AppoxeeImplUnitTest {
             Truth.assertThat(result).isFalse()
         }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `fetchConfig reads through the refreshing storage`() = testScope.runTest {
-        // Exclude the configuration read scheduled by constructor initialization.
-        advanceUntilIdle()
-        clearMocks(mockStorage, mockEngageApi, answers = false)
+    fun `fetchConfig runs and get configuration successfully`() = runTest {
+        val mockConfiguration = mockk<AppConfigPayload>(relaxed = true)
+
+        val mockResponse = Response.success(200, ResponseData(null, mockConfiguration))
+
+        coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
 
         sut.fetchAppConfig()
 
-        coVerify(exactly = 1) { mockStorage.getAppConfig() }
-        coVerify(exactly = 0) { mockEngageApi.getAppConfig() }
+        coVerifyOrder {
+            mockEngageApi.getAppConfig()
+            mockStorage.saveAppConfig(mockConfiguration)
+            mockStorage.updateCacheTimestamp()
+            Logger.d(any(), any())
+        }
+    }
+
+    @Test
+    fun `fetchConfig runs and get error when engageApi throws exception`() = runTest {
+        val mockResponse = Response.error<ResponseData<AppConfigPayload>>(Throwable("Error"))
+
+        coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
+
+        kotlin.runCatching { sut.fetchAppConfig() }
+
+        coVerifyOrder {
+            mockEngageApi.getAppConfig()
+            Logger.e(any(), "java.lang.Throwable: Error", null)
+        }
+
+        coVerify(ordering = Ordering.UNORDERED, exactly = 0) {
+            mockStorage.saveAppConfig(any())
+            mockStorage.updateCacheTimestamp()
+        }
     }
 
     private abstract class ValidPushBroadcast : LocalPushBroadcast()

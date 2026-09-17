@@ -55,7 +55,7 @@ class AppoxeeAdapterTest {
     fun `register saves returned identity before any device refresh`() = runTest {
         val deviceModel = mockk<RegisterDevice>()
         val payload = RegisterPayload("registered-user", "AUTO_app_hash")
-        coEvery { storage.peekDevicePayload() } returns null
+        coEvery { storage.getDevicePayload() } returns null
         coEvery { engageApi.registerDevice(deviceModel) } returns Response.success(
             200, ResponseData(payload = payload)
         )
@@ -74,7 +74,7 @@ class AppoxeeAdapterTest {
     @Test
     fun `register preserves cached fields not supplied by response`() = runTest {
         val deviceModel = mockk<RegisterDevice>()
-        coEvery { storage.peekDevicePayload() } returns DevicePayload(
+        coEvery { storage.getDevicePayload() } returns DevicePayload(
             dmcUserId = "old-user", alias = "old-alias", udidHashed = "device-id",
             pushToken = "push-token", pushTokenBk = "backup-token"
         )
@@ -321,7 +321,6 @@ class AppoxeeAdapterTest {
         coVerify { engageApi.getDevice() }
         Truth.assertThat(response).isNotNull()
         Truth.assertThat(response?.alias).isEqualTo("user@mapp.com")
-        coVerify(exactly = 1) { storage.saveRefreshedDevicePayload(any()) }
     }
 
     @Test
@@ -365,7 +364,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optIn can skip device refresh`() = runTest {
-        coEvery { storage.peekDevicePayload() } returns DevicePayload(pushToken = "old-token")
+        coEvery { storage.getDevicePayload() } returns DevicePayload(pushToken = "old-token")
         coEvery { engageApi.optIn("new-token") } returns Response.success(
             200, ResponseData(payload = DefaultResponse("user12345", emptyList()))
         )
@@ -378,7 +377,7 @@ class AppoxeeAdapterTest {
 
     @Test
     fun `optOut can skip device refresh`() = runTest {
-        coEvery { storage.peekDevicePayload() } returns DevicePayload(pushTokenBk = "old-token")
+        coEvery { storage.getDevicePayload() } returns DevicePayload(pushTokenBk = "old-token")
         coEvery { engageApi.optOut("new-token") } returns Response.success(
             200, ResponseData(payload = DefaultResponse("user12345", emptyList()))
         )
