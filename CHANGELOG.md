@@ -6,6 +6,7 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Bug Fixes
 
+- **Empty custom attribute resends** — `setAlias()` with `resendCustomAttributes = true` now skips resending custom attributes when the cache is empty, avoiding an unnecessary request with an empty `set` object.
 - **Alias updates** — Successful `setAlias()` calls now save the requested alias and returned DMC user ID directly, without an immediate device GET. This prevents a temporary backend read delay from leaving the previous alias cached. Alias updates require successful response metadata and a non-empty DMC user ID before changing the cache.
 - **Registration data persistence** — The alias and DMC user ID returned by registration are saved immediately, preserving other cached device fields. A failed follow-up device GET no longer clears the saved identity.
 - **Device lookup alias** — Device GET requests now include the cached alias when available, including the alias saved from registration.

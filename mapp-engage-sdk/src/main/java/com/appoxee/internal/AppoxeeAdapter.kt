@@ -180,6 +180,7 @@ internal class AppoxeeAdapter(
     internal suspend fun resyncCustomAttributes() {
         // get cached attributes
         val cachedAttributes = storage.getCustomAttributesCache().attributes
+        if (cachedAttributes.isEmpty()) return
         val response = engageApi.addCustomAttributes(cachedAttributes)
         if (response.isSuccess()) {
             storage.setCustomAttributesCache(cachedAttributes)
