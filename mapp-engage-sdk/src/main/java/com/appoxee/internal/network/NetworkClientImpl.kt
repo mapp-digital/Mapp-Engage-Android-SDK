@@ -14,6 +14,7 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
 import com.appoxee.shared.AppoxeeOptions
+import kotlinx.coroutines.delay
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -38,69 +39,57 @@ internal class NetworkClientImpl(
         adapter: ResponseAdapter<T>
     ): Response<T> {
         val urlPath = buildUrl(request)
-
         val url = provideUrl(urlPath)
+        val options = getOptions()
+        var retries = 0
 
-        var response: Response<T>
-
-        val connection: HttpURLConnection = provideHttpUrlConnection(url)
-
-        connection.run {
+        while (true) {
+            val connection = provideHttpUrlConnection(url)
+            val statusCode: Int
+            val body: String?
             try {
-                val options = getOptions()
-                readTimeout = options.readTimeout
-                connectTimeout = options.connectionTimeout
-                requestMethod = request.method.toString()
-                doInput = request.doInput
-                doOutput = request.doOutput
+                connection.run {
+                    readTimeout = options.readTimeout
+                    connectTimeout = options.connectionTimeout
+                    requestMethod = request.method.toString()
+                    doInput = request.doInput
+                    doOutput = request.doOutput
+                    request.headers.forEach { (key, value) -> setRequestProperty(key, value) }
 
-                request.headers.entries.forEach {
-                    setRequestProperty(it.key, it.value)
-                }
-
-                // write request body if exists
-                val data = request.requestBody?.asJson().toString()
-                Logger.w(
-                    TAG,
-                    "REQUEST - ${request.method.name.uppercase()}: $urlPath\nRequestBody: $data"
-                )
-                if (data.isNotEmpty()) {
-                    DataOutputStream(outputStream).use { stream ->
-                        stream.write(data.toByteArray(Charsets.UTF_8))
-                        stream.flush()
+                    val data = request.requestBody?.asJson()?.toString()
+                    Logger.w(TAG, "REQUEST - ${request.method}: $urlPath\nRequestBody: $data")
+                    if (!data.isNullOrEmpty()) {
+                        DataOutputStream(outputStream).use { stream ->
+                            stream.write(data.toByteArray(Charsets.UTF_8))
+                            stream.flush()
+                        }
                     }
                 }
-                // retrieve request result
-                val statusCode = responseCode
-
-                val result: String? = inputStream.convertToString()?.let {
-                    Logger.i(
-                        TAG,
-                        "\nRESPONSE - ${requestMethod}: ${this.url}\nResponseBody: $it"
-                    )
-                    it
-                }
-                val error: String? = errorStream.convertToString()?.also {
-                    Logger.e(
-                        TAG,
-                        "\nRESPONSE - ${requestMethod}: ${this.url}\nErrorBody: $it"
-                    )
-                }
-
-                response = resolveResponse(adapter, statusCode, result, error)
-            } catch (e: Exception) {
-                val error: String = e.message+ errorStream.convertToString()?.also {
-                    Logger.e(
-                        TAG,
-                        "\nRESPONSE - ${requestMethod}: ${this.url}\nErrorBody: $it"
-                    )
-                }
-                response = resolveResponse(adapter, this.responseCode, null, error)
+                statusCode = connection.responseCode
+                body = (if (statusCode >= 400) connection.errorStream else connection.inputStream)
+                    .convertToString()
+                Logger.i(TAG, "RESPONSE - ${request.method}: $urlPath\nResponseBody: $body")
             } finally {
-                this.disconnect()
+                connection.disconnect()
             }
+
+            // Inspect metadata before adapters parse the (possibly empty) error payload.
+            val metadata = body.parseAsJSON().optJSONObject("metadata")
+            val failed = statusCode !in 200..299 || metadata?.optBoolean("error", false) == true
+            if (failed && metadata?.optBoolean("shouldRetry", false) == true && retries < MAX_RETRIES) {
+                val delayMs = INITIAL_RETRY_DELAY_MS * (1L shl retries)
+                retries++
+                Logger.d(TAG, "Backend requested retry $retries/$MAX_RETRIES in ${delayMs}ms")
+                delay(delayMs)
+                continue
+            }
+            return resolveResponse(adapter, statusCode, body, body)
         }
-        return response
+    }
+
+    private companion object {
+        const val MAX_RETRIES = 3
+        const val INITIAL_RETRY_DELAY_MS = 1000L
     }
 
     private fun provideHttpUrlConnection(url: URL): HttpURLConnection {
@@ -122,7 +111,12 @@ internal class NetworkClientImpl(
             in 200..299 -> {
                 // success
                 val json = result.parseAsJSON()
-                response = adapter.createResponse(statusCode, json, null)
+                val metadata = json.optJSONObject("metadata")
+                response = if (metadata?.optBoolean("error", false) == true) {
+                    Response.error(Throwable(metadata.optString("errorMessage")))
+                } else {
+                    adapter.createResponse(statusCode, json, null)
+                }
             }
 
             in 300..399 -> {

@@ -75,6 +75,58 @@ internal class NetworkClientImplTest {
     }
 
     @Test
+    fun `retry metadata in HTTP and application errors retries identical request`() = runTest {
+        for (status in listOf(200, 404)) {
+            val before = mockWebServer.requestCount
+            mockWebServer.enqueue(MockResponse().setResponseCode(status).setBody(retryError(true)))
+            mockWebServer.enqueue(MockResponse().setBody(MockData.GET_DEVICE_RESPONSE))
+
+            val response = networkClient.execute(
+                Request.Put(path = devicePathV3, requestBody = GetDevice()),
+                BaseAdapter { DevicePayload.fromJSON(it) }
+            )
+
+            Truth.assertThat(response.isSuccess()).isTrue()
+            Truth.assertThat(mockWebServer.requestCount - before).isEqualTo(2)
+            val first = mockWebServer.takeRequest()
+            val second = mockWebServer.takeRequest()
+            Truth.assertThat(second.path).isEqualTo(first.path)
+            Truth.assertThat(second.body.readUtf8()).isEqualTo(first.body.readUtf8())
+        }
+    }
+
+    @Test
+    fun `retry exhaustion returns metadata error without parsing empty payload`() = runTest {
+        repeat(4) { mockWebServer.enqueue(MockResponse().setBody(retryError(true))) }
+        val response = networkClient.execute(
+            Request.Put(path = devicePathV3, requestBody = GetDevice()),
+            BaseAdapter { error("Error payload must not be parsed") }
+        )
+        Truth.assertThat(response.isSuccess()).isFalse()
+        Truth.assertThat(response.error?.message).isEqualTo("PhoneData not found")
+        Truth.assertThat(mockWebServer.requestCount).isEqualTo(4)
+        // Three retries wait 1s, 2s, and 4s before the final response.
+        Truth.assertThat(testScheduler.currentTime).isEqualTo(7000L)
+    }
+
+    @Test
+    fun `error without retry permission returns immediately`() = runTest {
+        for (body in listOf(retryError(false), retryError(false).replace(", \"shouldRetry\": false", ""))) {
+            mockWebServer.enqueue(MockResponse().setBody(body))
+            val response = networkClient.execute(
+                Request.Put(path = devicePathV3, requestBody = GetDevice()),
+                BaseAdapter { error("Error payload must not be parsed") }
+            )
+            Truth.assertThat(response.isSuccess()).isFalse()
+        }
+        Truth.assertThat(mockWebServer.requestCount).isEqualTo(2)
+        Truth.assertThat(testScheduler.currentTime).isEqualTo(0L)
+    }
+
+    private fun retryError(shouldRetry: Boolean) =
+        """{"metadata":{"error":true,"statusCode":404,"errorMessage":"PhoneData not found", "shouldRetry": $shouldRetry},"payload":{}}"""
+
+    @Test
     fun `test execute request and return response status`() {
         runTest {
             mockWebServer.enqueue(

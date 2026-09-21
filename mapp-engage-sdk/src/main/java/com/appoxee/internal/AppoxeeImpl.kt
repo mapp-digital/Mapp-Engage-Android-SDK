@@ -39,7 +39,6 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,7 +46,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
 
 @Suppress("UNCHECKED_CAST")
@@ -69,11 +67,7 @@ internal open class AppoxeeImpl(
 
     internal val mIsReady by lazy { AtomicBoolean(false) }
 
-    private val registrationTimestampMs = AtomicLong(0L)
-
     private companion object {
-        const val POST_REGISTRATION_DELAY_MS = 2_000L
-        const val POST_REGISTRATION_MAX_RETRIES = 3
         const val DEVICE_CACHE_TTL_MS = 60 * 60 * 1_000L
     }
 
@@ -306,13 +300,7 @@ internal open class AppoxeeImpl(
         oldRegistration: OldRegistration?
     ): DevicePayload? {
         // if device payload doesn't exist after all checkins, register device
-        val registerPayload = appoxeeAdapter.register(newRegisterPayload)
-
-        if (registerPayload != null) {
-            registrationTimestampMs.set(System.currentTimeMillis())
-            // Allow backend provisioning to settle before dependent requests.
-            delay(POST_REGISTRATION_DELAY_MS)
-        }
+        appoxeeAdapter.register(newRegisterPayload)
 
         // update optIn or optOut status with firebase token
         updateOptStatus(devicePayload, oldRegistration, refreshDevice = false)
@@ -448,28 +436,7 @@ internal open class AppoxeeImpl(
     }
 
     override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
-        val registeredAt = registrationTimestampMs.get()
-        val inappResponse = if (registeredAt > 0L) {
-            var response = appoxeeAdapter.fetchInappMessages(eventName)
-            var attempt = 1
-            while (attempt <= POST_REGISTRATION_MAX_RETRIES) {
-                val hasMessages = response?.webMessages?.isNotEmpty() == true ||
-                        response?.nativeMessages?.isNotEmpty() == true
-                if (hasMessages) {
-                    Logger.d(TAG, "triggerInApp: got messages on attempt $attempt, skipping further retries")
-                    break
-                }
-                Logger.d(TAG, "triggerInApp: attempt $attempt - no messages, waiting ${POST_REGISTRATION_DELAY_MS}ms before retry")
-                delay(POST_REGISTRATION_DELAY_MS)
-                if (attempt < POST_REGISTRATION_MAX_RETRIES) {
-                    response = appoxeeAdapter.fetchInappMessages(eventName)
-                }
-                attempt++
-            }
-            response
-        } else {
-            appoxeeAdapter.fetchInappMessages(eventName)
-        }
+        val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
             withContext(dispatcherProvider.mainDispatcher) {
