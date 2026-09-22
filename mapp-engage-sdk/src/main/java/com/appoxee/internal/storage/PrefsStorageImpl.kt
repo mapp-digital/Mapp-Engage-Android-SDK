@@ -33,6 +33,7 @@ internal class PrefsStorageImpl(
     private val devicePayloadKey = stringPreferencesKey("devicePayload")
     private val registerDeviceKey = stringPreferencesKey("registerDevice")
     private val timestampKey = longPreferencesKey("timestamp")
+    private val deviceFetchTimestampKey = longPreferencesKey("deviceFetchTimestamp")
     private val appoxeeOptionsKey = stringPreferencesKey("appoxeeOptions")
     private val appConfigKey = stringPreferencesKey("appConfig")
     private val broadcastKey = stringPreferencesKey("localBroadcast")
@@ -50,6 +51,13 @@ internal class PrefsStorageImpl(
         return withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.data.first()[timestampKey] ?: 0
         }
+    }
+
+    override suspend fun getDeviceFetchTimestamp(): Long =
+        dataStore.data.first()[deviceFetchTimestampKey] ?: 0L
+
+    override suspend fun updateDeviceFetchTimestamp() {
+        dataStore.edit { it[deviceFetchTimestampKey] = System.currentTimeMillis() }
     }
 
     override suspend fun addTags(tags: List<String>) {
@@ -150,6 +158,7 @@ internal class PrefsStorageImpl(
             dataStore.edit { prefs ->
                 prefs.remove(registerDeviceKey)
                 prefs.remove(devicePayloadKey)
+                prefs.remove(deviceFetchTimestampKey)
                 prefs.remove(timestampKey)
                 prefs.remove(appConfigKey)
                 prefs.remove(appoxeeOptionsKey)

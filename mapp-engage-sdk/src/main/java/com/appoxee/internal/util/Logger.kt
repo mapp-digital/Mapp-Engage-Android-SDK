@@ -3,18 +3,20 @@ package com.appoxee.internal.util
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.util.Log
+import com.appoxee.shared.AppoxeeOptions.LogLevel
 
-internal class Logger private constructor(application: Application) {
-    private val isDebuggable =
-        ((application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+internal class Logger private constructor(application: Application, logLevel: LogLevel) {
+    private val isLoggingEnabled =
+        logLevel == LogLevel.RELEASE ||
+            ((application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
 
     internal companion object {
         @Volatile
         private lateinit var instance: Logger
 
         @JvmStatic
-        internal fun init(application: Application) {
-            instance = Logger(application)
+        internal fun init(application: Application, logLevel: LogLevel) {
+            instance = Logger(application, logLevel)
         }
 
 
@@ -59,7 +61,7 @@ internal class Logger private constructor(application: Application) {
             throwable: Throwable? = null,
             call: (String, String, Throwable?) -> Unit
         ) {
-            if (::instance.isInitialized && instance.isDebuggable) {
+            if (::instance.isInitialized && instance.isLoggingEnabled) {
                 val maxLength = 10000
                 for (i in message.indices step maxLength) {
                     val msgLength =
@@ -68,8 +70,6 @@ internal class Logger private constructor(application: Application) {
                     val part = message.substring(i, msgLength)
                     call(tag, part, throwable)
                 }
-            } else {
-                call(tag, message, throwable)
             }
         }
     }

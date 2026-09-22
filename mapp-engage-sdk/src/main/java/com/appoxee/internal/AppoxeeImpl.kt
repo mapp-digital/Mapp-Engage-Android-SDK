@@ -36,9 +36,9 @@ import com.appoxee.shared.MessageStatus
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -46,7 +46,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
 
 @Suppress("UNCHECKED_CAST")
@@ -68,11 +67,8 @@ internal open class AppoxeeImpl(
 
     internal val mIsReady by lazy { AtomicBoolean(false) }
 
-    private val registrationTimestampMs = AtomicLong(0L)
-
     private companion object {
-        const val POST_REGISTRATION_DELAY_MS = 2_000L
-        const val POST_REGISTRATION_MAX_RETRIES = 3
+        const val DEVICE_CACHE_TTL_MS = 60 * 60 * 1_000L
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -117,7 +113,7 @@ internal open class AppoxeeImpl(
 
     init {
         // initialize logger
-        Logger.init(application)
+        Logger.init(application, options?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
 
         // attach activity lifecycle listener
         application.registerActivityLifecycleCallbacks(
@@ -132,23 +128,28 @@ internal open class AppoxeeImpl(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun initializeSdk() = withContext(dispatcherProvider.defaultDispatcher) {
+        val savedOptions = storage.getInitOptions()
+        if (options == null) {
+            Logger.init(application, savedOptions?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
+        }
         Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
-            if (!options.areEquals(storage.getInitOptions())) {
+            if (!options.areEquals(savedOptions)) {
                 storage.clearRegistration()
             }
             // always store options for possible changes of other attributes, not used for comparing
             storage.saveInitOptions(options)
         } else {
-            checkNotNull(storage.getInitOptions()) { "Engage SDK wasn't supplied with initialization parameters!" }
+            checkNotNull(savedOptions) { "Engage SDK wasn't supplied with initialization parameters!" }
         }
 
         // check device registration
         // update if exist or register new device
         validateRegistration()?.let {
-            notifyMappIntelligence(it)
-            updateReadyStatus(true, MappResult.Success(it))
+            val device = fetchDeviceIfExpired(it)
+            notifyMappIntelligence(device)
+            updateReadyStatus(true, MappResult.Success(device))
         }
 
         // fetch InApp Configuration parameters
@@ -230,7 +231,7 @@ internal open class AppoxeeImpl(
 
         // update optIn or optOut status with firebase token
         // this fulfills requirement to preserve OptIn/OptOut state when channel changed
-        updateOptStatus(devicePayload, null)
+        updateOptStatus(devicePayload, null, refreshDevice = false)
 
         // get device payload from server after new registration
         Logger.d(TAG, "validateRegistration - savedRegistration != newRegistration")
@@ -299,14 +300,10 @@ internal open class AppoxeeImpl(
         oldRegistration: OldRegistration?
     ): DevicePayload? {
         // if device payload doesn't exist after all checkins, register device
-        val registerPayload = appoxeeAdapter.register(newRegisterPayload)
-
-        if (registerPayload != null) {
-            registrationTimestampMs.set(System.currentTimeMillis())
-        }
+        appoxeeAdapter.register(newRegisterPayload)
 
         // update optIn or optOut status with firebase token
-        updateOptStatus(devicePayload, oldRegistration)
+        updateOptStatus(devicePayload, oldRegistration, refreshDevice = false)
 
         // delete old registration data if still exists
         migrationHelper.deleteOldRegistration()
@@ -324,7 +321,8 @@ internal open class AppoxeeImpl(
         storage.saveRegistrationDevice(newRegisterPayload)
 
         // save device payload from server for a registered device
-        storage.saveDevicePayload(devicePayload)
+        // Keep the registration response cached if the follow-up GET fails.
+        if (devicePayload != null) storage.saveDevicePayload(devicePayload)
     }
 
     private fun DevicePayload?.hasValidUdid(): Boolean = this?.udidHashed != null
@@ -332,7 +330,8 @@ internal open class AppoxeeImpl(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun updateOptStatus(
         devicePayload: DevicePayload?,
-        oldRegistration: OldRegistration?
+        oldRegistration: OldRegistration?,
+        refreshDevice: Boolean = true
     ) {
         Logger.d(TAG, "updateOptStatus()")
         val pushToken = try {
@@ -347,12 +346,12 @@ internal open class AppoxeeImpl(
             // if device opted In and optIn token is expired, update optIn token
             if (devicePayload?.pushToken?.isNotEmpty() == true || oldRegistration?.pushEnabled == true) {
                 if (pushToken != devicePayload?.pushToken) {
-                    appoxeeAdapter.optIn(pushToken)
+                    appoxeeAdapter.optIn(pushToken, refreshDevice)
                 }
             } else {
                 // if device opted Out and optOut token is expired, update optOut token
                 if (pushToken != devicePayload?.pushTokenBk) {
-                    appoxeeAdapter.optOut(pushToken)
+                    appoxeeAdapter.optOut(pushToken, refreshDevice)
                 }
             }
         } catch (e: Exception) {
@@ -437,28 +436,7 @@ internal open class AppoxeeImpl(
     }
 
     override fun triggerInApp(context: Activity, eventName: String): Call<Boolean> = buildHttpCall {
-        val registeredAt = registrationTimestampMs.get()
-        val inappResponse = if (registeredAt > 0L) {
-            var response = appoxeeAdapter.fetchInappMessages(eventName)
-            var attempt = 1
-            while (attempt <= POST_REGISTRATION_MAX_RETRIES) {
-                val hasMessages = response?.webMessages?.isNotEmpty() == true ||
-                        response?.nativeMessages?.isNotEmpty() == true
-                if (hasMessages) {
-                    Logger.d(TAG, "triggerInApp: got messages on attempt $attempt, skipping further retries")
-                    break
-                }
-                Logger.d(TAG, "triggerInApp: attempt $attempt - no messages, waiting ${POST_REGISTRATION_DELAY_MS}ms before retry")
-                delay(POST_REGISTRATION_DELAY_MS)
-                if (attempt < POST_REGISTRATION_MAX_RETRIES) {
-                    response = appoxeeAdapter.fetchInappMessages(eventName)
-                }
-                attempt++
-            }
-            response
-        } else {
-            appoxeeAdapter.fetchInappMessages(eventName)
-        }
+        val inappResponse = appoxeeAdapter.fetchInappMessages(eventName)
         inappContainer.inappManager.let { inappManager ->
             val sortedMessages = inappManager.parseResponse(inappResponse)
             withContext(dispatcherProvider.mainDispatcher) {
@@ -680,6 +658,25 @@ internal open class AppoxeeImpl(
 
     override fun isPushMessageFromMapp(remoteMessage: RemoteMessage): Boolean {
         return pushContainer.pushManager.isPushMessageFromMapp(remoteMessage)
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun fetchDeviceIfExpired(cachedDevice: DevicePayload): DevicePayload {
+        val fetchedAt = storage.getDeviceFetchTimestamp()
+        val cacheAgeMs = System.currentTimeMillis() - fetchedAt
+        if (fetchedAt > 0 && cacheAgeMs >= 0 && cacheAgeMs < DEVICE_CACHE_TTL_MS) {
+            return cachedDevice
+        }
+        return try {
+            withContext(dispatcherProvider.ioDispatcher) {
+                appoxeeAdapter.getDevice()
+            } ?: cachedDevice
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(TAG, "Device refresh failed; retaining cached data", e)
+            cachedDevice
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

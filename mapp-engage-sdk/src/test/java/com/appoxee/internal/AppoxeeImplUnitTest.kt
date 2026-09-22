@@ -3,7 +3,6 @@ package com.appoxee.internal
 import TestDispatchersProvider
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.integration.IntelligenceEventSender
@@ -14,6 +13,7 @@ import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.model.response.ResponseData
+import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
 import com.appoxee.internal.network.EngageApi
 import com.appoxee.internal.network.NetworkClient
@@ -28,8 +28,8 @@ import com.appoxee.shared.AppoxeeObserver
 import com.appoxee.shared.AppoxeeOptions
 import com.appoxee.shared.LocalPushBroadcast
 import com.appoxee.shared.MappResult
-import com.google.common.truth.Truth
 import com.google.android.gms.tasks.Tasks
+import com.google.common.truth.Truth
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.RemoteMessage
 import io.mockk.Ordering
@@ -41,6 +41,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkClass
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
@@ -103,16 +104,13 @@ class AppoxeeImplUnitTest {
     @Before
     fun setUp() {
         testDispatcher = StandardTestDispatcher()
-        testScope=TestScope(testDispatcher)
+        testScope = TestScope(testDispatcher)
         testDispatchersProvider = TestDispatchersProvider(testDispatcher)
         Dispatchers.setMain(testDispatchersProvider.mainDispatcher)
-        mockkStatic(Log::class)
-        mockkStatic(Logger::class)
+        mockkObject(Logger.Companion)
         every { Logger.d(any(), any()) } just runs
         every { Logger.w(any(), any(), any()) } just runs
-        every { Log.d(any(), any()) } answers { 0 }
-        every { Log.e(any(), any(), any()) } answers { 0 }
-        every { Log.w(any(), any(), any()) } answers { 0 }
+        every { Logger.e(any(), any<String>(), any()) } just runs
 
         mockContext = mockk<Context>(relaxed = true)
         mockApplication = mockk<Application>(relaxed = true)
@@ -160,6 +158,7 @@ class AppoxeeImplUnitTest {
 
         mockDeviceProvider = mockk(relaxed = true)
         mockStorage = mockk<Storage>(relaxed = true)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns System.currentTimeMillis()
         mockEngageApi = mockk(relaxed = true)
         mockMigrationHelper = mockk(relaxed = true)
         mockIntelligenceEventSender = mockk(relaxed = true)
@@ -232,7 +231,7 @@ class AppoxeeImplUnitTest {
         coEvery { mockAppoxeeAdapter.register(any()) } coAnswers { mockk() }
         coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { mockDevicePayload }
 
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
         // execute validation
         sut.validateRegistration()
@@ -240,11 +239,83 @@ class AppoxeeImplUnitTest {
         // verify order or calling functions when application installed for the first time
         coVerifyOrder {
             mockAppoxeeAdapter.register(mockRegisterDevice)
-            sut.updateOptStatus(null, any())
+            sut.updateOptStatus(null, any(), refreshDevice = false)
             mockAppoxeeAdapter.getDevice()
             mockStorage.saveRegistrationDevice(mockRegisterDevice)
             mockStorage.saveDevicePayload(mockDevicePayload)
         }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `registration refreshes device once after updating push status`() = testScope.runTest {
+        // Finish constructor initialization before isolating each registration path.
+        advanceUntilIdle()
+        mockkStatic(FirebaseMessaging::class)
+        val messaging = mockk<FirebaseMessaging>()
+        every { FirebaseMessaging.getInstance() } returns messaging
+        every { messaging.token } returns Tasks.forResult("new-token")
+        coEvery { mockStorage.getRegistrationDevice() } returns null
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
+        coEvery { mockMigrationHelper.getRegistrationOptions() } returns null
+        coEvery { mockMigrationHelper.fetchRegistrationData() } returns null
+        coEvery { mockAppoxeeAdapter.getDevice() } returns mockDevicePayload
+        coEvery { mockEngageApi.optIn(any()) } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user1234", emptyList()))
+        )
+        coEvery { mockEngageApi.optOut(any()) } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user1234", emptyList()))
+        )
+
+        // Fresh installation, changed registration opted in, and changed registration opted out.
+        for (device in listOf(null, mockDevicePayload, DevicePayload(udidHashed = "device-id"))) {
+            clearMocks(mockAppoxeeAdapter, mockEngageApi, answers = false)
+            coEvery { mockStorage.getDevicePayload() } returns device
+
+            sut.validateRegistration()
+
+            coVerify(exactly = 1) { mockAppoxeeAdapter.getDevice() }
+            coVerifyOrder {
+                mockAppoxeeAdapter.register(mockRegisterDevice)
+                sut.updateOptStatus(device, null, refreshDevice = false)
+                mockAppoxeeAdapter.getDevice()
+            }
+            if (device?.pushToken?.isNotEmpty() == true) {
+                coVerify(exactly = 1) { mockEngageApi.optIn("new-token") }
+            } else {
+                coVerify(exactly = 1) { mockEngageApi.optOut("new-token") }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `failed registration refresh retains identity from register response`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, answers = false)
+        var cachedDevice: DevicePayload? = null
+        coEvery { mockStorage.getDevicePayload() } answers { cachedDevice }
+        coEvery { mockStorage.saveDevicePayload(any()) } answers {
+            cachedDevice = firstArg<DevicePayload?>()
+        }
+        coEvery { mockStorage.getRegistrationDevice() } returns null
+        coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
+        coEvery { mockMigrationHelper.getRegistrationOptions() } returns null
+        coEvery { mockMigrationHelper.fetchRegistrationData() } returns null
+        coEvery { mockAppoxeeAdapter.register(any()) } coAnswers { callOriginal() }
+        coEvery { mockEngageApi.registerDevice(any()) } returns Response.success(
+            200, ResponseData(payload = RegisterPayload("registered-user", "AUTO_app_hash"))
+        )
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
+        coEvery { mockAppoxeeAdapter.getDevice() } returns null
+
+        val result = sut.validateRegistration()
+
+        Truth.assertThat(result).isNull()
+        Truth.assertThat(cachedDevice?.alias).isEqualTo("AUTO_app_hash")
+        Truth.assertThat(cachedDevice?.dmcUserId).isEqualTo("registered-user")
+        Truth.assertThat(cachedDevice?.udidHashed).isNull()
+        coVerify(exactly = 0) { mockStorage.saveDevicePayload(null) }
     }
 
     @Test
@@ -252,7 +323,7 @@ class AppoxeeImplUnitTest {
         coEvery { mockStorage.getDevicePayload() } returns mockDevicePayload
         coEvery { mockStorage.getRegistrationDevice() } returns mockRegisterDevice
         coEvery { mockDeviceProvider.generateRegistrationDevice() } returns mockRegisterDevice
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
         coEvery { sut.updateReadyStatus(any(), any()) } just runs
         coEvery { sut.fetchAppConfig() } just runs
 
@@ -311,7 +382,7 @@ class AppoxeeImplUnitTest {
         coEvery { mockMigrationHelper.fetchRegistrationData() } coAnswers { mockOldRegistration }
         coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { mockDevicePayload }
         coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
         // execute validation
         sut.validateRegistration()
@@ -356,7 +427,7 @@ class AppoxeeImplUnitTest {
             // getDevice() returns a payload with null udidHashed (simulates network/server failure)
             coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { DevicePayload(udidHashed = null) }
             coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
-            coEvery { sut.updateOptStatus(any(), any()) } just runs
+            coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
             sut.validateRegistration()
 
@@ -391,7 +462,7 @@ class AppoxeeImplUnitTest {
             coEvery { mockMigrationHelper.fetchRegistrationData() } coAnswers { emptyOldRegistration }
             coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { mockDevicePayload }
             coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
-            coEvery { sut.updateOptStatus(any(), any()) } just runs
+            coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
             sut.validateRegistration()
 
@@ -417,7 +488,7 @@ class AppoxeeImplUnitTest {
         coEvery { mockMigrationHelper.fetchRegistrationData() } coAnswers { mockOldRegistration }
         coEvery { mockAppoxeeAdapter.getDevice() } coAnswers { mockDevicePayload }
         coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
         // execute validation
         sut.validateRegistration()
@@ -427,7 +498,7 @@ class AppoxeeImplUnitTest {
             mockMigrationHelper.getRegistrationOptions()
             mockMigrationHelper.fetchRegistrationData()
             mockAppoxeeAdapter.register(mockRegisterDevice)
-            sut.updateOptStatus(null, mockOldRegistration)
+            sut.updateOptStatus(null, mockOldRegistration, refreshDevice = false)
             mockMigrationHelper.deleteOldRegistration()
             mockAppoxeeAdapter.getDevice()
         }
@@ -451,7 +522,7 @@ class AppoxeeImplUnitTest {
         coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
         coEvery { mockStorage.getRegistrationDevice() } coAnswers { mockRegisterDevice }
         coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { savedRegistrationDevice }
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
         // execute validation
         sut.validateRegistration()
@@ -468,7 +539,7 @@ class AppoxeeImplUnitTest {
     fun `validate registration when already on v7 and channel changed`() = runTest {
         val appoxeeOptions = AppoxeeOptions(AppoxeeOptions.Server.L3, "abcd.efgh", "001122", "0987")
 
-        coEvery { sut.updateOptStatus(any(), any()) } just runs
+        coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
         coEvery { sut.storage } coAnswers { mockStorage }
         coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { mockRegisterDevice }
 
@@ -502,7 +573,7 @@ class AppoxeeImplUnitTest {
             coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
             coEvery { mockStorage.getRegistrationDevice() } coAnswers { mockRegisterDevice }
             coEvery { mockDeviceProvider.generateRegistrationDevice() } coAnswers { savedRegistrationDevice }
-            coEvery { sut.updateOptStatus(any(), any()) } just runs
+            coEvery { sut.updateOptStatus(any(), any(), any()) } just runs
 
             // execute validation
             sut.validateRegistration()
@@ -817,14 +888,50 @@ class AppoxeeImplUnitTest {
         }
 
     @Test
+    fun `startup device refresh skips a fresh cache`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns System.currentTimeMillis()
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(mockDevicePayload)
+        coVerify(exactly = 0) { mockAppoxeeAdapter.getDevice() }
+    }
+
+    @Test
+    fun `startup device refresh fetches after one hour`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns
+            (System.currentTimeMillis() - 60 * 60 * 1_000L)
+        val refreshed = DevicePayload(dmcUserId = "refreshed", udidHashed = "device")
+        coEvery { mockAppoxeeAdapter.getDevice() } returns refreshed
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(refreshed)
+        coVerify(exactly = 1) { mockAppoxeeAdapter.getDevice() }
+    }
+
+    @Test
+    fun `startup device refresh without timestamp retains cache on failure`() = runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockStorage.getDeviceFetchTimestamp() } returns 0L
+        coEvery { mockAppoxeeAdapter.getDevice() } returns null
+
+        val device = sut.fetchDeviceIfExpired(mockDevicePayload)
+
+        Truth.assertThat(device).isSameInstanceAs(mockDevicePayload)
+        coVerify(exactly = 1) { mockAppoxeeAdapter.getDevice() }
+    }
+
+    @Test
     fun `fetchConfig runs and get configuration successfully`() = runTest {
         val mockConfiguration = mockk<AppConfigPayload>(relaxed = true)
 
         val mockResponse = Response.success(200, ResponseData(null, mockConfiguration))
-
-        mockkStatic(Log::class)
-        every { Log.d(any(), any()) } returns 0
-        every { Log.e(any(), any(), any()) } returns 0
 
         coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
 
@@ -834,7 +941,7 @@ class AppoxeeImplUnitTest {
             mockEngageApi.getAppConfig()
             mockStorage.saveAppConfig(mockConfiguration)
             mockStorage.updateCacheTimestamp()
-            Log.d(any(), any())
+            Logger.d(any(), any())
         }
     }
 
@@ -842,17 +949,13 @@ class AppoxeeImplUnitTest {
     fun `fetchConfig runs and get error when engageApi throws exception`() = runTest {
         val mockResponse = Response.error<ResponseData<AppConfigPayload>>(Throwable("Error"))
 
-        mockkStatic(Log::class)
-        every { Log.d(any(), any()) } returns 0
-        every { Log.e(any(), any(), any()) } returns 0
-
         coEvery { mockEngageApi.getAppConfig() } coAnswers { mockResponse }
 
         kotlin.runCatching { sut.fetchAppConfig() }
 
         coVerifyOrder {
             mockEngageApi.getAppConfig()
-            Log.e(any(), any(), any())
+            Logger.e(any(), "java.lang.Throwable: Error", null)
         }
 
         coVerify(ordering = Ordering.UNORDERED, exactly = 0) {

@@ -3,19 +3,20 @@ package com.appoxee
 import android.app.Application
 import android.content.Context
 import android.os.Looper
-import android.util.Log
+import com.appoxee.internal.util.Logger
 import com.appoxee.shared.AppoxeeOptions
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
 
 class AppoxeeCompanionTest {
@@ -23,12 +24,11 @@ class AppoxeeCompanionTest {
     @Before
     fun setUp() {
         mockkStatic(Looper::class)
-        mockkStatic(Log::class)
-
+        mockkObject(Logger.Companion)
         val mainLooper = mockk<Looper>()
         every { Looper.getMainLooper() } returns mainLooper
         every { mainLooper.thread } answers { Thread.currentThread() }
-        every { Log.d(any(), any()) } returns 0
+        every { Logger.d(any(), any()) } returns Unit
         Appoxee.resetForTests()
         Appoxee.instanceFactory = { _, _, _ -> mockk<Appoxee>(relaxed = true) }
     }
@@ -46,7 +46,7 @@ class AppoxeeCompanionTest {
         every { context.applicationContext } returns application
 
         val logMessage = slot<String>()
-        every { Log.d(any(), capture(logMessage)) } returns 0
+        every { Logger.d(any(), capture(logMessage)) } returns Unit
 
         val options = AppoxeeOptions(
             server = AppoxeeOptions.Server.TEST,

@@ -30,6 +30,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.spyk
+import io.mockk.slot
+import io.mockk.unmockkConstructor
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -162,6 +164,41 @@ internal class EngageApiImplTest {
         Truth.assertThat(apiResponse.error).isNotNull()
         coVerify(atLeast = 1) { engageApi.registerDevice(registerDevice) }
         coVerify(atLeast = 1) { networkClient.execute(request, registerAdapter) }
+    }
+
+    @Test
+    fun `get device includes cached alias and requested fields`() = runTest {
+        unmockkConstructor(Request.Put::class)
+        val alias = "user@example.com"
+        storage.saveDevicePayload(DevicePayload(alias = alias))
+        every { deviceProvider.getUniqueDeviceId() } returns "device-key"
+        val api = EngageApiImpl(networkClient, storage, deviceProvider)
+        val capturedRequest = slot<Request>()
+        coEvery {
+            networkClient.execute(capture(capturedRequest), any<ResponseAdapter<ResponseData<DevicePayload>>>())
+        } returns Response.success(200, ResponseData(payload = DevicePayload(alias = alias)))
+
+        api.getDevice()
+
+        val body = capturedRequest.captured.requestBody!!.asJson()
+        Truth.assertThat(body.getString("key")).isEqualTo("device-key")
+        Truth.assertThat(body.getString("alias")).isEqualTo(alias)
+        val fields = body.getJSONObject("actions").getJSONArray("get")
+        Truth.assertThat((0 until fields.length()).map { fields.getString(it) })
+            .containsExactly("alias", "dmcUserId", "pushToken", "pushToken_bk", "UDIDHashed")
+    }
+
+    @Test
+    fun `get device without cached device omits alias for first registration`() = runTest {
+        unmockkConstructor(Request.Put::class)
+        val capturedRequest = slot<Request>()
+        coEvery {
+            networkClient.execute(capture(capturedRequest), any<ResponseAdapter<ResponseData<DevicePayload>>>())
+        } returns Response.success(200, ResponseData(payload = DevicePayload()))
+
+        engageApi.getDevice()
+
+        Truth.assertThat(capturedRequest.captured.requestBody!!.asJson().has("alias")).isFalse()
     }
 
     @Test

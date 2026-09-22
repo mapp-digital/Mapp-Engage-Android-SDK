@@ -150,6 +150,7 @@ internal class EngageApiImpl(
     override suspend fun getDevice(): Response<ResponseData<DevicePayload>> {
         return executeDevicePutRequest(
             actions = GetDevice(),
+            alias = storage.getDevicePayload()?.alias,
             adapter = BaseAdapter { DevicePayload.fromJSON(it.getJSONObject("get")) }
         )
     }
@@ -167,8 +168,10 @@ internal class EngageApiImpl(
     override suspend fun setAlias(
         alias: String,
     ): Response<ResponseData<DefaultResponse>> {
+        val oldAlias=storage.getDevicePayload()?.alias
         return executeDefaultResponseRequest(
-            actions = SetAlias(alias)
+            actions = SetAlias(alias),
+            alias = oldAlias
         )
     }
 
@@ -178,6 +181,7 @@ internal class EngageApiImpl(
 
     override suspend fun optIn(pushToken: String): Response<ResponseData<DefaultResponse>> {
         return executeDefaultResponseRequest(
+            alias = storage.getDevicePayload()?.alias,
             actions = OptIn(pushToken)
         )
     }
@@ -186,12 +190,14 @@ internal class EngageApiImpl(
         pushTokenBk: String
     ): Response<ResponseData<DefaultResponse>> {
         return executeDefaultResponseRequest(
+            alias = storage.getDevicePayload()?.alias,
             actions = OptOut(pushTokenBk)
         )
     }
 
     override suspend fun getAppConfig(): Response<ResponseData<AppConfigPayload>> {
         return executeDevicePutRequest(
+            alias = storage.getDevicePayload()?.alias,
             actions = GetAppConfig(),
             adapter = BaseAdapter { AppConfigPayload.fromJson(it.getJSONObject("app_conf")) }
         )
@@ -231,12 +237,14 @@ internal class EngageApiImpl(
 
     override suspend fun addTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
         return executeDefaultResponseRequest(
+            alias = storage.getDevicePayload()?.alias,
             actions = Tags(tags, TagsAction.SET)
         )
     }
 
     override suspend fun removeTags(tags: List<String>): Response<ResponseData<DefaultResponse>> {
         return executeDefaultResponseRequest(
+            alias = storage.getDevicePayload()?.alias,
             actions = Tags(tags, TagsAction.REMOVE)
         )
     }

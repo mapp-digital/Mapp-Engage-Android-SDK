@@ -2,24 +2,19 @@ package com.appoxee.internal.geo
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import androidx.work.Data
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.GeoContainer
-import com.appoxee.internal.model.request.geo.GeoEvent
+import com.appoxee.internal.util.Logger
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
-import com.google.common.truth.Truth
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
-import io.mockk.slot
 import io.mockk.spyk
-import io.mockk.verifyOrder
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
+import io.mockk.unmockkAll
+import io.mockk.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -59,6 +54,7 @@ data class FakeGeofence(
         return 1000
     }
 }
+
 class GeofenceBroadcastReceiverTest {
     private lateinit var receiver: GeofenceBroadcastReceiver
     private val context = mockk<Context>(relaxed = true)
@@ -70,9 +66,9 @@ class GeofenceBroadcastReceiverTest {
 
     @Before
     fun setUp() {
-        mockkStatic(Log::class)
-        every { Log.e(any(), any(), any()) } answers { 0 }
-        every { Log.i(any(), any(), any()) } answers { 0 }
+        mockkObject(Logger.Companion)
+        every { Logger.e(any(), any<String>(), any()) } returns Unit
+        every { Logger.i(any(), any(), any()) } returns Unit
 
         every { context.applicationContext } answers { mockk(relaxed = true) }
 
@@ -89,58 +85,58 @@ class GeofenceBroadcastReceiverTest {
 
     @After
     fun tearDown() {
+        unmockkAll()
     }
-/*
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `onReceive handles geofence transition ENTER correctly`() = runTest {
-        // Fake geofence
-        val geofence = FakeGeofence(
-            id = "geo1",
-            lat = 10.0,
-            lon = 20.0,
-            transition = Geofence.GEOFENCE_TRANSITION_ENTER
-        )
-
-        every { geofencingEvent.hasError() } returns false
-        every { geofencingEvent.geofenceTransition } returns Geofence.GEOFENCE_TRANSITION_ENTER
-        every { geofencingEvent.triggeringGeofences } returns listOf(geofence)
-
-        val slot = slot<Data>()
-
-        receiver.onReceive(context, intent)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) {
-            geoEventScheduler.postGeofenceEvent(
-                data = capture(slot),
-                constraints = any()
+    /*
+        @OptIn(ExperimentalCoroutinesApi::class)
+        @Test
+        fun `onReceive handles geofence transition ENTER correctly`() = runTest {
+            // Fake geofence
+            val geofence = FakeGeofence(
+                id = "geo1",
+                lat = 10.0,
+                lon = 20.0,
+                transition = Geofence.GEOFENCE_TRANSITION_ENTER
             )
-        }
 
-        val map = slot.captured.keyValueMap
-        Truth.assertThat(map["latitude"]).isEqualTo(10.0)
-        Truth.assertThat(map["longitude"]).isEqualTo(20.0)
-        Truth.assertThat(map["regionId"]).isEqualTo("geo1")
-        Truth.assertThat(map["geoEvent"]).isEqualTo(GeoEvent.ENTER.ordinal)
-    }
-*/
+            every { geofencingEvent.hasError() } returns false
+            every { geofencingEvent.geofenceTransition } returns Geofence.GEOFENCE_TRANSITION_ENTER
+            every { geofencingEvent.triggeringGeofences } returns listOf(geofence)
+
+            val slot = slot<Data>()
+
+            receiver.onReceive(context, intent)
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) {
+                geoEventScheduler.postGeofenceEvent(
+                    data = capture(slot),
+                    constraints = any()
+                )
+            }
+
+            val map = slot.captured.keyValueMap
+            Truth.assertThat(map["latitude"]).isEqualTo(10.0)
+            Truth.assertThat(map["longitude"]).isEqualTo(20.0)
+            Truth.assertThat(map["regionId"]).isEqualTo("geo1")
+            Truth.assertThat(map["geoEvent"]).isEqualTo(GeoEvent.ENTER.ordinal)
+        }
+    */
 
     @Test
     fun `onReceive doesn't trigger event when geofencing event has error`() {
         mockkStatic(GeofencingEvent::class)
-        mockkStatic(Log::class)
 
         val mockGeofencingEvent = mockk<GeofencingEvent>(relaxed = true)
 
         every { mockGeofencingEvent.hasError() } returns true
+        every { mockGeofencingEvent.errorCode } returns 1000
         every { GeofencingEvent.fromIntent(intent) } returns mockGeofencingEvent
-        every { Log.e(any(), any(), any()) } returns 0
 
         receiver.onReceive(context, intent)
 
-        verifyOrder {
-            Log.e(any(), any(), any())
+        verify(exactly = 1) {
+            Logger.e("GeofenceReceiver", "Error: 1000", null)
         }
 
         coVerify(exactly = 0) {
@@ -151,7 +147,6 @@ class GeofenceBroadcastReceiverTest {
     @Test
     fun `onReceive doesn't trigger event when geofencing event is not enter exit or dwell`() {
         mockkStatic(GeofencingEvent::class)
-        mockkStatic(Log::class)
 
         val geofence = mockk<Geofence>().apply {
             every { requestId } returns "geo1"
@@ -164,12 +159,11 @@ class GeofenceBroadcastReceiverTest {
         every { geofencingEvent.geofenceTransition } returns 0
         every { geofencingEvent.triggeringGeofences } returns listOf(geofence)
         every { GeofencingEvent.fromIntent(intent) } returns geofencingEvent
-        every { Log.e(any(), any(), any()) } returns 0
 
         receiver.onReceive(context, intent)
 
-        verifyOrder {
-            Log.e(any(), any(), any())
+        verify(exactly = 1) {
+            Logger.e("GeofenceReceiver", "Unknown transition type", null)
         }
 
         coVerify(exactly = 0) {

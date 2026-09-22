@@ -1,7 +1,6 @@
 package com.appoxee.internal.stats
 
 import TestDispatchersProvider
-import android.util.Log
 import com.appoxee.internal.model.request.events.ClickType
 import com.appoxee.internal.model.request.events.EventType
 import com.appoxee.internal.model.request.events.TrackingKey
@@ -14,10 +13,9 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
+import io.mockk.mockkObject
 import io.mockk.spyk
 import io.mockk.unmockkAll
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -42,10 +40,10 @@ class StatsClientImplTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before
     fun setUp() {
-        mockkStatic(Log::class)
+        mockkObject(Logger.Companion)
         kotlinx.coroutines.Dispatchers.setMain(testDispatchers.mainDispatcher)
-        every { Log.d(any(), any()) } answers { 0 }
-        every { Log.e(any(), any(), any()) } answers { 0 }
+        every { Logger.d(any(), any()) } returns Unit
+        every { Logger.e(any(), any<String>(), any()) } returns Unit
 
         engageApi = mockk(relaxed = true)
         sut = spyk(StatsClientImpl(engageApi, testDispatchers))
@@ -54,7 +52,6 @@ class StatsClientImplTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @After
     fun tearDown() {
-        unmockkStatic(Logger::class)
         unmockkAll()
         kotlinx.coroutines.Dispatchers.resetMain()
     }
@@ -72,12 +69,12 @@ class StatsClientImplTest {
     }
 
     @Test
-    fun `report push event fails when engageApi throws exception`() = runTest {
+    fun `report push event logs failure when engageApi returns error`() = runTest {
         coEvery { engageApi.pushEvent(any(), any(), any(), any()) } returns failure
         sut.reportPushEvent(1, 2, ClickType.OPEN_STORE, EventType.CLICK)
         coVerify {
             engageApi.pushEvent(1, 2, ClickType.OPEN_STORE, EventType.CLICK)
-            Logger.e(any(), any(), any(Throwable::class))
+            Logger.e(any(), "Push Event sending error: network error", null)
         }
     }
 

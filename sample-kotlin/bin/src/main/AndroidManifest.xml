@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <application
+        android:name=".SampleApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.EngageSample"
+        android:usesCleartextTraffic="true"
+        tools:ignore="DataExtractionRules"
+        tools:targetApi="m">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EngageSample">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="com.mapp.engagesample.inbox.InboxMessagesActivity" />
+
+        <receiver
+            android:name=".MyPushBroadcast"
+            android:enabled="true"
+            android:exported="false" />
+
+        <meta-data
+            android:name="com.engage.mapp_notification_small_icon"
+            android:resource="@drawable/mapp_notification_small_icon" />
+
+        <meta-data
+            android:name="com.engage.mapp_notification_large_icon"
+            android:resource="@drawable/mapp_notification_large_icon" />
+
+        <meta-data
+            android:name="com.engage.mapp_notification_small_icon_color"
+            android:resource="@color/orange" />
+    </application>
+
+</manifest>

@@ -7,7 +7,7 @@ import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeOptions
 import java.util.concurrent.TimeUnit
 
-internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MINUTES.toMillis(1)) :
+internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.DAYS.toMillis(1)) :
     Storage {
 
     private var devicePayload: DevicePayload? = null
@@ -16,6 +16,7 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
     private var appConfigPayload: AppConfigPayload? = null
     private var clazz: Class<*>? = null
     private var timestamp: Long = 0
+    private var deviceFetchTimestamp: Long = 0
 
     private val tags = mutableListOf<String>()
 
@@ -24,6 +25,7 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
 
     override suspend fun clearRegistration() {
         devicePayload = null
+        deviceFetchTimestamp = 0
         registerDevice = null
         initOptions = null
         appConfigPayload = null
@@ -35,6 +37,12 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.MI
 
     override suspend fun getDevicePayload(): DevicePayload? {
         return devicePayload
+    }
+
+    override suspend fun getDeviceFetchTimestamp(): Long = deviceFetchTimestamp
+
+    override suspend fun updateDeviceFetchTimestamp() {
+        deviceFetchTimestamp = System.currentTimeMillis()
     }
 
     override suspend fun saveRegistrationDevice(registerDevice: RegisterDevice?) {
