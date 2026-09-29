@@ -584,14 +584,14 @@ internal open class AppoxeeImpl(
         }
 
     override fun removeCustomAttributes(attributes: Set<String>): Call<Boolean> = buildHttpCall {
-        val cachedAttributes = storage.getCustomAttributesCache().attributes
-        val attributesToUpdate = attributes.filter { cachedAttributes.keys.contains(it) }.toSet()
-        if (attributesToUpdate.isNotEmpty()) {
+        if (attributes.isNotEmpty()) {
             // on backend we can not delete attributes, but we are setting theirs value to empty string
             val response =
-                appoxeeAdapter.addCustomAttributes(attributesToUpdate.associateWith { "" })
+                appoxeeAdapter.addCustomAttributes(attributes.associateWith { "" })
             if (response.isSuccess()) {
-                storage.removeCustomAttributes(attributesToUpdate)
+                storage.removeCustomAttributes(attributes)
+            } else {
+                throw response.error ?: Throwable("Unknown error")
             }
         }
         true

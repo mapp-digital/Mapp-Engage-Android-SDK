@@ -8,6 +8,7 @@ import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.integration.IntelligenceEventSender
 import com.appoxee.internal.migration.MigrationHelper
 import com.appoxee.internal.migration.data.OldRegistration
+import com.appoxee.internal.model.common.CustomAttributesCache
 import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
@@ -628,6 +629,106 @@ class AppoxeeImplUnitTest {
         Truth.assertThat(result.getData()).isTrue()
         verify(exactly = 1) { FirebaseMessaging.getInstance() }
         coVerify(exactly = 1) { mockAppoxeeAdapter.optIn("firebase-fallback-token") }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `remove custom attributes propagates backend error without changing cache`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, mockEngageApi, answers = false)
+        val cached = mapOf<String, Any?>("color" to "blue", "age" to 30)
+        val error = IllegalStateException("Backend update failed")
+        coEvery { mockStorage.getCustomAttributesCache() } returns CustomAttributesCache(cached)
+        coEvery { mockEngageApi.addCustomAttributes(any()) } returns Response.error(error)
+
+        val result = sut.removeCustomAttributes(setOf("color")).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isFalse()
+        Truth.assertThat(result.getError()).isSameInstanceAs(error)
+        coVerify(exactly = 1) { mockEngageApi.addCustomAttributes(mapOf("color" to "")) }
+        coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
+        coVerify(exactly = 0) { mockStorage.removeCustomAttributes(any()) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `remove custom attributes reports failed status without error cause`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, mockEngageApi, answers = false)
+        coEvery { mockStorage.getCustomAttributesCache() } returns
+            CustomAttributesCache(mapOf("color" to "blue"))
+        coEvery { mockEngageApi.addCustomAttributes(any()) } returns
+            Response.Success<ResponseData<DefaultResponse>>(statusCode = 500, data = null)
+
+        val result = sut.removeCustomAttributes(setOf("color")).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isFalse()
+        Truth.assertThat(result.getError()?.message).isEqualTo("Unknown error")
+        coVerify(exactly = 1) { mockEngageApi.addCustomAttributes(mapOf("color" to "")) }
+        coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
+        coVerify(exactly = 0) { mockStorage.removeCustomAttributes(any()) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `remove custom attributes sends keys absent from local cache`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, mockEngageApi, answers = false)
+        coEvery { mockStorage.getCustomAttributesCache() } returns CustomAttributesCache(emptyMap())
+        coEvery { mockEngageApi.addCustomAttributes(any()) } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user1234", emptyList()))
+        )
+
+        val result = sut.removeCustomAttributes(setOf("color", "age")).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        coVerify(exactly = 1) {
+            mockEngageApi.addCustomAttributes(mapOf("color" to "", "age" to ""))
+        }
+        coVerify(exactly = 1) { mockStorage.removeCustomAttributes(setOf("color", "age")) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `remove custom attributes clears only requested cached keys after backend success`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, mockEngageApi, answers = false)
+        coEvery { mockStorage.getCustomAttributesCache() } returns
+            CustomAttributesCache(mapOf("color" to "blue", "age" to 30))
+        coEvery { mockEngageApi.addCustomAttributes(any()) } returns Response.success(
+            200, ResponseData(payload = DefaultResponse("user1234", emptyList()))
+        )
+
+        val result = sut.removeCustomAttributes(setOf("color")).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        coVerify(exactly = 1) { mockEngageApi.addCustomAttributes(mapOf("color" to "")) }
+        coVerify(exactly = 1) {
+            mockStorage.setCustomAttributesCache(mapOf("color" to "", "age" to 30))
+        }
+        coVerify(exactly = 1) { mockStorage.removeCustomAttributes(any()) }
+        coVerifyOrder {
+            mockEngageApi.addCustomAttributes(mapOf("color" to ""))
+            mockStorage.setCustomAttributesCache(mapOf("color" to "", "age" to 30))
+            mockStorage.removeCustomAttributes(setOf("color"))
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `remove custom attributes with empty set succeeds without backend or cache changes`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockStorage, mockEngageApi, answers = false)
+
+        val result = sut.removeCustomAttributes(emptySet()).asSuspend()
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        Truth.assertThat(result.getData()).isTrue()
+        coVerify(exactly = 0) { mockEngageApi.addCustomAttributes(any()) }
+        coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
+        coVerify(exactly = 0) { mockStorage.removeCustomAttributes(any()) }
     }
 
     @Test

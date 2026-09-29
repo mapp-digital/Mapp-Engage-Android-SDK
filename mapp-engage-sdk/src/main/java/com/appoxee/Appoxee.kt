@@ -115,11 +115,10 @@ interface Appoxee {
     /**
      * Opt In or Opt Out device to receive push messages or not.
      * @param enabled true to OptIn device. false to OptOut device.
-     * @param token firebase client token to subscribe device on Firebase service.
-     * <b>This token shouldn't be sent for a regular usage.
-     * It's primary purpose is for use case where [MappMessagingService] is disabled, and client has it's own service
-     * for handling firebase push messaging. </b>
-     * @return [Boolean] true if push enabled; false if push disabled.
+     * @param token optional Firebase token override, trimmed before use. If null or blank, the SDK
+     * retrieves the token from Firebase for both opt-in and opt-out. Normally omit this parameter;
+     * a custom messaging service does not by itself require supplying a token.
+     * @return [Boolean] true if the operation succeeds; false if token retrieval or the update fails.
      */
     fun enablePush(enabled: Boolean, token: String? = null): Call<Boolean>
 
@@ -187,6 +186,11 @@ interface Appoxee {
      */
     fun <T : GeoStatus> stopGeofencing(): Call<T>
 
+    /**
+     * Checks whether the geofence refresh worker is enqueued or running.
+     * Does not verify registered geofences, location permissions, or delivery of geofence events.
+     * @return true if the first matching worker is enqueued or running; false otherwise.
+     */
     fun isGeofencingActive(): Call<Boolean>
 
     /**
@@ -232,9 +236,11 @@ interface Appoxee {
     /**
      * Clears previously set custom attributes from local cache and backend.
      * Attributes keys still exist on the backend side, but will be set as empty string values.
+     * Requested keys are processed even when absent from the local cache.
+     * Cached entries are removed only after a successful update; backend failures produce call errors.
      *
-     * @param set of attribute's keys to remove
-     * @return result if operation was successful or not
+     * @param attributes set of attribute keys to clear
+     * @return true on success, including when the requested set is empty
      */
     fun removeCustomAttributes(attributes:Set<String>):Call<Boolean>
 

@@ -2,6 +2,17 @@
 
 All notable changes to the Mapp Engage Android SDK are documented in this file.
 
+## [7.1.4] - Unreleased
+
+### Bug Fixes
+
+- **Custom attribute removal errors** — `removeCustomAttributes()` now propagates backend update failures as call errors instead of incorrectly returning `true`. Cached attributes are retained on failure. The public API signature is unchanged.
+- **Custom attributes absent from cache** — `removeCustomAttributes()` now processes requested keys even when they are absent from local storage, allowing attributes that exist only on the backend to be cleared.
+
+### Improvements
+
+- **Public API documentation** — Clarified the worker-state check performed by `isGeofencingActive()`, token fallback and result semantics for `enablePush()`, and custom attribute removal behavior. Public API signatures are unchanged.
+
 ## [7.1.3] - 2026-09-22
 
 ### Bug Fixes
