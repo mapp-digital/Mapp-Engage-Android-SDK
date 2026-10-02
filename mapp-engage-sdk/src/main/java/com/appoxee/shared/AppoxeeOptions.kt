@@ -126,6 +126,10 @@ class AppoxeeOptions(
         TEST_61(
             value = "https://charon-qa-61.shortest-route.com",
             internalCepUrl = "https://jamie-test.shortest-route.com"
+        ),
+        INT_STG(
+            value = "https://charon-int.shortest-route.com",
+            internalCepUrl = "https://jamie-int.shortest-route.com"
         );
 
         companion object {
@@ -145,6 +149,7 @@ class AppoxeeOptions(
     enum class LogLevel(value: String) {
         /** Logs only when the host app is debuggable. */
         DEBUG("debug"),
+
         /** Logs in both debug and release apps. */
         RELEASE("release");
     }
@@ -167,6 +172,25 @@ class AppoxeeOptions(
             put("cepUrl", cepUrl)
         }
     }
+
+    // Capture mutable settings at engage() time; public equals intentionally compares channel only.
+    internal fun engagementSnapshot(): AppoxeeOptions = AppoxeeOptions(server, sdkKey, appId, tenantId).also {
+        it.connectionTimeout = connectionTimeout
+        it.readTimeout = readTimeout
+        it.cepUrl = cepUrl
+        it.forceResend = forceResend
+        it.onStartRemoveNotification = onStartRemoveNotification
+        it.logType = logType
+        it.notificationMode = notificationMode
+    }
+
+    internal fun sameEngagement(other: AppoxeeOptions): Boolean =
+        server.value == other.server.value && sdkKey == other.sdkKey &&
+            appId == other.appId && tenantId == other.tenantId &&
+            connectionTimeout == other.connectionTimeout && readTimeout == other.readTimeout &&
+            cepUrl == other.cepUrl && forceResend == other.forceResend &&
+            onStartRemoveNotification == other.onStartRemoveNotification &&
+            logType == other.logType && notificationMode == other.notificationMode
 
     fun areEquals(other: AppoxeeOptions?): Boolean {
         if (this === other) return true
