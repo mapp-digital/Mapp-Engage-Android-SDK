@@ -103,11 +103,14 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         pushData: PushData,
         action: String?,
     ) {
-        Logger.d(TAG, "notifyClientApp() - PushData: $pushData - action: $action")
+        Logger.d(TAG, "notifyClientApp() - action: $action")
         // delegate to subscribed app event
 
-        val clazz = appoxeeContainer.storage.getBroadcastClass()
-        Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz?.simpleName}")
+        val clazz = appoxeeContainer.storage.getBroadcastClass() ?: run {
+            Logger.e(TAG, "Push callback skipped: no registered broadcast receiver available; register with setPushBroadcast()")
+            return
+        }
+        Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz.simpleName}")
         val intent = Intent(context, clazz).apply {
             setPackage(context?.applicationContext?.packageName)
             setAction(action)

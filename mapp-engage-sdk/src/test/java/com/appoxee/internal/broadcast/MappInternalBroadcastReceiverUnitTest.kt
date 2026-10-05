@@ -20,6 +20,7 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.spyk
 import io.mockk.unmockkAll
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -50,6 +51,33 @@ class MappInternalBroadcastReceiverUnitTest {
     @After
     fun tearDown() {
         unmockkAll()
+    }
+
+    @Test
+    fun `absent receiver skips client broadcast`() = runTest {
+        coEvery { appoxeeContainer.storage.getBroadcastClass() } returns null
+        coEvery { sut.notifyClientApp(any(), any(), any()) } coAnswers { callOriginal() }
+
+        sut.notifyClientApp(mockContext, mockk<PushData>(relaxed = true), LocalPushBroadcast.PUSH_RECEIVED)
+
+        coVerify(exactly = 1) { appoxeeContainer.storage.getBroadcastClass() }
+        verify(exactly = 0) { mockContext.sendBroadcast(any()) }
+    }
+
+    @Test
+    fun `absent receiver preserves reporting and dismissal`() {
+        val pushData = mockk<PushData>(relaxed = true)
+        coEvery { appoxeeContainer.storage.getBroadcastClass() } returns null
+        coEvery { sut.notifyClientApp(any(), any(), any()) } coAnswers { callOriginal() }
+
+        sut.handleAction(
+            mockContext, LocalPushBroadcast.PUSH_DISMISSED, pushData,
+            ClickType.DISMISS, EventType.DISMISS, 123
+        )
+
+        verify(timeout = 2000, exactly = 1) { sut.dismissNotification(mockContext, 123) }
+        coVerify(exactly = 1) { sut.sendReportEvent(pushData, ClickType.DISMISS, EventType.DISMISS) }
+        verify(exactly = 0) { mockContext.sendBroadcast(any()) }
     }
 
     @Test
