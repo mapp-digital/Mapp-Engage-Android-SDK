@@ -178,6 +178,8 @@ internal data class PushData(
                         url = data[KEY_URL_INTERNAL]
                         key = KEY_URL_INTERNAL
                     }
+                    // Keep HTTP and HTTPS, including the legacy HTTP default, for backward compatibility.
+                    // Client applications should supply only HTTPS URLs.
                     if (url != null && !url.startsWith("http://") && !url.startsWith("https://")) {
                         url = "http://$url"
                     }
