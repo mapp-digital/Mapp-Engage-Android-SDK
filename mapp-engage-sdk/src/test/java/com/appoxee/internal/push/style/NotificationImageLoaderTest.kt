@@ -9,6 +9,7 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import okhttp3.Call
@@ -109,6 +110,24 @@ class NotificationImageLoaderTest {
 
         verify(exactly = 1) { httpCall.cancel() }
         assertThat(testScheduler.currentTime).isEqualTo(20_000L)
+    }
+
+    @Test
+    fun `total time budget includes waiting for an image loading slot`() = runTest {
+        every { callFactory.newCall(any()) } returns httpCall
+        val loader = NotificationImageLoader(callFactory, StandardTestDispatcher(testScheduler))
+        val first = launch { loader.load(url) }
+        val second = launch { loader.load(url) }
+        runCurrent()
+        advanceTimeBy(1_000)
+
+        // Both slots remain occupied until 20 seconds. This request must still
+        // finish within its own 20-second budget, including the 19-second wait.
+        assertThat(loader.load(url)).isNull()
+
+        assertThat(testScheduler.currentTime).isEqualTo(21_000L)
+        first.join()
+        second.join()
     }
 
     @Test

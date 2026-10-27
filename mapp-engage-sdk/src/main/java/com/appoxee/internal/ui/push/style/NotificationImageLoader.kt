@@ -35,9 +35,9 @@ internal class NotificationImageLoader(
         try {
             val initialUrl = path?.toHttpUrlOrNull()?.takeIf { it.isSafeImageUrl() }
                 ?: return@withContext null
-            imageSlots.withPermit {
-                // The budget covers all redirects and body reads, including a slow trickle.
-                withTimeoutOrNull(TOTAL_TIMEOUT_MS) {
+            // Include queue time so bursts cannot postpone the text fallback indefinitely.
+            withTimeoutOrNull(TOTAL_TIMEOUT_MS) {
+                imageSlots.withPermit {
                     val bytes = download(initialUrl)
                     currentCoroutineContext().ensureActive()
                     decode(bytes)
