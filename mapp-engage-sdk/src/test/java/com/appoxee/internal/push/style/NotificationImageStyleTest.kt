@@ -1,26 +1,24 @@
 package com.appoxee.internal.push.style
 
+import android.graphics.Bitmap
+import androidx.core.app.NotificationCompat
 import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.ui.push.style.NotificationImageLoader
 import com.appoxee.internal.ui.push.style.NotificationImageStyle
-import io.mockk.coVerify
+import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.mockk
-import io.mockk.spyk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.After
-import org.junit.Before
 import org.junit.Test
 
 class NotificationImageStyleTest {
-
-    private lateinit var notificationStyle: NotificationImageStyle
-    private lateinit var pushData: PushData
-
-    @Before
-    fun setUp() {
-        pushData = mockk(relaxed = true)
-        notificationStyle = spyk(NotificationImageStyle(pushData))
-    }
+    private val mediaUrl = "https://images.example.com/image.png"
+    private val pushData = PushData(id = 1, title = "Title", bigText = "Body", iosApxMedia = mediaUrl)
+    private val imageLoader = mockk<NotificationImageLoader>()
 
     @After
     fun tearDown() {
@@ -28,10 +26,43 @@ class NotificationImageStyleTest {
     }
 
     @Test
-    fun getStyle() {
-        runBlocking {
-            notificationStyle.getStyle()
+    fun `loaded image produces a picture notification after suspension`() = runTest {
+        val bitmap = mockk<Bitmap>()
+        coEvery { imageLoader.load(mediaUrl) } coAnswers {
+            yield()
+            bitmap
         }
-        coVerify(exactly = 1) { notificationStyle.getStyle() }
+
+        val style = NotificationImageStyle(pushData, imageLoader).getStyle()
+
+        assertThat(style).isInstanceOf(NotificationCompat.BigPictureStyle::class.java)
+    }
+
+    @Test
+    fun `unavailable image falls back to a text notification after suspension`() = runTest {
+        coEvery { imageLoader.load(mediaUrl) } coAnswers {
+            yield()
+            null
+        }
+
+        val style = NotificationImageStyle(pushData, imageLoader).getStyle()
+
+        assertThat(style).isInstanceOf(NotificationCompat.BigTextStyle::class.java)
+    }
+
+    @Test
+    fun `image loading cancellation propagates without a fallback notification`() = runTest {
+        val cancellation = CancellationException("Notification cancelled")
+        coEvery { imageLoader.load(mediaUrl) } coAnswers {
+            yield()
+            throw cancellation
+        }
+
+        try {
+            NotificationImageStyle(pushData, imageLoader).getStyle()
+            throw AssertionError("Expected image loading cancellation to propagate")
+        } catch (actual: CancellationException) {
+            assertThat(actual).isSameInstanceAs(cancellation)
+        }
     }
 }
