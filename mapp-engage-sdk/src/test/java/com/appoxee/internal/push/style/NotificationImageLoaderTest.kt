@@ -28,7 +28,7 @@ import java.io.IOException
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotificationImageLoaderTest {
     private val callFactory = mockk<Call.Factory>()
-    private val call = mockk<Call>(relaxed = true)
+    private val httpCall = mockk<Call>(relaxed = true)
     private val url = "https://images.example.com/image.png"
 
     @After
@@ -88,7 +88,7 @@ class NotificationImageLoaderTest {
 
     @Test
     fun `parent cancellation cancels the underlying network call`() = runTest {
-        every { callFactory.newCall(any()) } returns call
+        every { callFactory.newCall(any()) } returns httpCall
         val loader = NotificationImageLoader(callFactory, StandardTestDispatcher(testScheduler))
         val job = launch { loader.load(url) }
         runCurrent()
@@ -97,17 +97,17 @@ class NotificationImageLoaderTest {
         job.join()
 
         assertThat(job.isCancelled).isTrue()
-        verify(exactly = 1) { call.cancel() }
+        verify(exactly = 1) { httpCall.cancel() }
     }
 
     @Test
     fun `total time budget cancels a stalled image without failing the notification`() = runTest {
-        every { callFactory.newCall(any()) } returns call
+        every { callFactory.newCall(any()) } returns httpCall
         val loader = NotificationImageLoader(callFactory, StandardTestDispatcher(testScheduler))
 
         assertThat(loader.load(url)).isNull()
 
-        verify(exactly = 1) { call.cancel() }
+        verify(exactly = 1) { httpCall.cancel() }
         assertThat(testScheduler.currentTime).isEqualTo(20_000L)
     }
 
@@ -133,9 +133,9 @@ class NotificationImageLoaderTest {
     }
 
     private fun respond(response: Response) {
-        every { callFactory.newCall(any()) } returns call
-        every { call.enqueue(any()) } answers {
-            firstArg<Callback>().onResponse(call, response)
+        every { callFactory.newCall(any()) } returns httpCall
+        every { httpCall.enqueue(any()) } answers {
+            firstArg<Callback>().onResponse(httpCall, response)
         }
     }
 
