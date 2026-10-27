@@ -8,7 +8,7 @@ import com.appoxee.internal.util.Logger
 
 
 internal class NotificationVideoStyle(private val pushData: PushData) : NotificationStyle {
-    override fun getStyle(): NotificationCompat.Style {
+    override suspend fun getStyle(): NotificationCompat.Style {
         val bitmap = getBitmap(pushData.iosApxMedia)
         return NotificationCompat.BigPictureStyle()
             .setBigContentTitle(pushData.title)

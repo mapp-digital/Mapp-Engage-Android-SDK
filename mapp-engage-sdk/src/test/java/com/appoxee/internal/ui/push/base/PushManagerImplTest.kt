@@ -67,7 +67,7 @@ class PushManagerImplTest {
         every { appoxeeContainer.activityLifecycleHandler } returns activityLifecycleHandler
         every { appoxeeContainer.appoxeeAdapter } returns mockk<AppoxeeAdapter>(relaxed = true)
         coEvery { categoriesFactory.getCategories() } returns emptyList<Category>()
-        every { notificationFactory.createSimpleNotification(any(), any()) } returns mockk<Notification>(
+        coEvery { notificationFactory.createSimpleNotification(any(), any()) } returns mockk<Notification>(
             relaxed = true
         )
 
