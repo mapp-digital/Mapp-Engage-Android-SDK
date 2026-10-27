@@ -57,7 +57,8 @@ internal class NetworkClientImpl(
                     request.headers.forEach { (key, value) -> setRequestProperty(key, value) }
 
                     val data = request.requestBody?.asJson()?.toString()
-                    Logger.w(TAG, "REQUEST - ${request.method}: $urlPath\nRequestBody: $data")
+                    Logger.w(TAG, "REQUEST - ${request.method}: $urlPath\nRequestBody: $data",
+                        releaseMessage = "REQUEST - ${request.method}")
                     if (!data.isNullOrEmpty()) {
                         DataOutputStream(outputStream).use { stream ->
                             stream.write(data.toByteArray(Charsets.UTF_8))
@@ -68,7 +69,8 @@ internal class NetworkClientImpl(
                 statusCode = connection.responseCode
                 body = (if (statusCode >= 400) connection.errorStream else connection.inputStream)
                     .convertToString()
-                Logger.i(TAG, "RESPONSE - ${request.method}: $urlPath\nResponseBody: $body")
+                Logger.i(TAG, "RESPONSE - ${request.method}: $urlPath\nResponseBody: $body",
+                    releaseMessage = "RESPONSE - ${request.method}: HTTP $statusCode")
             } finally {
                 connection.disconnect()
             }
