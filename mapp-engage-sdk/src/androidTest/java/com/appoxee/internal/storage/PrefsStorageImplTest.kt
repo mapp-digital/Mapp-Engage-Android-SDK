@@ -3,8 +3,12 @@ package com.appoxee.internal.storage
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.TestDispatchersProvider
+import com.appoxee.internal.model.request.RegisterDevice
+import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.util.DispatchersProvider
+import com.appoxee.shared.AppoxeeOptions
+import com.appoxee.shared.LocalPushBroadcast
 import com.google.common.truth.Truth
 import io.mockk.coEvery
 import io.mockk.every
@@ -14,6 +18,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 internal class PrefsStorageImplTest {
@@ -41,6 +46,33 @@ internal class PrefsStorageImplTest {
     @After
     fun tearDown() {
         unmockkAll()
+    }
+
+    @Test
+    fun clearRegistration_removes_all_persisted_state() = runBlocking {
+        storage.saveDevicePayload(devicePayload)
+        storage.saveRegistrationDevice(RegisterDevice())
+        storage.saveInitOptions(AppoxeeOptions(AppoxeeOptions.Server.L3, "sdk", "app", "tenant"))
+        storage.saveAppConfig(AppConfigPayload.fromJson(JSONObject().put("id", 1)))
+        storage.setBroadcastClass(LocalPushBroadcast::class.java)
+        storage.addTags(listOf("customer-tag"))
+        storage.setCustomAttributesCache(mapOf("email" to "customer@example.com"))
+        storage.updateCacheTimestamp()
+        storage.updateDeviceFetchTimestamp()
+
+        storage.clearRegistration()
+
+        // A new instance must also observe the cleared on-disk state.
+        val restored = PrefsStorageImpl(application, dispatchersProvider)
+        Truth.assertThat(restored.getDevicePayload()).isNull()
+        Truth.assertThat(restored.getRegistrationDevice()).isNull()
+        Truth.assertThat(restored.getInitOptions()).isNull()
+        Truth.assertThat(restored.getAppConfig()).isNull()
+        Truth.assertThat(restored.getBroadcastClass()).isNull()
+        Truth.assertThat(restored.getTags()).isEmpty()
+        Truth.assertThat(restored.getCustomAttributesCache().attributes).isEmpty()
+        Truth.assertThat(restored.getTimestamp()).isEqualTo(0L)
+        Truth.assertThat(restored.getDeviceFetchTimestamp()).isEqualTo(0L)
     }
 
     @Test
