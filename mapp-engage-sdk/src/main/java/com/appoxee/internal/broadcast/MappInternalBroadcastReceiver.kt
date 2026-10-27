@@ -107,7 +107,7 @@ class MappInternalBroadcastReceiver : BroadcastReceiver() {
         // delegate to subscribed app event
 
         val clazz = appoxeeContainer.storage.getBroadcastClass() ?: run {
-            Logger.e(TAG, "Push callback skipped: no registered broadcast receiver available; register with setPushBroadcast()")
+            Logger.i(TAG, "Push callback skipped: no registered broadcast receiver available; register with setPushBroadcast()")
             return
         }
         Logger.d(TAG, "notifyClientApp() - Broadcast class: ${clazz.simpleName}")
