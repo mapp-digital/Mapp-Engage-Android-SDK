@@ -1,6 +1,5 @@
 package com.appoxee.internal.network
 
-import androidx.annotation.VisibleForTesting
 import com.appoxee.internal.model.request.Activation
 import com.appoxee.internal.model.request.GetAppConfig
 import com.appoxee.internal.model.request.GetAttributes
@@ -61,20 +60,9 @@ internal class EngageApiImpl(
 
     private val uniqueDeviceId = deviceProvider.getUniqueDeviceId()
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private suspend fun getSdkKeyHeader(): Map<String, String> {
-        return storage.getInitOptions()?.let {
-            mapOf("X_KEY" to it.sdkKey)
-        } ?: throw DeviceNotRegisteredException()
-    }
-
-    private suspend fun getAppId(): String {
-        return storage.getInitOptions()?.appId ?: throw DeviceNotRegisteredException()
-    }
-
-    private suspend fun getTenantId(): String {
-        return storage.getInitOptions()?.tenantId ?: throw DeviceNotRegisteredException()
-    }
+    private suspend fun getConfiguration(): RequestConfiguration = RequestConfiguration(
+        storage.getInitOptions() ?: throw DeviceNotRegisteredException()
+    )
 
     private suspend fun getDeviceOrError(): DevicePayload {
         return storage.getDevicePayload() ?: throw DeviceNotRegisteredException()
@@ -94,18 +82,12 @@ internal class EngageApiImpl(
         )
     }
 
-    private suspend fun getCepHeaders(): Map<String, String> {
-        return mapOf(
-            "tenant_id" to getTenantId(),
-            "app_id" to getAppId()
-        )
-    }
-
     private suspend fun <T> executeDevicePutRequest(
         actions: NetworkData,
         alias: String? = null,
         adapter: ResponseAdapter<T>,
-        pathType: Request.PathType = Request.PathType.BASE
+        pathType: Request.PathType = Request.PathType.BASE,
+        configuration: RequestConfiguration? = null
     ): Response<T> {
         val requestBody = RequestBody(
             key = uniqueDeviceId,
@@ -113,21 +95,23 @@ internal class EngageApiImpl(
             alias = alias
         )
         val request = Request.Put(path = devicePathV3, requestBody = requestBody)
-            .addHeader(getSdkKeyHeader())
             .setPathType(pathType)
+            .configure(configuration ?: getConfiguration())
         return networkClient.execute(request, adapter)
     }
 
     private suspend fun executeDefaultResponseRequest(
         actions: NetworkData,
         alias: String? = null,
-        pathType: Request.PathType = Request.PathType.BASE
+        pathType: Request.PathType = Request.PathType.BASE,
+        configuration: RequestConfiguration? = null
     ): Response<ResponseData<DefaultResponse>> {
         return executeDevicePutRequest(
             actions = actions,
             alias = alias,
             adapter = BaseAdapter { DefaultResponse.fromJSON(it) },
-            pathType = pathType
+            pathType = pathType,
+            configuration = configuration
         )
     }
 
@@ -214,7 +198,7 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inboxPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(getCepHeaders())
+            .configure(getConfiguration())
 
         return networkClient.execute(request, InboxAdapter(eventKey = eventName))
     }
@@ -230,7 +214,7 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inappPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(getCepHeaders())
+            .configure(getConfiguration())
 
         return networkClient.execute(request, InappAdapter())
     }
@@ -289,7 +273,7 @@ internal class EngageApiImpl(
 
         val request = Request.Post(path = inappEventsPathV5, requestBody = requestBody)
             .setPathType(Request.PathType.CEP)
-            .addHeader(getCepHeaders())
+            .configure(getConfiguration())
 
         return networkClient.execute(request, StatusAdapter())
     }
@@ -304,8 +288,9 @@ internal class EngageApiImpl(
             storage.getDevicePayload()?.dmcUserId ?: return Response.error(
                 DeviceNotRegisteredException()
             )
+        val configuration = getConfiguration()
         val pushEvent = PushEvent(
-            tenantId = getTenantId(),
+            tenantId = configuration.tenantId,
             messageId = messageId,
             sendoutId = sendoutId,
             dmcUserId = dmcUserId,
@@ -314,8 +299,8 @@ internal class EngageApiImpl(
         )
 
         val request = Request.Post(path = pushEventsPath, requestBody = pushEvent)
-            .addHeader(getSdkKeyHeader())
             .setPathType(Request.PathType.BASE)
+            .configure(configuration)
 
         return networkClient.execute(request, StatusAdapter())
     }
@@ -329,14 +314,16 @@ internal class EngageApiImpl(
         val alias = storage.getDevicePayload()?.alias
             ?: return Response.error(DeviceNotRegisteredException())
 
-        val appId = getAppId().toLongOrNull() ?: 0L
+        val configuration = getConfiguration()
+        val appId = configuration.appId.toLongOrNull() ?: 0L
         val getRegions = GetRegions(lat, lng, version, appId, pageSize)
 
         return executeDevicePutRequest(
             actions = getRegions,
             alias = alias,
             adapter = BaseAdapter { RegionsResponse.fromJSON(it) },
-            pathType = Request.PathType.BASE
+            pathType = Request.PathType.BASE,
+            configuration = configuration
         )
     }
 
@@ -356,6 +343,7 @@ internal class EngageApiImpl(
         val dmcUserId = device.dmcUserId
             ?: return Response.error(DeviceNotRegisteredException())
 
+        val configuration = getConfiguration()
         val regionStatus = RegionStatus(
             timestamp = Date().time,
             geoEvent = geoEvent,
@@ -365,12 +353,13 @@ internal class EngageApiImpl(
             regionId = regionId,
             timeZone = TimeZone.getDefault().displayName,
             version = version,
-            applicationId = getAppId()
+            applicationId = configuration.appId
         )
 
         return executeDefaultResponseRequest(
             actions = regionStatus,
-            pathType = Request.PathType.BASE
+            pathType = Request.PathType.BASE,
+            configuration = configuration
         )
     }
 }
