@@ -307,6 +307,8 @@ dependencies {
 
     testImplementation(libs.bundles.test)
     androidTestImplementation(libs.bundles.android.test)
+    androidTestImplementation(libs.okhttp3.mockwebserver)
+    androidTestImplementation(libs.okhttp3.tls)
 }
 
 centralPortalPublisher {
