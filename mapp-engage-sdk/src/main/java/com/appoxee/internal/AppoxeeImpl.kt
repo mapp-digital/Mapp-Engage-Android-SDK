@@ -479,9 +479,13 @@ internal open class AppoxeeImpl(
         storage.saveDevicePayload(null)
         storage.saveRegistrationDevice(null)
         val device = appoxeeContainer.deviceProvider.generateRegistrationDevice()
-        appoxeeAdapter.logout(device)
+        val response = appoxeeAdapter.logout(device)
+        val metadata = response.data?.metadata
+        if (!response.isSuccess() || metadata?.error == true ||
+            (metadata != null && metadata.statusCode !in 200..299)) {
+            return@buildHttpCall false
+        }
         updateOptState(pushEnabled, null)
-        true
     }
 
     override fun enablePush(enabled: Boolean, token: String?): Call<Boolean> = buildHttpCall {
