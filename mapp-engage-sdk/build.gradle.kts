@@ -296,6 +296,7 @@ dependencies {
     implementation(libs.bundles.base)
     implementation(libs.bundles.ui.components)
     implementation(libs.bundles.coil)
+    implementation(libs.okhttp3.client)
     implementation(libs.bundles.media3)
     implementation(libs.datastore.preferences)
     implementation(libs.browser)
