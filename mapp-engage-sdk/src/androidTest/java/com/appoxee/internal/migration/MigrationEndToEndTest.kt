@@ -46,9 +46,9 @@ class MigrationEndToEndTest {
     private val migrationFile get() = File(context.filesDir, "persistence_DeviceRealState.data")
     private val sharedPrefs get() = context.getSharedPreferences("appoxee", Context.MODE_PRIVATE)
 
-    // v7 options — server URL must match AppoxeeOptions.Server.TEST
+    // URL lookup returns STAGING, the first enum entry for this shared STAGING/TEST URL.
     private val v7Options = AppoxeeOptions(
-        server = AppoxeeOptions.Server.TEST,
+        server = AppoxeeOptions.Server.STAGING,
         sdkKey = "1111.2222",
         appId = "33333",
         tenantId = "44444"
@@ -139,6 +139,7 @@ class MigrationEndToEndTest {
         val v6Json = """{"alias":"user@test.com","pushEnabled":true,"pushToken":"fcm-token-123","timestamp":1700000000,"tags":["sports","news"],"customAttributes":{"color":{"key":"color","value":"blue"},"score":{"key":"score","value":42}}}"""
         migrationFile.writeText("com.appoxee.internal.model.Device\n$v6Json", Charsets.UTF_8)
         writeSameChannelV6Prefs()
+        assertThat(v7Options.areEquals(MigrationHelperImpl(context).getRegistrationOptions())).isTrue()
 
         val storage = InMemoryStorageImpl()
         val sut = buildSut(storage)

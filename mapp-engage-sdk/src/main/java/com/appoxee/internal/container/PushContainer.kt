@@ -1,6 +1,7 @@
 package com.appoxee.internal.container
 
 import android.content.Context
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.appoxee.internal.provider.IconProvider
@@ -20,13 +21,18 @@ import com.appoxee.internal.util.DispatchersProviderImpl
 internal class PushContainer(
     private val context: Context,
     private val appoxeeContainer: AppoxeeContainer,
+    private val defaultChannelId: String = "${context.packageName}_CHANNEL_ID",
+    private val legacyChannelId: String = "channel_id_001",
 ) {
     private val NOTIFICATION_CHANNEL_NAME = "${context.packageName} notification channel"
-    private val NOTIFICATION_CHANNEL_ID = "${context.packageName}_CHANNEL_ID"
 
     private val dispatchersProvider: DispatchersProvider = DispatchersProviderImpl()
 
     private val notificationManager by lazy { NotificationManagerCompat.from(context) }
+
+    private val notificationChannelId by lazy {
+        resolveNotificationChannelId(notificationManager, defaultChannelId, legacyChannelId)
+    }
 
     private val notify: Notify by lazy { NotifyImpl(context, notificationManager) }
 
@@ -43,7 +49,7 @@ internal class PushContainer(
         get() = PendingIntentProviderImpl(context)
 
     private val notificationBuilder: NotificationCompat.Builder
-        get() = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+        get() = NotificationCompat.Builder(context, notificationChannelId)
 
     private val notificationFactory: NotificationFactory
         get() = NotificationFactory(
@@ -60,9 +66,22 @@ internal class PushContainer(
             notificationFactory,
             appoxeeContainer,
             categoriesFactory,
-            NOTIFICATION_CHANNEL_ID,
+            notificationChannelId,
             NOTIFICATION_CHANNEL_NAME
         ).also {
             it.createNotificationChannel()
         }
+}
+
+internal fun resolveNotificationChannelId(
+    notificationManager: NotificationManagerCompat,
+    defaultChannelId: String,
+    legacyChannelId: String,
+): String {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return defaultChannelId
+
+    // Keep the current v7 channel even if it is blocked or less important than the legacy one.
+    if (notificationManager.getNotificationChannel(defaultChannelId) != null) return defaultChannelId
+    if (notificationManager.getNotificationChannel(legacyChannelId) != null) return legacyChannelId
+    return defaultChannelId
 }

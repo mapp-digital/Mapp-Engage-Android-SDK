@@ -145,7 +145,8 @@ class MigrationHelperImplTest {
         assertThat(result!!.sdkKey).isEqualTo("1111.2222")
         assertThat(result.appId).isEqualTo("33333")
         assertThat(result.tenantId).isEqualTo("44444")
-        assertThat(result.server).isEqualTo(AppoxeeOptions.Server.TEST)
+        // STAGING precedes TEST; both have the same URL, so lookup resolves to STAGING.
+        assertThat(result.server).isEqualTo(AppoxeeOptions.Server.STAGING)
     }
 
     @Test

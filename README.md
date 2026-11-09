@@ -132,6 +132,33 @@ Add meta-data in your manifest for custom notification icons:
     android:resource="@color/your_accent_color" />
 ```
 
+### 4. Notification Channels (Android 8+)
+
+The SDK selects a notification channel before creating or posting notifications:
+
+1. Reuse `${packageName}_CHANNEL_ID` if it already exists.
+2. Otherwise, reuse the v6 default channel `channel_id_001` if it exists.
+3. Otherwise, create `${packageName}_CHANNEL_ID` at `IMPORTANCE_HIGH`.
+
+For a direct v6 upgrade with only the legacy default channel, the SDK continues
+posting to that channel and does not create a v7 channel. Existing channels retain
+their settings, including importance, sound, vibration, badges and blocked state.
+When both channels exist, the v7 channel remains selected even if the legacy
+channel has higher importance.
+
+Existing v7 channels created at `IMPORTANCE_DEFAULT` are not raised automatically.
+Users who want banners can open the app's notification settings in Android, select
+the channel and enable heads-up notifications (the setting name varies by device).
+`IMPORTANCE_HIGH` supports heads-up display, subject to notification permission,
+user settings, Do Not Disturb and device behavior. Earlier Android versions retain
+the existing notification-priority behavior.
+
+These are Android system notification channels, separate from the Mapp dashboard
+channel identifiers used for SDK initialization. Dashboard IDs do not need to
+change. Legacy default-channel reuse does not restore v6 routing through separate
+custom-sound channels. React Native apps need a plugin release that depends on the
+fixed native SDK to receive this behavior.
+
 ---
 
 ## Usage

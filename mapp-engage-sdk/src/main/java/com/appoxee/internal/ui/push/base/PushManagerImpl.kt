@@ -129,7 +129,7 @@ internal class PushManagerImpl(
         notify.createChannel(
             notificationChannelId,
             notificationChannelName,
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
         )
     }
 
