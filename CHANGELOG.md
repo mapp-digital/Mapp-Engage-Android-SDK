@@ -6,6 +6,7 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Bug Fixes
 
+- **Push callback registration timing** — `setPushBroadcast()` now makes the receiver available immediately, so callbacks do not get skipped while registration is being saved. Receiver writes are ordered, and SDK initialization preserves the active registration when clearing stored device state. Saved receivers remain available after a process restart; missing receivers are handled safely. Public API signatures are unchanged.
 - **Android notification channels** — New default channels are created at `IMPORTANCE_HIGH` to support heads-up notifications. The SDK retains an existing v7 channel, or reuses the v6 default channel `channel_id_001` when no v7 channel exists. Existing channels are left unchanged, preserving user settings. Already-created `DEFAULT` channels are not raised automatically; users can enable banners in Android notification settings. This does not restore v6 custom-sound-channel routing.
 - **Custom attribute removal errors** — `removeCustomAttributes()` now propagates backend update failures as call errors instead of incorrectly returning `true`. Cached attributes are retained on failure. The public API signature is unchanged.
 - **Custom attributes absent from cache** — `removeCustomAttributes()` now processes requested keys even when they are absent from local storage, allowing attributes that exist only on the backend to be cleared.

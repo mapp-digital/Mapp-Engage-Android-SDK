@@ -349,6 +349,11 @@ class MyPushBroadcast : LocalPushBroadcast() {
 Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
 ```
 
+Registration takes effect in the current process before `setPushBroadcast()`
+returns. The receiver class is saved asynchronously for later process starts;
+callbacks can use the current registration while that write is pending. If no
+current or saved receiver is available, the SDK skips the client callback safely.
+
 Add the receiver to your manifest:
 
 ```xml

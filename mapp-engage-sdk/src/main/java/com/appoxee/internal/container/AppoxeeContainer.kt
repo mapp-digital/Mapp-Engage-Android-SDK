@@ -25,6 +25,7 @@ import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.internal.util.DispatchersProviderImpl
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.sync.Mutex
 
 internal class AppoxeeContainer private constructor(
     context: Context,
@@ -50,7 +51,10 @@ internal class AppoxeeContainer private constructor(
         }
     }
 
+    @Volatile
     internal var localPushBroadcast: Class<*>? = null
+
+    internal val pushBroadcastMutex = Mutex()
 
     internal val defaultExceptionHandler: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->

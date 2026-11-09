@@ -281,6 +281,8 @@ interface Appoxee {
      * Register Broadcast receiver class from client application.
      * SDK will delegate events related to push messages to this class.
      * Client app can use those events to execute some custom actions.
+     * Registration takes effect in the current process before this method returns.
+     * The class is persisted asynchronously for use after a process restart.
      */
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
 

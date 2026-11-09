@@ -50,13 +50,17 @@ import io.mockk.spyk
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
@@ -74,6 +78,8 @@ class AppoxeeImplUnitTest {
     private lateinit var mockOptions: AppoxeeOptions
 
     private lateinit var mockAppoxeeContainer: AppoxeeContainer
+    private var registeredPushBroadcast: Class<*>? = null
+    private val pushBroadcastMutex = Mutex()
 
     private lateinit var mockMigrationHelper: MigrationHelper
 
@@ -195,6 +201,11 @@ class AppoxeeImplUnitTest {
         every { mockAppoxeeContainer.engageApi } returns mockEngageApi
         every { mockAppoxeeContainer.networkClient } returns mockNetworkClient
         every { mockAppoxeeContainer.intelligenceEventSender } returns mockIntelligenceEventSender
+        every { mockAppoxeeContainer.pushBroadcastMutex } returns pushBroadcastMutex
+        every { mockAppoxeeContainer.localPushBroadcast } answers { registeredPushBroadcast }
+        every { mockAppoxeeContainer.localPushBroadcast = any() } answers {
+            registeredPushBroadcast = firstArg()
+        }
 
         sut = spyk(
             AppoxeeImpl(
@@ -1111,6 +1122,7 @@ class AppoxeeImplUnitTest {
     }
 
     private abstract class ValidPushBroadcast : LocalPushBroadcast()
+    private abstract class OtherPushBroadcast : LocalPushBroadcast()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
@@ -1123,6 +1135,136 @@ class AppoxeeImplUnitTest {
         advanceUntilIdle()
 
         Truth.assertThat(result).isNotInstanceOf(Exception::class.java)
-        //coVerify { mockStorage.setBroadcastClass(any()) }
+        Truth.assertThat(registeredPushBroadcast).isEqualTo(ValidPushBroadcast::class.java)
+        coVerify { mockStorage.setBroadcastClass(ValidPushBroadcast::class.java) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `receiver is available immediately while its storage write is suspended`() = testScope.runTest {
+        advanceUntilIdle()
+        val writeStarted = CompletableDeferred<Unit>()
+        val releaseWrite = CompletableDeferred<Unit>()
+        coEvery { mockStorage.setBroadcastClass(any()) } coAnswers {
+            writeStarted.complete(Unit)
+            releaseWrite.await()
+        }
+
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+
+        // No coroutine has run since the call: registration must already be effective.
+        Truth.assertThat(registeredPushBroadcast).isEqualTo(ValidPushBroadcast::class.java)
+        coVerify(exactly = 0) { mockStorage.setBroadcastClass(any()) }
+        runCurrent()
+        Truth.assertThat(writeStarted.isCompleted).isTrue()
+        Truth.assertThat(releaseWrite.isCompleted).isFalse()
+        Truth.assertThat(registeredPushBroadcast).isEqualTo(ValidPushBroadcast::class.java)
+
+        releaseWrite.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `newer receiver remains effective and is persisted after an older suspended write`() = testScope.runTest {
+        advanceUntilIdle()
+        val releaseFirstWrite = CompletableDeferred<Unit>()
+        var persistedClass: Class<*>? = null
+        coEvery { mockStorage.setBroadcastClass(any()) } coAnswers {
+            val clazz = firstArg<Class<*>>()
+            if (clazz == ValidPushBroadcast::class.java) releaseFirstWrite.await()
+            persistedClass = clazz
+        }
+
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+        runCurrent()
+        sut.setPushBroadcast(OtherPushBroadcast::class.java)
+        runCurrent()
+
+        Truth.assertThat(registeredPushBroadcast).isEqualTo(OtherPushBroadcast::class.java)
+        Truth.assertThat(persistedClass).isNull()
+        coVerify(exactly = 0) { mockStorage.setBroadcastClass(OtherPushBroadcast::class.java) }
+
+        releaseFirstWrite.complete(Unit)
+        advanceUntilIdle()
+
+        Truth.assertThat(persistedClass).isEqualTo(OtherPushBroadcast::class.java)
+        coVerifyOrder {
+            mockStorage.setBroadcastClass(ValidPushBroadcast::class.java)
+            mockStorage.setBroadcastClass(OtherPushBroadcast::class.java)
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `queued registration jobs persist the latest receiver rather than their captured class`() = testScope.runTest {
+        advanceUntilIdle()
+
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+        sut.setPushBroadcast(OtherPushBroadcast::class.java)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mockStorage.setBroadcastClass(ValidPushBroadcast::class.java) }
+        coVerify(atLeast = 1) { mockStorage.setBroadcastClass(OtherPushBroadcast::class.java) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `initialization preserves an already persisted active receiver when clearing registration`() = testScope.runTest {
+        advanceUntilIdle()
+        var persistedClass: Class<*>? = null
+        coEvery { mockStorage.setBroadcastClass(any()) } coAnswers { persistedClass = firstArg() }
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+        advanceUntilIdle()
+        Truth.assertThat(persistedClass).isEqualTo(ValidPushBroadcast::class.java)
+
+        coEvery { mockStorage.getInitOptions() } returns null
+        coEvery { mockStorage.clearRegistration() } coAnswers { persistedClass = null }
+        coEvery { sut.validateRegistration() } returns null
+        coEvery { sut.fetchAppConfig() } just runs
+
+        sut.initializeSdk()
+
+        Truth.assertThat(persistedClass).isEqualTo(ValidPushBroadcast::class.java)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `initialization restores a receiver registered while registration storage is being cleared`() = testScope.runTest {
+        advanceUntilIdle()
+        val clearStarted = CompletableDeferred<Unit>()
+        val releaseClear = CompletableDeferred<Unit>()
+        var persistedClass: Class<*>? = null
+        coEvery { mockStorage.getInitOptions() } returns null
+        coEvery { mockStorage.clearRegistration() } coAnswers {
+            persistedClass = null
+            clearStarted.complete(Unit)
+            releaseClear.await()
+        }
+        coEvery { mockStorage.setBroadcastClass(any()) } coAnswers {
+            persistedClass = firstArg()
+        }
+        coEvery { sut.validateRegistration() } returns null
+        coEvery { sut.fetchAppConfig() } just runs
+
+        val initialization = launch { sut.initializeSdk() }
+        runCurrent()
+        Truth.assertThat(clearStarted.isCompleted).isTrue()
+
+        sut.setPushBroadcast(ValidPushBroadcast::class.java)
+        runCurrent()
+        Truth.assertThat(registeredPushBroadcast).isEqualTo(ValidPushBroadcast::class.java)
+        Truth.assertThat(persistedClass).isNull()
+
+        releaseClear.complete(Unit)
+        advanceUntilIdle()
+        initialization.join()
+
+        Truth.assertThat(persistedClass).isEqualTo(ValidPushBroadcast::class.java)
+        coVerifyOrder {
+            mockStorage.clearRegistration()
+            mockStorage.setBroadcastClass(ValidPushBroadcast::class.java)
+            mockStorage.saveInitOptions(mockOptions)
+        }
     }
 }

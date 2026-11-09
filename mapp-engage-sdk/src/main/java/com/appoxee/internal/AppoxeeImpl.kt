@@ -135,11 +135,15 @@ internal open class AppoxeeImpl(
         Logger.d(TAG, "OPTIONS provided: ${options != null}")
         // save config to local storage if not null
         if (options != null) {
-            if (!options.areEquals(savedOptions)) {
-                storage.clearRegistration()
+            appoxeeContainer.pushBroadcastMutex.withLock {
+                if (!options.areEquals(savedOptions)) {
+                    storage.clearRegistration()
+                    // Initialization must not erase a receiver registered while engage() was starting.
+                    appoxeeContainer.localPushBroadcast?.let { storage.setBroadcastClass(it) }
+                }
+                // always store options for possible changes of other attributes, not used for comparing
+                storage.saveInitOptions(options)
             }
-            // always store options for possible changes of other attributes, not used for comparing
-            storage.saveInitOptions(options)
         } else {
             checkNotNull(savedOptions) { "Engage SDK wasn't supplied with initialization parameters!" }
         }
@@ -704,15 +708,19 @@ internal open class AppoxeeImpl(
     }
 
     override fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>) {
+        require(LocalPushBroadcast::class.java.isAssignableFrom(clazz)) {
+            "PushBroadcast must be subtype of LocalPushBroadcast"
+        }
+        // Make registration effective before returning, independently of the storage write.
+        appoxeeContainer.localPushBroadcast = clazz
         internalScope.launch {
-            val requiredClass = LocalPushBroadcast::class.java
-            if (requiredClass.isAssignableFrom(clazz)) {
-                appoxeeContainer.localPushBroadcast = clazz
+            appoxeeContainer.pushBroadcastMutex.withLock {
+                // Read the latest registration under the lock: an older queued job must not
+                // overwrite a newer receiver, including across AppoxeeImpl instances.
+                val currentClass = appoxeeContainer.localPushBroadcast ?: return@withLock
                 withContext(dispatcherProvider.defaultDispatcher) {
-                    storage.setBroadcastClass(clazz)
+                    storage.setBroadcastClass(currentClass)
                 }
-            } else {
-                throw IllegalArgumentException("PushBroadcast must be subtype of LocalPushBroadcast")
             }
         }
     }
