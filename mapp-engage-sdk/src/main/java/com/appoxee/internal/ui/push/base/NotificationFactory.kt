@@ -22,7 +22,7 @@ internal class NotificationFactory(
     private val iconProvider: IconProvider,
     private val pendingIntentProvider: PendingIntentProvider,
 ) {
-    fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
+    suspend fun createSimpleNotification(pushData: PushData, notificationId: Int): Notification {
 
         val notificationStyle = notificationStyleFactory.buildNotificationStyle(pushData).getStyle()
 

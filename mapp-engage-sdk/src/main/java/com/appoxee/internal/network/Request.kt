@@ -15,6 +15,15 @@ internal abstract class Request(
 
     internal var pathType: PathType = PathType.BASE
 
+    internal var configuration: RequestConfiguration? = null
+        private set
+
+    internal fun configure(configuration: RequestConfiguration): Request {
+        this.configuration = configuration
+        headers.putAll(configuration.headers(pathType))
+        return this
+    }
+
     internal fun addHeader(header: Map<String, String>): Request {
         headers.putAll(header)
         return this

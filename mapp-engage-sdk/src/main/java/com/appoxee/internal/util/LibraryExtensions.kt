@@ -151,7 +151,8 @@ object LibraryExtensions {
                 null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logger.e("LibraryExtensions", "Unable to load notification icon", e,
+                releaseMessage = "Unable to load notification icon")
             null
         }
     }

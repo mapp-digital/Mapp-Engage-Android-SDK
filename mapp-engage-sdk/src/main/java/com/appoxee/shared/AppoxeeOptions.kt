@@ -71,7 +71,8 @@ class AppoxeeOptions(
     /**
      * Controls SDK logging. Set before calling Appoxee.engage.
      * [LogLevel.DEBUG] (default) logs only when the host app is debuggable.
-     * [LogLevel.RELEASE] logs in both debug and release apps.
+     * [LogLevel.RELEASE] logs in both debug and release apps. Sensitive details
+     * are included only when both the SDK and host app are debug builds.
      * Saved with the options and restored when engaging without options.
      * Supplying options replaces the saved logging setting.
      */
@@ -150,7 +151,7 @@ class AppoxeeOptions(
         /** Logs only when the host app is debuggable. */
         DEBUG("debug"),
 
-        /** Logs in both debug and release apps. */
+        /** Logs in both debug and release apps; release diagnostics are redacted. */
         RELEASE("release");
     }
 

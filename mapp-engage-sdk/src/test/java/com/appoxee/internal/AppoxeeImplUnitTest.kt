@@ -13,6 +13,7 @@ import com.appoxee.internal.model.request.RegisterDevice
 import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DefaultResponse
 import com.appoxee.internal.model.response.DevicePayload
+import com.appoxee.internal.model.response.Metadata
 import com.appoxee.internal.model.response.ResponseData
 import com.appoxee.internal.model.response.RegisterPayload
 import com.appoxee.internal.model.response.inbox.InboxMessagesResponse
@@ -587,6 +588,50 @@ class AppoxeeImplUnitTest {
                 )
             }
         }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `logout returns false when backend rejects registration reset`() = testScope.runTest {
+        advanceUntilIdle()
+        clearMocks(mockAppoxeeAdapter, answers = false)
+        coEvery { mockAppoxeeAdapter.logout(any()) } returns
+            Response.error(IllegalStateException("Reset rejected"))
+
+        val result = sut.logout(false).asSuspend()
+
+        Truth.assertThat(result.getData()).isFalse()
+        coVerify(exactly = 0) { mockAppoxeeAdapter.optOut(any(), any()) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `logout returns false when backend reports an application error`() = testScope.runTest {
+        advanceUntilIdle()
+        coEvery { mockAppoxeeAdapter.logout(any()) } returns Response.success(
+            200, ResponseData(metadata = Metadata(error = true, statusCode = 400))
+        )
+
+        Truth.assertThat(sut.logout(false).asSuspend().getData()).isFalse()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `logout returns actual opt out result after successful registration reset`() = testScope.runTest {
+        advanceUntilIdle()
+        coEvery { mockAppoxeeAdapter.logout(any()) } returns Response.success(
+            200, ResponseData(metadata = Metadata(error = false, statusCode = 200))
+        )
+        val firebaseMessaging = mockk<FirebaseMessaging>()
+        mockkStatic(FirebaseMessaging::class)
+        every { FirebaseMessaging.getInstance() } returns firebaseMessaging
+        every { firebaseMessaging.token } returns Tasks.forResult("logout-token")
+        coEvery { mockAppoxeeAdapter.optOut("logout-token", any()) } returns false
+
+        Truth.assertThat(sut.logout(false).asSuspend().getData()).isFalse()
+
+        coEvery { mockAppoxeeAdapter.optOut("logout-token", any()) } returns true
+        Truth.assertThat(sut.logout(false).asSuspend().getData()).isTrue()
+    }
 
     @Test
     fun `enable push uses provided non-empty client firebase token`() = runTest {

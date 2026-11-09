@@ -71,6 +71,8 @@ internal class EngageApiImplTest {
         every { options.tenantId } returns "2345"
         every { options.server } returns AppoxeeOptions.Server.TEST
         every { options.sdkKey } returns "23490834290328.3432434"
+        every { options.connectionTimeout } returns 20_000
+        every { options.readTimeout } returns 20_000
 
         storage = spyk(InMemoryStorageImpl())
         coEvery { storage.getInitOptions() } coAnswers { options }
@@ -120,6 +122,24 @@ internal class EngageApiImplTest {
     @After
     fun tearDown() {
         unmockkAll()
+    }
+
+    @Test
+    fun `push request uses one configuration for tenant body and credentials`() = runTest {
+        storage.saveDevicePayload(DevicePayload(dmcUserId = "user"))
+        val nextOptions = AppoxeeOptions(AppoxeeOptions.Server.L3, "other-key", "other-app", "other-tenant")
+        coEvery { storage.getInitOptions() } returnsMany listOf(options, nextOptions)
+        val captured = slot<Request>()
+        coEvery { networkClient.execute(capture(captured), any<ResponseAdapter<ResponseData<Boolean>>>()) } returns
+            Response.success(200, ResponseData(payload = true))
+
+        engageApi.pushEvent(1L, 2L, ClickType.LAUNCH_APP, EventType.CLICK)
+
+        val sent = captured.captured
+        Truth.assertThat(sent.requestBody!!.asJson().getString("customer_id")).isEqualTo("2345")
+        Truth.assertThat(sent.headers["X_KEY"]).isEqualTo(options.sdkKey)
+        Truth.assertThat(sent.configuration!!.tenantId).isEqualTo("2345")
+        coVerify(exactly = 1) { storage.getInitOptions() }
     }
 
     @Test

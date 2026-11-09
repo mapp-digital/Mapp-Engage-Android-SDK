@@ -29,6 +29,10 @@ internal class InMemoryStorageImpl(private val cacheValidity: Long = TimeUnit.DA
         registerDevice = null
         initOptions = null
         appConfigPayload = null
+        clazz = null
+        timestamp = 0
+        tags.clear()
+        customAttributes = CustomAttributesCache(attributes = emptyMap())
     }
 
     override suspend fun saveDevicePayload(devicePayload: DevicePayload?) {

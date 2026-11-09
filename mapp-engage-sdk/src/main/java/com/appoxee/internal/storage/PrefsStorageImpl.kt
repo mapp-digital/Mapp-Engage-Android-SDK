@@ -156,13 +156,7 @@ internal class PrefsStorageImpl(
     override suspend fun clearRegistration() {
         withContext(dispatchersProvider.defaultDispatcher) {
             dataStore.edit { prefs ->
-                prefs.remove(registerDeviceKey)
-                prefs.remove(devicePayloadKey)
-                prefs.remove(deviceFetchTimestampKey)
-                prefs.remove(timestampKey)
-                prefs.remove(appConfigKey)
-                prefs.remove(appoxeeOptionsKey)
-                prefs.remove(broadcastKey)
+                prefs.clear()
             }
         }
     }

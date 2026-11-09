@@ -36,6 +36,8 @@ internal class NetworkClientImplTest {
 
     private lateinit var mockWebServer: MockWebServer
     private lateinit var networkClient: NetworkClientImpl
+    private lateinit var storage: PrefsStorageImpl
+    private lateinit var options: AppoxeeOptions
 
     @Before
     fun setUp() {
@@ -50,7 +52,7 @@ internal class NetworkClientImplTest {
         mockWebServer.start()
         val baseUrl = mockWebServer.url("/").toString().removeSuffix("/")
 
-        val options = mockk<AppoxeeOptions>() {
+        options = mockk<AppoxeeOptions>() {
             every { server } returns AppoxeeOptions.Server.L3
             every { sdkKey } returns "1234567.890"
             every { appId } returns "123456"
@@ -61,7 +63,7 @@ internal class NetworkClientImplTest {
             every { server.internalCepUrl } returns baseUrl
         }
 
-        val storage = mockkClass(PrefsStorageImpl::class) {
+        storage = mockkClass(PrefsStorageImpl::class) {
             coEvery { getInitOptions() } coAnswers { options }
         }
 
@@ -72,6 +74,51 @@ internal class NetworkClientImplTest {
     fun tearDown() {
         mockWebServer.shutdown()
         unmockkAll()
+    }
+
+    @Test
+    fun `later requests reload server and credentials after configuration changes`() = runTest {
+        repeat(2) { mockWebServer.enqueue(MockResponse().setBody(MockData.GET_DEVICE_RESPONSE)) }
+        networkClient.execute(Request.Put(devicePathV3), BaseAdapter { DevicePayload.fromJSON(it) })
+
+        val nextOptions = mockk<AppoxeeOptions> {
+            every { server } returns AppoxeeOptions.Server.TEST
+            every { server.value } returns mockWebServer.url("/next-channel").toString()
+            every { server.internalCepUrl } returns mockWebServer.url("/next-channel").toString()
+            every { sdkKey } returns "next-key"
+            every { appId } returns "next-app"
+            every { tenantId } returns "next-tenant"
+            every { readTimeout } returns 2000
+            every { connectionTimeout } returns 2000
+        }
+        coEvery { storage.getInitOptions() } returns nextOptions
+        networkClient.execute(Request.Put(devicePathV3), BaseAdapter { DevicePayload.fromJSON(it) })
+
+        val first = mockWebServer.takeRequest()
+        val second = mockWebServer.takeRequest()
+        Truth.assertThat(first.path).isEqualTo("/$devicePathV3")
+        Truth.assertThat(first.getHeader("X_KEY")).isEqualTo("1234567.890")
+        Truth.assertThat(second.path).isEqualTo("/next-channel/$devicePathV3")
+        Truth.assertThat(second.getHeader("X_KEY")).isEqualTo("next-key")
+        coVerify(exactly = 2) { storage.getInitOptions() }
+    }
+
+    @Test
+    fun `bound configuration survives retries without rereading storage`() = runTest {
+        mockWebServer.enqueue(MockResponse().setBody(retryError(true)))
+        mockWebServer.enqueue(MockResponse().setBody(MockData.GET_DEVICE_RESPONSE))
+        val request = Request.Put(devicePathV3, GetDevice()).configure(RequestConfiguration(options))
+        coEvery { storage.getInitOptions() } throws IllegalStateException("Channel changed")
+
+        val result = networkClient.execute(request, BaseAdapter { DevicePayload.fromJSON(it) })
+
+        Truth.assertThat(result.isSuccess()).isTrue()
+        val first = mockWebServer.takeRequest()
+        val retry = mockWebServer.takeRequest()
+        Truth.assertThat(retry.path).isEqualTo(first.path)
+        Truth.assertThat(retry.getHeader("X_KEY")).isEqualTo(first.getHeader("X_KEY"))
+        Truth.assertThat(retry.body.readUtf8()).isEqualTo(first.body.readUtf8())
+        coVerify(exactly = 0) { storage.getInitOptions() }
     }
 
     @Test

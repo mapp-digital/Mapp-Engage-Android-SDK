@@ -4,10 +4,11 @@ import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import androidx.core.app.NotificationCompat
 import com.appoxee.internal.ui.push.model.PushData
+import com.appoxee.internal.util.Logger
 
 
 internal class NotificationVideoStyle(private val pushData: PushData) : NotificationStyle {
-    override fun getStyle(): NotificationCompat.Style {
+    override suspend fun getStyle(): NotificationCompat.Style {
         val bitmap = getBitmap(pushData.iosApxMedia)
         return NotificationCompat.BigPictureStyle()
             .setBigContentTitle(pushData.title)
@@ -24,7 +25,8 @@ internal class NotificationVideoStyle(private val pushData: PushData) : Notifica
             mediaMetadataRetriever.setDataSource(path, HashMap<String, String>())
             bitmap = mediaMetadataRetriever.frameAtTime
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logger.e(NotificationVideoStyle::class.java.name, "Video thumbnail failed", e,
+                releaseMessage = "Video thumbnail failed")
             throw Throwable("Exception in retriveVideoFrameFromVideo(String videoPath)" + e.message)
         } finally {
             mediaMetadataRetriever?.release()

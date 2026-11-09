@@ -13,7 +13,6 @@ import com.appoxee.internal.storage.Storage
 import com.appoxee.internal.util.Logger
 import com.appoxee.internal.util.convertToString
 import com.appoxee.internal.util.parseAsJSON
-import com.appoxee.shared.AppoxeeOptions
 import kotlinx.coroutines.delay
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
@@ -26,21 +25,17 @@ internal class NetworkClientImpl(
 
     private val TAG = NetworkClientImpl::class.java.name
 
-    private lateinit var options: AppoxeeOptions
-    private suspend fun getOptions(): AppoxeeOptions {
-        if (!::options.isInitialized) {
-            options = storage.getInitOptions() ?: throw DeviceNotRegisteredException()
-        }
-        return options
-    }
-
     override suspend fun <T> execute(
         request: Request,
         adapter: ResponseAdapter<T>
     ): Response<T> {
-        val urlPath = buildUrl(request)
+        val configuration = request.configuration ?: RequestConfiguration(
+            storage.getInitOptions() ?: throw DeviceNotRegisteredException()
+        )
+        val urlPath = buildUrl(request, configuration)
         val url = provideUrl(urlPath)
-        val options = getOptions()
+        val headers = request.headers.toMap() + configuration.headers(request.pathType)
+        val data = request.requestBody?.asJson()?.toString()
         var retries = 0
 
         while (true) {
@@ -49,15 +44,15 @@ internal class NetworkClientImpl(
             val body: String?
             try {
                 connection.run {
-                    readTimeout = options.readTimeout
-                    connectTimeout = options.connectionTimeout
+                    readTimeout = configuration.readTimeout
+                    connectTimeout = configuration.connectionTimeout
                     requestMethod = request.method.toString()
                     doInput = request.doInput
                     doOutput = request.doOutput
-                    request.headers.forEach { (key, value) -> setRequestProperty(key, value) }
+                    headers.forEach { (key, value) -> setRequestProperty(key, value) }
 
-                    val data = request.requestBody?.asJson()?.toString()
-                    Logger.w(TAG, "REQUEST - ${request.method}: $urlPath\nRequestBody: $data")
+                    Logger.w(TAG, "REQUEST - ${request.method}: $urlPath\nRequestBody: $data",
+                        releaseMessage = "REQUEST - ${request.method}")
                     if (!data.isNullOrEmpty()) {
                         DataOutputStream(outputStream).use { stream ->
                             stream.write(data.toByteArray(Charsets.UTF_8))
@@ -68,7 +63,8 @@ internal class NetworkClientImpl(
                 statusCode = connection.responseCode
                 body = (if (statusCode >= 400) connection.errorStream else connection.inputStream)
                     .convertToString()
-                Logger.i(TAG, "RESPONSE - ${request.method}: $urlPath\nResponseBody: $body")
+                Logger.i(TAG, "RESPONSE - ${request.method}: $urlPath\nResponseBody: $body",
+                    releaseMessage = "RESPONSE - ${request.method}: HTTP $statusCode")
             } finally {
                 connection.disconnect()
             }
@@ -157,15 +153,13 @@ internal class NetworkClientImpl(
         return response
     }
 
-    private suspend fun buildUrl(request: Request): String {
+    private fun buildUrl(request: Request, configuration: RequestConfiguration): String {
         val queryPath = buildQueryPath(request)
         val sb = StringBuilder()
-        val options = getOptions()
-
         if (request.pathType == Request.PathType.CEP) {
-            sb.append(options.server.internalCepUrl)
+            sb.append(configuration.cepUrl)
         } else {
-            sb.append(options.server.value)
+            sb.append(configuration.baseUrl)
         }
 
         sb.append("/")

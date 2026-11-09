@@ -23,13 +23,10 @@ object CompatExt {
         }
     }
 
-    val PENDING_INTENT_UPDATE_CURRENT_FLAGS by lazy {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-    }
+    // FLAG_IMMUTABLE is available on every supported version (minSdk 23).
+    // Geofencing uses the separate mutable flags so Play services can fill in event data.
+    val PENDING_INTENT_UPDATE_CURRENT_FLAGS =
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
     internal fun Activity.overrideTransition(type: Int, enter: Int, close: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
