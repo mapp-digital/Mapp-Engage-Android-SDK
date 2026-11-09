@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.TestDispatchersProvider
 import com.appoxee.internal.model.request.RegisterDevice
-import com.appoxee.internal.model.response.AppConfigPayload
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.internal.util.DispatchersProvider
 import com.appoxee.shared.AppoxeeOptions
@@ -18,7 +17,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 internal class PrefsStorageImplTest {
@@ -53,7 +51,6 @@ internal class PrefsStorageImplTest {
         storage.saveDevicePayload(devicePayload)
         storage.saveRegistrationDevice(RegisterDevice())
         storage.saveInitOptions(AppoxeeOptions(AppoxeeOptions.Server.L3, "sdk", "app", "tenant"))
-        storage.saveAppConfig(AppConfigPayload.fromJson(JSONObject().put("id", 1)))
         storage.setBroadcastClass(LocalPushBroadcast::class.java)
         storage.addTags(listOf("customer-tag"))
         storage.setCustomAttributesCache(mapOf("email" to "customer@example.com"))
