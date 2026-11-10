@@ -6,6 +6,9 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Bug Fixes
 
+- **Repeated SDK engagement** — `Appoxee.engage()` keeps the same SDK instance for initialization retries and configuration changes. Repeated calls with unchanged configuration do not restart initialization. Existing SDK references, observer subscriptions, and push receiver registration remain valid; calls without options retain the active configuration. The main-thread requirement is unchanged.
+- **Configuration changes** — Initialization attempts are serialized, and obsolete attempts cannot change the latest readiness state. Changing channel credentials cancels channel-bound requests, push processing, and pending in-app work before updating registration data. Queued pushes from the previous channel are discarded; retries and notification/logging-only changes retain queued pushes. Requests created for the previous channel fail instead of running against new credentials; wait for SDK readiness before using the new channel.
+- **Duplicate session reports** — The shared activity lifecycle listener is registered only once per process, including during initialization retries and reconfiguration.
 - **Push callback registration timing** — `setPushBroadcast()` now makes the receiver available immediately, so callbacks do not get skipped while registration is being saved. Receiver writes are ordered, and SDK initialization preserves the active registration when clearing stored device state. Saved receivers remain available after a process restart; missing receivers are handled safely. Public API signatures are unchanged.
 - **Android notification channels** — New default channels are created at `IMPORTANCE_HIGH` to support heads-up notifications. The SDK retains an existing v7 channel, or reuses the v6 default channel `channel_id_001` when no v7 channel exists. Existing channels are left unchanged, preserving user settings. Already-created `DEFAULT` channels are not raised automatically; users can enable banners in Android notification settings. This does not restore v6 custom-sound-channel routing.
 - **Custom attribute removal errors** — `removeCustomAttributes()` now propagates backend update failures as call errors instead of incorrectly returning `true`. Cached attributes are retained on failure. The public API signature is unchanged.
@@ -13,6 +16,7 @@ All notable changes to the Mapp Engage Android SDK are documented in this file.
 
 ### Improvements
 
+- **Kotlin sample configuration** — Added an SDK configuration screen with server, notification-mode, and logging dropdowns, masked SDK key entry, live readiness/error feedback, and reset to build defaults. Successful settings persist across app launches; failed changes retain the previous saved startup configuration.
 - **Public API documentation** — Clarified the worker-state check performed by `isGeofencingActive()`, token fallback and result semantics for `enablePush()`, and custom attribute removal behavior. Public API signatures are unchanged.
 
 ## [7.1.3] - 2026-09-22

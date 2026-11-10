@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.appoxee.internal.AppoxeeImpl
 import com.appoxee.internal.TestDispatchersProvider
+import com.appoxee.internal.container.LifecycleCallbacksRegistration
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.storage.InMemoryStorageImpl
 import com.appoxee.internal.ui.push.model.PushData
@@ -65,6 +66,8 @@ class PushBroadcastRegistrationIntegrationTest {
         every { application.applicationContext } returns realContext
         Logger.init(application, AppoxeeOptions.LogLevel.DEBUG)
         every { container.storage } returns storage
+        every { container.lifecycleCallbacksRegistration } returns LifecycleCallbacksRegistration()
+        every { container.initializationMutex } returns Mutex()
         every { container.pushBroadcastMutex } returns receiverMutex
         every { container.localPushBroadcast } answers { registeredClass }
         every { container.localPushBroadcast = any() } answers { registeredClass = firstArg() }

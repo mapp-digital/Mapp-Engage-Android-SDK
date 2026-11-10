@@ -38,7 +38,11 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -52,7 +56,7 @@ import com.appoxee.shared.InboxMessagesResponse as PublicInboxMessagesResponse
 @Keep
 internal open class AppoxeeImpl(
     internal val application: Application,
-    private val options: AppoxeeOptions?,
+    options: AppoxeeOptions?,
     private val dispatcherProvider: DispatchersProvider,
     val observersProvider: ObserversProvider = ObserversProvider(),
     val appoxeeContainer: AppoxeeContainer = AppoxeeContainer.getInstance(
@@ -64,6 +68,15 @@ internal open class AppoxeeImpl(
     private val TAG = AppoxeeImpl::class.java.name
 
     private val mutex = Mutex()
+
+    @Volatile
+    internal var initialization = SdkInitialization(options)
+        private set
+    // Only changed while holding initializationMutex; an older bootstrap keeps its own options.
+    private var options = initialization.configuration
+    private var runningInitialization = initialization
+    internal lateinit var initializationJob: Job
+        private set
 
     internal val mIsReady by lazy { AtomicBoolean(false) }
 
@@ -81,12 +94,34 @@ internal open class AppoxeeImpl(
             observersProvider.notify(isReady(), MappResult.Error(throwable))
         })
 
+    private inner class ChannelWork(parent: CoroutineScope) {
+        val job = SupervisorJob(parent.coroutineContext[Job])
+        val scope: CoroutineScope = CoroutineScope(parent.coroutineContext + job + CoroutineExceptionHandler { _, error ->
+            if (channelWork === this@ChannelWork) {
+                Logger.e(TAG, "Exception in SDK channel work", error)
+                observersProvider.notify(isReady(), MappResult.Error(error))
+            }
+        })
+    }
+
+    @Volatile
+    private var channelWork: ChannelWork = ChannelWork(internalScope)
+    private val retiredChannelJobs = ConcurrentLinkedQueue<Job>()
+    @Volatile
+    private var changingChannel = false
+
     private val actionContainer: ActionContainer by lazy { ActionContainer(application) }
 
-    private val inappContainer: InAppContainer by lazy {
+    @Volatile
+    private var inappContainerDelegate = createInAppContainer(channelWork)
+    private val inappContainer: InAppContainer
+        get() = inappContainerDelegate.value
+
+    private fun createInAppContainer(work: ChannelWork): Lazy<InAppContainer> = lazy {
         InAppContainer(
             appoxeeContainer.statsClient,
-            actionContainer
+            actionContainer,
+            CoroutineScope(work.scope.coroutineContext + dispatcherProvider.defaultDispatcher)
         )
     }
 
@@ -116,33 +151,87 @@ internal open class AppoxeeImpl(
         Logger.init(application, options?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
 
         // attach activity lifecycle listener
-        application.registerActivityLifecycleCallbacks(
+        appoxeeContainer.lifecycleCallbacksRegistration.registerOnce(
+            application,
             appoxeeContainer.activityLifecycleHandler
         )
 
-        internalScope.launch {
-            // initialize sdk
-            initializeSdk()
+        startInitialization(initialization)
+    }
+
+    /** Called on main by Appoxee.engage; the SDK, observers and receiver keep their identity. */
+    internal fun reengage(requested: AppoxeeOptions?) {
+        val previous = initialization
+        if (previous.canReuse(requested)) return
+        val next = SdkInitialization(requested ?: previous.configuration)
+        val differentChannel = !previous.hasSameChannel(next)
+
+        initializationJob.cancel()
+        initialization = next
+        mIsReady.set(false)
+        if (differentChannel) {
+            changingChannel = true
+            val retired = channelWork.job
+            retiredChannelJobs.add(retired)
+            retired.invokeOnCompletion { retiredChannelJobs.remove(retired) }
+            retired.cancel()
+            channelWork = ChannelWork(internalScope)
+            inappContainerDelegate = createInAppContainer(channelWork)
+            // Messages belonging to the previous channel must not use the new credentials.
+            pushQueue.clear()
+        }
+        startInitialization(next)
+    }
+
+    private fun startInitialization(attempt: SdkInitialization) {
+        initializationJob = internalScope.launch {
+            try {
+                appoxeeContainer.initializationMutex.withLock {
+                    // Includes work that takes time to respond to cancellation, across rapid changes.
+                    retiredChannelJobs.toList().forEach { it.join() }
+                    currentCoroutineContext().ensureActive()
+                    if (initialization !== attempt) return@withLock
+                    runningInitialization = attempt
+                    options = attempt.configuration
+                    Logger.init(application, options?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
+                    initializeSdk()
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                if (initialization === attempt) {
+                    attempt.complete(isReady())
+                    observersProvider.notify(isReady(), MappResult.Error(error))
+                }
+                Logger.e(TAG, "Exception in SDK initialization", error)
+            } finally {
+                // An obsolete attempt must not change the newer attempt's outcome.
+                if (initialization === attempt) attempt.complete(isReady())
+            }
         }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal suspend fun initializeSdk() = withContext(dispatcherProvider.defaultDispatcher) {
+        val attempt = runningInitialization
+        val currentOptions = options
         val savedOptions = storage.getInitOptions()
-        if (options == null) {
+        currentCoroutineContext().ensureActive()
+        attempt.resolveSavedConfiguration(savedOptions)
+        if (currentOptions == null) {
             Logger.init(application, savedOptions?.logType ?: AppoxeeOptions.LogLevel.DEBUG)
         }
-        Logger.d(TAG, "OPTIONS provided: ${options != null}")
+        Logger.d(TAG, "OPTIONS provided: ${currentOptions != null}")
         // save config to local storage if not null
-        if (options != null) {
+        if (currentOptions != null) {
             appoxeeContainer.pushBroadcastMutex.withLock {
-                if (!options.areEquals(savedOptions)) {
+                if (!currentOptions.areEquals(savedOptions)) {
                     storage.clearRegistration()
                     // Initialization must not erase a receiver registered while engage() was starting.
                     appoxeeContainer.localPushBroadcast?.let { storage.setBroadcastClass(it) }
                 }
                 // always store options for possible changes of other attributes, not used for comparing
-                storage.saveInitOptions(options)
+                storage.saveInitOptions(currentOptions)
             }
         } else {
             checkNotNull(savedOptions) { "Engage SDK wasn't supplied with initialization parameters!" }
@@ -152,6 +241,8 @@ internal open class AppoxeeImpl(
         // update if exist or register new device
         validateRegistration()?.let {
             val device = fetchDeviceIfExpired(it)
+            currentCoroutineContext().ensureActive()
+            check(initialization === attempt) { "SDK initialization was superseded" }
             notifyMappIntelligence(device)
             updateReadyStatus(true, MappResult.Success(device))
         }
@@ -611,22 +702,32 @@ internal open class AppoxeeImpl(
 
 
     override suspend fun updateReadyStatus(status: Boolean, mappResult: MappResult<DevicePayload>) {
-        mIsReady.set(status)
-        observersProvider.notify(status, mappResult)
-        internalScope.launch(dispatcherProvider.defaultDispatcher) {
-            while (true) {
-                val msg = pushQueue.poll() ?: break
-                pushContainer.pushManager.handlePushMessage(application.applicationContext, msg)
+        val attempt = runningInitialization
+        withContext(dispatcherProvider.mainDispatcher) {
+            currentCoroutineContext().ensureActive()
+            if (initialization !== attempt) return@withContext
+            val work = channelWork
+            mIsReady.set(status)
+            if (status) changingChannel = false
+            observersProvider.notify(status, mappResult)
+            if (status) work.scope.launch(dispatcherProvider.defaultDispatcher) {
+                while (isReady() && initialization === attempt && channelWork === work) {
+                    val msg = pushQueue.poll() ?: break
+                    pushContainer.pushManager.handlePushMessage(application.applicationContext, msg)
+                }
             }
         }
     }
 
     override fun subscribe(observer: AppoxeeObserver) {
+        // Keep the subscription on this SDK instance across every initialization attempt.
+        observersProvider.addObserver(observer)
         internalScope.launch(dispatcherProvider.defaultDispatcher) {
             mutex.withLock {
+                val attempt = initialization
+                if (!isReady()) return@withLock
                 val payload = storage.getDevicePayload()
-                observersProvider.addObserver(observer)
-                if (isReady()) {
+                if (isReady() && initialization === attempt) {
                     val result =
                         if (payload != null)
                             MappResult.Success(payload)
@@ -635,7 +736,9 @@ internal open class AppoxeeImpl(
                                 Throwable("Invalid initialization!\nEngage SDK wasn't supplied with initialization parameters!")
                             )
                     withContext(dispatcherProvider.mainDispatcher) {
-                        observersProvider.notify(true, result)
+                        if (isReady() && initialization === attempt) {
+                            observersProvider.notifyIfUnnotified(observer, true, result)
+                        }
                     }
                 }
             }
@@ -647,7 +750,9 @@ internal open class AppoxeeImpl(
     }
 
     override fun handlePushMessage(remoteMessage: RemoteMessage) {
-        internalScope.launch {
+        val work = channelWork
+        work.scope.launch {
+            if (channelWork !== work) return@launch
             if (isReady()) {
                 pushContainer.pushManager.handlePushMessage(
                     application.applicationContext,
@@ -739,10 +844,32 @@ internal open class AppoxeeImpl(
     internal fun <T> buildHttpCall(
         call: suspend () -> T
     ): Call<T> {
+        val work = channelWork
         return HttpCall(
             scope = internalScope,
-            call = call,
-            dispatchersProvider = dispatcherProvider
+            call = {
+                check(channelWork === work && !changingChannel) {
+                    "SDK channel changed or is reinitializing; create a new request when ready"
+                }
+                // All execution forms (enqueue, execute, asSuspend) belong to the channel.
+                // Retirement cancels these operations; bootstrap waits for them to finish
+                // before changing shared registration or cache state.
+                val operation = work.scope.async(dispatcherProvider.ioDispatcher) {
+                    currentCoroutineContext().ensureActive()
+                    check(channelWork === work && !changingChannel) { "SDK channel changed" }
+                    call()
+                }
+                try {
+                    val result = operation.await()
+                    check(channelWork === work) { "SDK channel changed" }
+                    result
+                } finally {
+                    // Preserve caller cancellation even though the SDK also owns the operation.
+                    operation.cancel()
+                }
+            },
+            dispatchersProvider = dispatcherProvider,
+            validateDelivery = { check(channelWork === work) { "SDK channel changed" } }
         )
     }
 }

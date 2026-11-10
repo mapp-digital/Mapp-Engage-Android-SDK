@@ -205,6 +205,17 @@ public class MyApplication extends Application {
 }
 ```
 
+`Appoxee.engage()` must run on the main thread. Repeated calls with the same
+configuration reuse the existing SDK, including while initialization is still
+running. Calling without options also reuses the active configuration. These
+calls do not repeat device registration or startup requests. Failed initialization
+can be retried; supplying changed options reinitializes the same SDK instance.
+Existing SDK references, observer subscriptions, and push receiver registration
+remain valid. A channel credential change discards queued pushes from the previous
+channel and cancels its pending requests and in-app work. Wait for `isReady()`
+before making requests for the new channel; calls created for the old channel
+cannot be reused. Retries and notification/logging-only changes retain queued pushes.
+
 ### Configuration Options
 
 | Parameter | Description |
@@ -427,10 +438,29 @@ To intentionally update baselines:
 
 ## Sample Apps
 
-- **sample-kotlin** – Kotlin example with Compose
+- **sample-kotlin** – Kotlin example with a runtime SDK configuration screen
 - **sample-java** – Java example
 
-Run a sample with the `prod` flavor for production server, or `tst` for test.
+Both samples provide `prod` and `tst` build flavors. The Kotlin configuration screen selects the Engage server independently of the build flavor.
+
+### Kotlin sample configuration screen
+
+Open **SDK configuration** from the Kotlin sample home screen. Choose the server,
+notification mode, and logging level from dropdowns, then enter the SDK key, app ID,
+and tenant ID. **Apply & save** reconfigures the running SDK on the main thread and
+shows connection progress or errors. SDK test actions become available when it is
+ready.
+
+Only successfully applied settings are saved as startup overrides. The app uses
+those settings on the next launch instead of the compiled credentials. **Use build
+defaults** applies the configuration from `local.properties`/`BuildConfig` and clears
+the saved override after success. An unsuccessful apply leaves the previous saved
+startup settings intact. Draft entries survive rotation, and an apply/save can
+finish even if the configuration screen is closed.
+
+Firebase configuration and the Android package are still defined by the build.
+Use the local SDK (`useLocalEngage=true`) to test unreleased same-instance
+reconfiguration changes.
 
 ---
 

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sdk_configuration_title">SDK configuration</string>
+    <string name="sdk_configuration_intro">Change Engage settings without restarting the app.</string>
+    <string name="sdk_edit_settings">Edit settings</string>
+    <string name="sdk_edit_help">Changes take effect after Apply &amp; save.</string>
+    <string name="sdk_status_configuration">%1$s · App %2$s · Tenant %3$s</string>
+    <string name="sdk_server">Server</string>
+    <string name="sdk_key">SDK key</string>
+    <string name="sdk_app_id">App ID</string>
+    <string name="sdk_tenant_id">Tenant ID</string>
+    <string name="sdk_notification_mode">Notification mode</string>
+    <string name="sdk_logging">SDK logging</string>
+    <string name="sdk_logging_help">Choose which app builds can write SDK logs.</string>
+    <string name="sdk_logging_debug">Debug builds only</string>
+    <string name="sdk_logging_release">All builds</string>
+    <string name="sdk_mode_both">Background and foreground</string>
+    <string name="sdk_mode_background">Background only</string>
+    <string name="sdk_mode_silent">Silent only</string>
+    <string name="sdk_apply_and_save">Apply &amp; save</string>
+    <string name="sdk_use_defaults">Use build defaults</string>
+    <string name="sdk_required">Required</string>
+    <string name="sdk_status_applying">Connecting…</string>
+    <string name="sdk_status_ready">Ready</string>
+    <string name="sdk_status_failed">Could not initialize</string>
+    <string name="sdk_status_unsaved">Ready — settings not saved</string>
+    <string name="sdk_applying_description">Connecting to %1$s. You can edit settings and apply again while connecting.</string>
+    <string name="sdk_ready_saved">Saved on this device. These settings will be used on the next launch.</string>
+    <string name="sdk_ready_defaults">Using the configuration included in this build.</string>
+    <string name="sdk_ready_unsaved">Settings are active, but could not be saved: %1$s</string>
+    <string name="sdk_failed_description">%1$s\nChanges were not saved. Correct the settings and apply again.</string>
+    <string name="sdk_failed_startup">%1$s\nCheck the configuration and try again.</string>
+    <string name="sdk_unknown_error">SDK initialization failed.</string>
+    <string name="sdk_configuration_footer">Only successful settings are saved. Firebase configuration and the Android package stay unchanged. Changing channels clears queued pushes from the previous channel.</string>
+    <string name="sdk_base_tests">Base tests</string>
+    <string name="sdk_notification_tests">Notification tests</string>
+    <string name="sdk_home_ready">Ready · %1$s\nApp %2$s · Tenant %3$s</string>
+    <string name="sdk_home_applying">Connecting to %1$s…</string>
+    <string name="sdk_home_failed">SDK is not ready. Open SDK configuration to check the settings.</string>
+</resources>

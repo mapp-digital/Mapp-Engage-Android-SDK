@@ -3,6 +3,7 @@ package com.appoxee.internal
 import TestDispatchersProvider
 import android.app.Application
 import android.content.Context
+import com.appoxee.internal.container.LifecycleCallbacksRegistration
 import com.appoxee.internal.container.AppoxeeContainer
 import com.appoxee.internal.container.PushContainer
 import com.appoxee.internal.integration.IntelligenceEventSender
@@ -127,7 +128,7 @@ class AppoxeeImplUnitTest {
         mockOptions = spyk(
             AppoxeeOptions(
                 server = AppoxeeOptions.Server.TEST,
-                sdkKey = "1111.2222",
+                sdkKey = "1111.22222",
                 appId = "33333",
                 tenantId = "44444"
             )
@@ -175,10 +176,6 @@ class AppoxeeImplUnitTest {
 
         coEvery { mockStorage.getDevicePayload() } coAnswers { mockDevicePayload }
 
-        every { mockOptions.sdkKey } returns "1111.22222"
-        every { mockOptions.server } returns AppoxeeOptions.Server.TEST
-        every { mockOptions.appId } returns "33333"
-        every { mockOptions.tenantId } returns "44444"
 
         coEvery { mockAppoxeeAdapter.register(any()) } coAnswers {
             mockk(
@@ -201,6 +198,8 @@ class AppoxeeImplUnitTest {
         every { mockAppoxeeContainer.engageApi } returns mockEngageApi
         every { mockAppoxeeContainer.networkClient } returns mockNetworkClient
         every { mockAppoxeeContainer.intelligenceEventSender } returns mockIntelligenceEventSender
+        every { mockAppoxeeContainer.lifecycleCallbacksRegistration } returns LifecycleCallbacksRegistration()
+        every { mockAppoxeeContainer.initializationMutex } returns Mutex()
         every { mockAppoxeeContainer.pushBroadcastMutex } returns pushBroadcastMutex
         every { mockAppoxeeContainer.localPushBroadcast } answers { registeredPushBroadcast }
         every { mockAppoxeeContainer.localPushBroadcast = any() } answers {
@@ -700,7 +699,11 @@ class AppoxeeImplUnitTest {
         val result = sut.removeCustomAttributes(setOf("color")).asSuspend()
 
         Truth.assertThat(result.isSuccess()).isFalse()
-        Truth.assertThat(result.getError()).isSameInstanceAs(error)
+        val returnedError = checkNotNull(result.getError())
+        Truth.assertThat(returnedError).isInstanceOf(IllegalStateException::class.java)
+        Truth.assertThat(returnedError.message).isEqualTo(error.message)
+        // Deferred.await() may recover a copy whose cause chain retains the original error.
+        Truth.assertThat(generateSequence(returnedError) { it.cause }.last()).isSameInstanceAs(error)
         coVerify(exactly = 1) { mockEngageApi.addCustomAttributes(mapOf("color" to "")) }
         coVerify(exactly = 0) { mockStorage.setCustomAttributesCache(any()) }
         coVerify(exactly = 0) { mockStorage.removeCustomAttributes(any()) }
@@ -878,7 +881,7 @@ class AppoxeeImplUnitTest {
             observersProvider.addObserver(observer)
         }
         coVerify {
-            observersProvider.notify(any(), any())
+            observersProvider.notifyIfUnnotified(observer, true, any())
         }
     }
 

@@ -10,17 +10,17 @@ import com.appoxee.internal.util.DispatchersProviderImpl
 import com.appoxee.internal.util.Logger
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 
 internal class InAppContainer(
     private val statsClient: StatsClient,
     private val actionContainer: ActionContainer,
+    scope: CoroutineScope,
 ) {
-    internal val dispatchersProvider: DispatchersProvider by lazy { DispatchersProviderImpl() }
-
-    private val scope = CoroutineScope(SupervisorJob() + CoroutineExceptionHandler { _, t ->
-        Logger.e(this.javaClass.name, t)
+    private val scope = CoroutineScope(scope.coroutineContext + CoroutineExceptionHandler { _, error ->
+        Logger.e(this.javaClass.name, error)
     })
+
+    internal val dispatchersProvider: DispatchersProvider by lazy { DispatchersProviderImpl() }
 
     private val nativeFactory: NativeFactory by lazy {
         NativeFactory(scope, dispatchersProvider, actionContainer)

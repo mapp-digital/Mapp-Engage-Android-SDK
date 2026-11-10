@@ -55,6 +55,9 @@ internal class AppoxeeContainer private constructor(
     internal var localPushBroadcast: Class<*>? = null
 
     internal val pushBroadcastMutex = Mutex()
+    internal val initializationMutex = Mutex()
+
+    internal val lifecycleCallbacksRegistration by lazy { LifecycleCallbacksRegistration() }
 
     internal val defaultExceptionHandler: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
