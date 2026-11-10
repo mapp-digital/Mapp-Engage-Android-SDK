@@ -80,6 +80,8 @@ public final class com.appoxee.shared.AppoxeeOptions {
   public final void setNotificationMode(com.appoxee.shared.NotificationMode);
   public java.lang.String toString();
   public final org.json.JSONObject toJSON$mapp_engage_sdk();
+  public final com.appoxee.shared.AppoxeeOptions engagementSnapshot$mapp_engage_sdk();
+  public final boolean sameEngagement$mapp_engage_sdk(com.appoxee.shared.AppoxeeOptions);
   public final boolean areEquals(com.appoxee.shared.AppoxeeOptions);
   public boolean equals(java.lang.Object);
   public int hashCode();
