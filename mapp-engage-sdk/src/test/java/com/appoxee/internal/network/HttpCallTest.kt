@@ -12,6 +12,8 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -90,5 +92,44 @@ class HttpCallTest {
         val sut = HttpCall(scope, call = { "ok" }, dispatchersProvider = dispatchersProvider)
         sut.execute()
         sut.execute()
+    }
+
+    @Test
+    fun `enqueue rejects a response invalidated between IO completion and main delivery`() = runTest {
+        val io = StandardTestDispatcher(testScheduler, "IO")
+        val main = StandardTestDispatcher(testScheduler, "Main")
+        val dispatchers = object : com.appoxee.internal.util.DispatchersProvider {
+            override val ioDispatcher = io
+            override val mainDispatcher = main
+            override val defaultDispatcher = io
+        }
+        val scope = CoroutineScope(SupervisorJob() + main)
+        var current = true
+        var executed = false
+        val callback = mockk<MappCallback<String>>(relaxed = true)
+        val sut = HttpCall(
+            scope = scope,
+            call = {
+                executed = true
+                // Runs before the completed response resumes on main.
+                scope.launch(io) { current = false }
+                "old channel response"
+            },
+            dispatchersProvider = dispatchers,
+            validateDelivery = { check(current) { "SDK channel changed" } }
+        )
+
+        try {
+            sut.enqueue(callback)
+            testScheduler.advanceUntilIdle()
+            assertThat(executed).isTrue()
+            verify(exactly = 1) {
+                callback.onResult(match {
+                    !it.isSuccess() && it.getError() is IllegalStateException
+                })
+            }
+        } finally {
+            scope.cancel()
+        }
     }
 }

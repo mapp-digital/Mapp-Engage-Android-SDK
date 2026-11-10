@@ -37,6 +37,7 @@ class MappInternalBroadcastReceiverUnitTest {
         sut = spyk(MappInternalBroadcastReceiver())
         mockContext = mockk<Context>(relaxed = true)
         appoxeeContainer = mockk<AppoxeeContainer>(relaxed = true)
+        every { appoxeeContainer.localPushBroadcast } returns null
         sut.setAppoxeeContainer(appoxeeContainer)
 
         mockkStatic(Log::class)

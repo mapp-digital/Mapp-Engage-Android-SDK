@@ -47,6 +47,9 @@ interface Appoxee {
          * Initialization method for the SDK.
          * This method must be called from a main thread.
          * Throws [IllegalAccessException] when called from a background thread
+         * Reuses a ready or initializing SDK when its configuration is unchanged.
+         * Calls without options retain the active configuration. Failed initialization
+         * can be retried; explicit configuration changes reinitialize the same instance.
          */
         @JvmStatic
         fun engage(
@@ -56,10 +59,19 @@ interface Appoxee {
             if (Thread.currentThread() != Looper.getMainLooper().thread) {
                 throw IllegalAccessException("Must be called from a main thread!")
             }
-            val instance =
-                instanceFactory(context.applicationContext as Application, options, dispatchersProvider)
+            val application = context.applicationContext as Application
             synchronized(instanceLock) {
-                mInstance = instance
+                val current = mInstance as? AppoxeeImpl
+                if (current != null) {
+                    require(current.application === application) {
+                        "Engage SDK is already associated with another Application"
+                    }
+                    current.reengage(options)
+                    return
+                }
+                // Capture mutable options before starting asynchronous work.
+                val requested = options?.engagementSnapshot()
+                mInstance = instanceFactory(application, requested, dispatchersProvider)
             }
             Logger.d(TAG, "engage(context=${context::class.java.name}, optionsProvided=${options != null})")
         }
@@ -281,6 +293,8 @@ interface Appoxee {
      * Register Broadcast receiver class from client application.
      * SDK will delegate events related to push messages to this class.
      * Client app can use those events to execute some custom actions.
+     * Registration takes effect in the current process before this method returns.
+     * The class is persisted asynchronously for use after a process restart.
      */
     fun <T : LocalPushBroadcast> setPushBroadcast(clazz: Class<T>)
 

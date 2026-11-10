@@ -13,7 +13,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import com.mapp.engagesample.configuration.SdkConfigurationFragment
 import com.appoxee.Appoxee
 import com.appoxee.internal.model.response.DevicePayload
 import com.appoxee.shared.AppoxeeObserver
@@ -30,6 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var permissionHelper: PermissionHelper
+    private var observedSdk: Appoxee? = null
 
     private val onBackPressedCallback =
         object : OnBackPressedCallback(supportFragmentManager.backStackEntryCount <= 1) {
@@ -58,6 +61,10 @@ class MainActivity : AppCompatActivity() {
     private val appoxeeObserver = AppoxeeObserver { status, mappResult ->
         if (!mappResult.isSuccess()) {
             runOnUiThread {
+                if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return@runOnUiThread
+                if (supportFragmentManager.findFragmentById(binding.fragmentContainerView.id) is SdkConfigurationFragment) {
+                    return@runOnUiThread
+                }
                 val errMessage = mappResult.getError()?.message ?: "Unknown message"
                 Util.showDialog(this@MainActivity, "Error", errMessage)
             }
@@ -89,14 +96,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         onBackPressedDispatcher.addCallback(this@MainActivity, onBackPressedCallback)
-        Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
-        Appoxee.instance().subscribe(appoxeeObserver)
-        navigate(HomeFragment())
+        if (savedInstanceState == null) navigate(HomeFragment())
     }
 
     override fun onStart() {
         super.onStart()
+        observedSdk = try {
+            Appoxee.instance()
+        } catch (_: NullPointerException) {
+            null
+        }
+        observedSdk?.subscribe(appoxeeObserver)
         requestPostNotificationPermission()
+    }
+
+    override fun onStop() {
+        observedSdk?.unsubscribe(appoxeeObserver)
+        observedSdk = null
+        super.onStop()
     }
 
     fun <T : Fragment> navigate(fragment: T) {

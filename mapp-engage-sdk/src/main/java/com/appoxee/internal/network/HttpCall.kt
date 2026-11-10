@@ -6,6 +6,7 @@ import com.appoxee.internal.util.Logger
 import com.appoxee.shared.MappCallback
 import com.appoxee.shared.MappResult
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -14,7 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class HttpCall<T>(
     private val scope: CoroutineScope,
     private val call: suspend () -> T,
-    private val dispatchersProvider: DispatchersProvider
+    private val dispatchersProvider: DispatchersProvider,
+    private val validateDelivery: () -> Unit = {},
 ) : Call<T> {
     private val executed = AtomicBoolean(false)
 
@@ -48,7 +50,18 @@ internal class HttpCall<T>(
                 executeWithErrorHandling()
             }
             withContext(dispatchersProvider.mainDispatcher) {
-                callback?.onResult(result)
+                // Configuration may change after I/O completes but before main handles its result.
+                val delivered: MappResult<T> = if (result.isSuccess()) {
+                    try {
+                        validateDelivery()
+                        result
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        MappResult.Error(error)
+                    }
+                } else result
+                callback?.onResult(delivered)
             }
         }
     }

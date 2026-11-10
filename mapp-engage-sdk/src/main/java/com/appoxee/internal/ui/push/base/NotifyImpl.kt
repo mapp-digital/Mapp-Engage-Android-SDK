@@ -40,6 +40,9 @@ class NotifyImpl(
         importance: Int
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Re-registering can lower importance or rename a channel. Preserve existing settings.
+            if (notificationManager.getNotificationChannel(channelId) != null) return
+
             notificationManager.createNotificationChannel(
                 NotificationChannel(
                     channelId,

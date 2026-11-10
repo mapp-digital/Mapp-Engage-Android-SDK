@@ -1,27 +1,26 @@
 package com.mapp.engagesample
 
 import android.app.Application
-import com.appoxee.Appoxee
-import com.appoxee.shared.AppoxeeOptions
-import com.appoxee.shared.NotificationMode
+import com.mapp.engagesample.configuration.EngageConfigurationClient
+import com.mapp.engagesample.configuration.SdkConfiguration
+import com.mapp.engagesample.configuration.SdkConfigurationManager
+import com.mapp.engagesample.configuration.SdkConfigurationPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class SampleApplication : Application() {
+    internal val sdkConfiguration: SdkConfigurationManager by lazy {
+        SdkConfigurationManager(
+            defaults = SdkConfiguration.buildDefaults(),
+            storage = SdkConfigurationPreferences(getSharedPreferences("sdk_configuration", MODE_PRIVATE)),
+            client = EngageConfigurationClient(this),
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+        )
+    }
 
     override fun onCreate() {
         super.onCreate()
-        val options: AppoxeeOptions = AppoxeeOptions(
-            server = AppoxeeOptions.Server.L3,
-            sdkKey = BuildConfig.MAPP_SDK_KEY,
-            tenantId = BuildConfig.MAPP_TENANT_ID,
-            appId = BuildConfig.MAPP_APP_ID,
-        ).also {
-            it.notificationMode = NotificationMode.BACKGROUND_AND_FOREGROUND
-            it.logType= AppoxeeOptions.LogLevel.DEBUG
-        }
-
-
-        Appoxee.engage(this, options)
-
-        Appoxee.instance().setPushBroadcast(MyPushBroadcast::class.java)
+        sdkConfiguration.start()
     }
 }

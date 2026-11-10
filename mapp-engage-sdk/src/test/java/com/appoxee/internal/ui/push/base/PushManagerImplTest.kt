@@ -2,6 +2,7 @@ package com.appoxee.internal.ui.push.base
 
 import TestDispatchersProvider
 import android.app.Notification
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import com.appoxee.internal.AppoxeeAdapter
@@ -88,6 +89,15 @@ class PushManagerImplTest {
     @After
     fun tearDown() {
         unmockkAll()
+    }
+
+    @Test
+    fun `channel creation requests HIGH importance for the selected channel`() {
+        sut.createNotificationChannel()
+
+        verify(exactly = 1) {
+            notify.createChannel("channel-id", "channel-name", NotificationManager.IMPORTANCE_HIGH)
+        }
     }
 
     @Test
