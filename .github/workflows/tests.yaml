@@ -24,4 +24,9 @@ jobs:
 
       # Published SDK artifacts are release builds, even in debuggable client apps.
       - name: Check logging with the release SDK variant
-        run: ./gradlew :mapp-engage-sdk:testProdReleaseUnitTest --tests com.appoxee.internal.util.LoggerTest --no-daemon --stacktrace
+        # AGP 9 otherwise creates unit test tasks only for the tested build type (debug).
+        run: >-
+          ./gradlew :mapp-engage-sdk:testProdReleaseUnitTest
+          --tests com.appoxee.internal.util.LoggerTest
+          -Pandroid.onlyEnableUnitTestForTheTestedBuildType=false
+          --no-daemon --stacktrace
