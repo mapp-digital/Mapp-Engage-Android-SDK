@@ -3,15 +3,13 @@ package com.appoxee.internal.util
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.util.Log
-import com.appoxee.sdk.BuildConfig
 import com.appoxee.shared.AppoxeeOptions.LogLevel
 
 internal class Logger private constructor(application: Application, logLevel: LogLevel) {
-    private val includeSensitiveDetails = BuildConfig.DEBUG &&
-        ((application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+    private val includeSensitiveDetails =
+        (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     private val isLoggingEnabled =
-        logLevel == LogLevel.RELEASE ||
-            ((application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+        logLevel == LogLevel.RELEASE || includeSensitiveDetails
 
     internal companion object {
         private const val REDACTED = "[details redacted]"

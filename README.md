@@ -225,6 +225,21 @@ cannot be reused. Retries and notification/logging-only changes retain queued pu
 | `appId` | App ID from Mapp Engage channel |
 | `tenantId` | Client's unique tenant identifier |
 | `notificationMode` | `BACKGROUND_ONLY` or `BACKGROUND_AND_FOREGROUND` |
+| `logType` | `AppoxeeOptions.LogLevel.DEBUG` (default) or `RELEASE` |
+
+### SDK Logging
+
+Set `options.logType` before calling `Appoxee.engage()` (Java:
+`options.setLogType(AppoxeeOptions.LogLevel.DEBUG)`). `DEBUG` enables SDK logs only
+when the host application is debuggable. `RELEASE` also enables logs in
+non-debuggable applications.
+
+Debuggable applications receive full diagnostics, including request/response URLs,
+bodies and exception details, even when using the published release SDK through
+React Native or Expo. Non-debuggable applications receive only redacted summaries;
+`RELEASE` does not enable full payload or exception logging in those applications.
+The logging setting is saved with the SDK options and restored when engaging
+without options.
 
 ### Get SDK Instance
 
