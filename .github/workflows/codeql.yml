@@ -41,11 +41,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
+      # The hosted runner includes Android command-line tools; use them directly
+      # because the enterprise action policy does not allow android-actions/setup-android.
+      - name: Install required Android SDK packages
         if: matrix.build-mode == 'manual'
-        uses: android-actions/setup-android@v4
-        with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.1.0'
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="${ANDROID_HOME}" \
+            "platform-tools" "platforms;android-36" "build-tools;36.1.0"
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
