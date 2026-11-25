@@ -106,6 +106,7 @@ extensions.configure<LibraryExtension> {
     }
 
     testOptions {
+        targetSdk = 36
         unitTests.isIncludeAndroidResources = false
     }
 
